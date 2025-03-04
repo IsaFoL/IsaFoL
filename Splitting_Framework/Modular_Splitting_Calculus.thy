@@ -400,8 +400,8 @@ proof (intro notI)
     by blast
 qed
 
-text \<open>We can lift inferences from @{const ARed\<^sub>I} to \<open>FRed\<^sub>I\<close>.\<close>
-interpretation lift_from_ARed_to_FRed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close>
+text \<open>We can lift inferences from \<open>FRed\<^sub>I\<close> to \<open>ARed\<^sub>I\<close>.\<close>
+interpretation lift_from_FRed_to_ARed: light_tiebreaker_lifting \<open>{to_AF bot}\<close> AInf \<open>{bot}\<close> \<open>(\<Turnstile>\<inter>)\<close>
   FInf FRed\<^sub>I FRed\<^sub>F \<open>\<G>\<^sub>F \<J>\<close> \<open>Some \<circ> \<G>\<^sub>I \<J>\<close> \<open>\<lambda>_. (\<sqsupset>)\<close>
 proof (standard)
   fix N
@@ -516,7 +516,7 @@ qed
 (* It was left as an exercice to check ARed\<^sub>I and FRed\<^sub>I\<^sup>\<inter>\<^sup>\<G> coincide, meaning that the set of 
  * redundant inferences according to ARed\<^sub>I is the same as the intersection of all sets of redundant
  *  inferences according to FRed\<^sub>I\<^sup>\<inter>\<^sup>\<G>. *)
-lemma ARed\<^sub>I_is_FRed\<^sub>I: \<open>ARed\<^sub>I \<N> = (\<Inter> J. lift_from_ARed_to_FRed.Red_I_\<G> J \<N>)\<close>
+lemma ARed\<^sub>I_is_FRed\<^sub>I: \<open>ARed\<^sub>I \<N> = (\<Inter> J. lift_from_FRed_to_ARed.Red_I_\<G> J \<N>)\<close>
 proof (intro subset_antisym subsetI)
   fix \<iota>
   assume \<open>\<iota> \<in> ARed\<^sub>I \<N>\<close>
@@ -532,18 +532,18 @@ proof (intro subset_antisym subsetI)
     unfolding \<G>\<^sub>F_def
     using \<iota>_in_FRed\<^sub>I \<iota>_is Union_of_enabled_projection_is_enabled_projection
     by auto
-  then have \<open>\<forall> J. \<iota> \<in> lift_from_ARed_to_FRed.Red_I_\<G> J \<N>\<close>
+  then have \<open>\<forall> J. \<iota> \<in> lift_from_FRed_to_ARed.Red_I_\<G> J \<N>\<close>
     using \<iota>_is_AInf
-    unfolding lift_from_ARed_to_FRed.Red_I_\<G>_def \<G>\<^sub>I_def
+    unfolding lift_from_FRed_to_ARed.Red_I_\<G>_def \<G>\<^sub>I_def
     by auto
-  then show \<open>\<iota> \<in> (\<Inter> J. lift_from_ARed_to_FRed.Red_I_\<G> J \<N>)\<close>
+  then show \<open>\<iota> \<in> (\<Inter> J. lift_from_FRed_to_ARed.Red_I_\<G> J \<N>)\<close>
     by blast
 next
   fix \<iota>
-  assume \<iota>_in_FRed\<^sub>I_\<G>: \<open>\<iota> \<in> (\<Inter> J. lift_from_ARed_to_FRed.Red_I_\<G> J \<N>)\<close>
+  assume \<iota>_in_FRed\<^sub>I_\<G>: \<open>\<iota> \<in> (\<Inter> J. lift_from_FRed_to_ARed.Red_I_\<G> J \<N>)\<close>
   then have \<iota>_is_AInf: \<open>\<iota> \<in> AInf\<close> and
             all_J_\<G>\<^sub>I_subset_FRed\<^sub>I: \<open>\<forall> J. \<G>\<^sub>I J \<iota> \<subseteq> FRed\<^sub>I (\<Union> (\<G>\<^sub>F J ` \<N>))\<close>
-    unfolding lift_from_ARed_to_FRed.Red_I_\<G>_def
+    unfolding lift_from_FRed_to_ARed.Red_I_\<G>_def
     by auto
   then obtain \<M> \<C> where \<iota>_is: \<open>\<iota> = base_inf \<M> \<C>\<close> and
                          Infer_\<M>_\<C>_is_Inf: \<open>base_pre \<M> \<C>\<close>
@@ -563,7 +563,7 @@ next
 qed
 
 (* Check that ARed\<^sub>F and FRed\<^sub>F\<^bsup>\<inter>\<G>,\<sqsupset>\<^esup> coincide *)
-lemma ARed\<^sub>F_is_FRed\<^sub>F: \<open>ARed\<^sub>F \<N> = (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
+lemma ARed\<^sub>F_is_FRed\<^sub>F: \<open>ARed\<^sub>F \<N> = (\<Inter> J. lift_from_FRed_to_ARed.Red_F_\<G> J \<N>)\<close>
 proof (intro subset_antisym subsetI)
   fix \<C>
   assume \<C>_in_ARed\<^sub>F: \<open>\<C> \<in> ARed\<^sub>F \<N>\<close>
@@ -575,8 +575,8 @@ proof (intro subset_antisym subsetI)
     using \<C>_in_ARed\<^sub>F \<C>_is
     unfolding ARed\<^sub>F_def SRed\<^sub>F_def
     by blast
-  then show \<open>\<C> \<in> (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
-    unfolding lift_from_ARed_to_FRed.Red_F_\<G>_def
+  then show \<open>\<C> \<in> (\<Inter> J. lift_from_FRed_to_ARed.Red_F_\<G> J \<N>)\<close>
+    unfolding lift_from_FRed_to_ARed.Red_F_\<G>_def
   proof (cases)
     case a
     then have \<open>\<forall> J. \<forall> D \<in> \<G>\<^sub>F J \<C>. D \<in> FRed\<^sub>F (\<Union> (\<G>\<^sub>F J ` \<N>))\<close>
@@ -606,10 +606,10 @@ proof (intro subset_antisym subsetI)
   qed
 next
   fix \<C>
-  assume \<C>_in_FRed\<^sub>F_\<G>: \<open>\<C> \<in> (\<Inter> J. lift_from_ARed_to_FRed.Red_F_\<G> J \<N>)\<close>
+  assume \<C>_in_FRed\<^sub>F_\<G>: \<open>\<C> \<in> (\<Inter> J. lift_from_FRed_to_ARed.Red_F_\<G> J \<N>)\<close>
   then have \<C>_in_FRed\<^sub>F_\<G>_unfolded:
     \<open>\<forall> J. \<forall> D \<in> \<G>\<^sub>F J \<C>. D \<in> FRed\<^sub>F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> D \<in> \<G>\<^sub>F J E)\<close>
-    unfolding lift_from_ARed_to_FRed.Red_F_\<G>_def
+    unfolding lift_from_FRed_to_ARed.Red_F_\<G>_def
     by blast
   then have \<C>_in_FRed\<^sub>F_\<G>_if_enabled:
     \<open>\<forall> J. enabled \<C> J \<longrightarrow> F_of \<C> \<in> FRed\<^sub>F (\<Union> (\<G>\<^sub>F J ` \<N>)) \<or> (\<exists> E \<in> \<N>. E \<sqsupset> \<C> \<and> F_of \<C> \<in> \<G>\<^sub>F J E)\<close>
@@ -631,15 +631,15 @@ next
 qed
 
 (* Check that both \<Turnstile>\<^sub>A\<^sub>F and \<Turnstile>\<^sub>\<G>\<^sup>\<inter> coincide *)
-lemma entails_is_entails_\<G>: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>} \<longleftrightarrow> (\<forall> \<J>. lift_from_ARed_to_FRed.entails_\<G> \<J> \<M> {\<C>})\<close>
+lemma entails_is_entails_\<G>: \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>} \<longleftrightarrow> (\<forall> \<J>. lift_from_FRed_to_ARed.entails_\<G> \<J> \<M> {\<C>})\<close>
 proof (intro iffI allI)
   fix \<J>
   assume \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>}\<close>
-  then show \<open>lift_from_ARed_to_FRed.entails_\<G> \<J> \<M> {\<C>}\<close>
+  then show \<open>lift_from_FRed_to_ARed.entails_\<G> \<J> \<M> {\<C>}\<close>
     unfolding \<G>\<^sub>F_def AF_entails_def enabled_projection_def enabled_set_def entails_conjunctive_def
     by (simp add: Union_of_singleton_is_setcompr)
 next
-  assume entails_\<G>_\<M>_\<C>: \<open>\<forall> \<J>. lift_from_ARed_to_FRed.entails_\<G> \<J> \<M> {\<C>}\<close>
+  assume entails_\<G>_\<M>_\<C>: \<open>\<forall> \<J>. lift_from_FRed_to_ARed.entails_\<G> \<J> \<M> {\<C>}\<close>
   show \<open>\<M> \<Turnstile>\<^sub>A\<^sub>F {\<C>}\<close>
     unfolding \<G>\<^sub>F_def AF_entails_def enabled_set_def
     proof (intro allI impI)
@@ -663,30 +663,30 @@ proof -
   fix N
 
   have And_to_Union:
-    \<open>\<And> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N \<subseteq> (\<Union> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N)\<close>
+    \<open>\<And> J. N - lift_from_FRed_to_ARed.Red_F_\<G> J N \<subseteq> (\<Union> J. N - lift_from_FRed_to_ARed.Red_F_\<G> J N)\<close>
     by blast
 
   assume N_entails_bot: \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
-  have \<open>lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow>
-         lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+  have \<open>lift_from_FRed_to_ARed.entails_\<G> J N {to_AF bot} \<Longrightarrow>
+         lift_from_FRed_to_ARed.entails_\<G> J (N - lift_from_FRed_to_ARed.Red_F_\<G> J N) {to_AF bot}\<close>
     for J
-    using lift_from_ARed_to_FRed.Red_F_Bot_F
+    using lift_from_FRed_to_ARed.Red_F_Bot_F
     by blast
   then have \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> N - ARed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
   proof -
     assume \<open>N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close> and
-           \<open>\<And> J. lift_from_ARed_to_FRed.entails_\<G> J N {to_AF bot} \<Longrightarrow>
-            lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+           \<open>\<And> J. lift_from_FRed_to_ARed.entails_\<G> J N {to_AF bot} \<Longrightarrow>
+            lift_from_FRed_to_ARed.entails_\<G> J (N - lift_from_FRed_to_ARed.Red_F_\<G> J N) {to_AF bot}\<close>
     then have FRed\<^sub>F_\<G>_entails_\<G>_bot:
-      \<open>lift_from_ARed_to_FRed.entails_\<G> J (N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+      \<open>lift_from_FRed_to_ARed.entails_\<G> J (N - lift_from_FRed_to_ARed.Red_F_\<G> J N) {to_AF bot}\<close>
       for J
       using entails_is_entails_\<G>
       by blast
     then have
-      \<open>lift_from_ARed_to_FRed.entails_\<G> J (\<Union> J. N - lift_from_ARed_to_FRed.Red_F_\<G> J N) {to_AF bot}\<close>
+      \<open>lift_from_FRed_to_ARed.entails_\<G> J (\<Union> J. N - lift_from_FRed_to_ARed.Red_F_\<G> J N) {to_AF bot}\<close>
       for J
       using And_to_Union
-      by (meson lift_from_ARed_to_FRed.entails_trans lift_from_ARed_to_FRed.subset_entailed)
+      by (meson lift_from_FRed_to_ARed.entails_trans lift_from_FRed_to_ARed.subset_entailed)
     then show \<open>N - ARed\<^sub>F N \<Turnstile>\<^sub>A\<^sub>F {to_AF bot}\<close>
       using ARed\<^sub>F_is_FRed\<^sub>F entails_is_entails_\<G>
       by fastforce
@@ -722,14 +722,14 @@ proof -
   fix N N'
   assume N'_subset_SRed\<^sub>F_N: \<open>N' \<subseteq> SRed\<^sub>F N\<close>
   have \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>F N \<subseteq> ARed\<^sub>F (N - N')\<close>
-    using lift_from_ARed_to_FRed.Red_F_of_Red_F_subset_F
+    using lift_from_FRed_to_ARed.Red_F_of_Red_F_subset_F
   proof -
     assume N'_subset_ARed\<^sub>F_N: \<open>N' \<subseteq> ARed\<^sub>F N\<close> and
-           \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<Longrightarrow>
-              lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> (N - N'))\<close>
-    then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<Longrightarrow>
-                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<subseteq>
-                    (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> (N - N'))\<close>
+           \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_FRed_to_ARed.Red_F_\<G> \<J> N \<Longrightarrow>
+              lift_from_FRed_to_ARed.Red_F_\<G> \<J> N \<subseteq> lift_from_FRed_to_ARed.Red_F_\<G> \<J> (N - N'))\<close>
+    then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_FRed_to_ARed.Red_F_\<G> \<J> N) \<Longrightarrow>
+                  (\<Inter> \<J>. lift_from_FRed_to_ARed.Red_F_\<G> \<J> N) \<subseteq>
+                    (\<Inter> \<J>. lift_from_FRed_to_ARed.Red_F_\<G> \<J> (N - N'))\<close>
       by (meson INF_mono' UNIV_I le_INF_iff)
     then show \<open>ARed\<^sub>F N \<subseteq> ARed\<^sub>F (N - N')\<close>
       using ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
@@ -744,14 +744,14 @@ proof -
   fix N N'
   assume N'_subset_SRed\<^sub>F_N: \<open>N' \<subseteq> SRed\<^sub>F N\<close>
   have works_for_ARed\<^sub>I: \<open>N' \<subseteq> ARed\<^sub>F N \<Longrightarrow> ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
-    using lift_from_ARed_to_FRed.Red_I_of_Red_F_subset_F
+    using lift_from_FRed_to_ARed.Red_I_of_Red_F_subset_F
   proof -
     assume N'_subset_ARed\<^sub>F_N: \<open>N' \<subseteq> ARed\<^sub>F N\<close> and
-           \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_ARed_to_FRed.Red_F_\<G> \<J> N \<Longrightarrow>
-               lift_from_ARed_to_FRed.Red_I_\<G> \<J> N \<subseteq> lift_from_ARed_to_FRed.Red_I_\<G> \<J> (N - N'))\<close>
-    then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_F_\<G> \<J> N) \<Longrightarrow>
-                  (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> N) \<subseteq>
-                    (\<Inter> \<J>. lift_from_ARed_to_FRed.Red_I_\<G> \<J> (N - N'))\<close>
+           \<open>(\<And> N' \<J> N. N' \<subseteq> lift_from_FRed_to_ARed.Red_F_\<G> \<J> N \<Longrightarrow>
+               lift_from_FRed_to_ARed.Red_I_\<G> \<J> N \<subseteq> lift_from_FRed_to_ARed.Red_I_\<G> \<J> (N - N'))\<close>
+    then have \<open>\<And> N' N. N' \<subseteq> (\<Inter> \<J>. lift_from_FRed_to_ARed.Red_F_\<G> \<J> N) \<Longrightarrow>
+                  (\<Inter> \<J>. lift_from_FRed_to_ARed.Red_I_\<G> \<J> N) \<subseteq>
+                    (\<Inter> \<J>. lift_from_FRed_to_ARed.Red_I_\<G> \<J> (N - N'))\<close>
       by (metis (no_types, lifting) INF_mono' UNIV_I le_INF_iff)
     then show \<open>ARed\<^sub>I N \<subseteq> ARed\<^sub>I (N - N')\<close>
       using ARed\<^sub>I_is_FRed\<^sub>I ARed\<^sub>F_is_FRed\<^sub>F N'_subset_ARed\<^sub>F_N
