@@ -809,7 +809,7 @@ sublocale strong_statically_complete_AF_calculus_lifting \<open>{#}\<close> F_In
 theorem strong_dynamic_comp: \<open>is_derivation core_LA_calculus.core.S_calculus.derive \<N>i \<Longrightarrow> 
   LA_is_AF_calculus.locally_fair \<N>i \<Longrightarrow> llhd \<N>i \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {to_AF {#}} \<Longrightarrow> 
   (\<exists> i. to_AF {#} \<in> llnth \<N>i i)\<close>
-  using core_LA_calculus.core.S_calculus_strong_dynamically_complete1[OF F_disj_complete] .
+  using core_LA_calculus.core.S_calculus_strong_dynamically_complete[OF F_disj_complete] .
 
 sublocale strong_dynamically_complete_AF_calculus_lifting \<open>{#}\<close> F_Inf "(\<TTurnstile>\<union>\<G>e)" "(\<TTurnstile>\<union>\<G>e)" F.empty_ord.Red_Red_I
   F.Red_F_\<G>_empty fml asn  core_LA_calculus.core.SInf core_LA_calculus.core.SRed\<^sub>I core_LA_calculus.core.SRed\<^sub>F

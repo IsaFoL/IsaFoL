@@ -1361,7 +1361,7 @@ lemma llhd_is_llnth_0: \<open>llhd S = llnth S 0\<close>
 
 
 (* Report theorem 28 (proof 1) *)
-theorem S_calculus_strong_dynamically_complete1:
+theorem S_calculus_strong_dynamically_complete:
   assumes F_statically_complete: \<open>statically_complete_calculus bot FInf (\<Turnstile>) FRed\<^sub>I FRed\<^sub>F\<close> and
           \<N>i_is_derivation: \<open>is_derivation S_calculus.derive \<N>i\<close> and
           \<N>i_is_locally_fair: \<open>locally_fair \<N>i\<close> and
