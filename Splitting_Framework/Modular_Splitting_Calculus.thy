@@ -20,7 +20,8 @@ text \<open>
   \<^item> \textsc{Unsat} replaces a set of prosopositionally unsatisfiable formulas with \<open>\<bottom>\<close>.
 \<close>
 
-locale core_splitting_calculus = AF_calculus_lifting bot FInf entails entails_sound FRed\<^sub>I FRed\<^sub>F fml asn
+locale annotated_calculus = calculus_with_annotated_consrel bot FInf entails entails_sound FRed\<^sub>I 
+  FRed\<^sub>F fml asn
   for bot :: 'f and
       FInf :: \<open>'f inference set\<close> and
       entails :: \<open>[ 'f set, 'f set ] \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
@@ -829,12 +830,12 @@ proof -
   qed
 qed
 
-end (* locale core_splitting_calculus *)
+end (* locale annotated_calculus *)
 
 
 subsection \<open>Standard completeness\<close>
 
-context core_splitting_calculus
+context annotated_calculus
 begin
 
 (* This is a bundle containing some rules which are mostly used together.
@@ -1399,7 +1400,7 @@ proof -
        (meson Liminf_llist_imp_exists_index)
 qed
 
-end (* context core_splitting_calculus *)
+end (* context annotated_calculus *)
 
 section \<open>Extensions: Inferences and simplifications\<close>
 
@@ -1521,7 +1522,7 @@ begin
 
 text \<open>
   Rule definitions follow a similar naming convention to our two inference rules
-  \textsc{Base} and \textsc{Unsat} defined in @{locale core_splitting_calculus}:
+  \textsc{Base} and \textsc{Unsat} defined in @{locale annotated_calculus}:
   $X\_simp$ is the definition of the simplification rule, while $X\_pre$ is some
   precondition which must hold for the rule to be applicable.
 \<close> 
@@ -1611,7 +1612,7 @@ sublocale AF_calc_ext: AF_calculus_extended bot SInf entails entails_sound
 end (* locale AF_calculus_with_split *)
 
 locale splitting_calculus =
-  core: core_splitting_calculus bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F fml asn 
+  core: annotated_calculus bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F fml asn 
   for bot :: 'f and
       Inf :: \<open>'f inference set\<close> and
       entails :: \<open>'f set \<Rightarrow> 'f set \<Rightarrow> bool\<close> (infix \<open>\<Turnstile>\<close> 50) and
@@ -1630,7 +1631,7 @@ interpretation SInf_sound_inf_system: sound_inference_system core.SInf \<open>to
 
 text \<open>
   Rule definitions follow a similar naming convention to our two inference rules
-  \textsc{Base} and \textsc{Unsat} defined in @{locale core_splitting_calculus}:
+  \textsc{Base} and \textsc{Unsat} defined in @{locale annotated_calculus}:
   $X\_simp$ is the definition of the simplification rule, while $X\_pre$ is some
   precondition which must hold for the rule to be applicable.
 \<close> 
@@ -2403,7 +2404,7 @@ begin
 
 text \<open>
   We follow the same naming conventions for our new inference rules as for the two inference rules
-  defined in @{locale core_splitting_calculus}.
+  defined in @{locale annotated_calculus}.
   $X\_inf$ defines the inference rule, while $X\_pre$ is the precondition for the application of
   the inference rule.
 \<close>
@@ -2727,8 +2728,8 @@ proof
   then have \<open>C \<in> S_from \<delta> - S_to \<delta>\<close>
     by blast
   then show \<open>C \<in> core.SRed\<^sub>F (\<M> \<union> S_to \<delta>)\<close>
-    using with_all.AF_calc_ext.simps_simp[OF d_in] by (meson core.core_splitting_calculus_axioms
-        core_splitting_calculus.SRed\<^sub>F_of_subset_F in_mono inf_sup_ord(4))
+    using with_all.AF_calc_ext.simps_simp[OF d_in] by (meson core.annotated_calculus_axioms
+        annotated_calculus.SRed\<^sub>F_of_subset_F in_mono inf_sup_ord(4))
 qed
 
 lemma opt_infs_in_derivations: \<open>\<iota> \<in> with_ATS.OptInfs_with_strong_unsat \<Longrightarrow> 

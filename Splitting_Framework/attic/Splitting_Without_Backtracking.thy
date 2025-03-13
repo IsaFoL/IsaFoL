@@ -949,7 +949,7 @@ interpretation LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<o
         LA_is_calculus.Red_I_of_Red_F_subset LA_is_calculus.Red_I_of_Inf_to_N
   by (unfold_locales, presburger+) 
 
-interpretation LA_is_AF_calculus: AF_calculus_lifting \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
+interpretation LA_is_AF_calculus: calculus_with_annotated_consrel \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
   F.empty_ord.Red_Red_I F.Red_F_\<G>_empty fml asn
 proof standard
   show \<open>\<And> M N. M \<TTurnstile>\<union>\<G>e N \<Longrightarrow> \<exists> M' \<subseteq> M. \<exists> N' \<subseteq> N. finite M' \<and> finite N' \<and> M' \<TTurnstile>\<union>\<G>e N'\<close>

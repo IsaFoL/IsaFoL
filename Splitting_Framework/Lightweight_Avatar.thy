@@ -723,7 +723,7 @@ interpretation LA_is_sound_calculus: sound_calculus \<open>{#}\<close> F_Inf \<o
         LA_is_calculus.Red_I_of_Red_F_subset LA_is_calculus.Red_I_of_Inf_to_N
   by (unfold_locales, presburger+)
 
-interpretation LA_is_AF_calculus: AF_calculus_lifting \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
+interpretation LA_is_AF_calculus: calculus_with_annotated_consrel \<open>{#}\<close> F_Inf \<open>(\<TTurnstile>\<union>\<G>e)\<close> \<open>(\<TTurnstile>\<union>\<G>e)\<close>
   F.empty_ord.Red_Red_I F.Red_F_\<G>_empty fml asn
 proof standard
   show \<open>\<And> C. \<forall> a \<in> asn C. {map_sign fml a} \<TTurnstile>\<union>\<G>e\<^sub>\<sim> {C}\<close>
@@ -781,9 +781,9 @@ sublocale LA: AF_calculus_extended \<open>to_AF {#}\<close>
   using with_BinSplit.AF_calc_ext.AF_calculus_extended_axioms .
 
 text \<open>
-   By Theorem @{thm core_splitting_calculus.S_calculus_statically_complete}, we can show that \<open>LA\<close> is
+   By Theorem @{thm annotated_calculus.S_calculus_statically_complete}, we can show that \<open>LA\<close> is
   statically complete, and therefore dynamically complete by Theorem
-  @{thm core_splitting_calculus.S_calculus_dynamically_complete}.
+  @{thm annotated_calculus.S_calculus_dynamically_complete}.
 \<close>
 
 
@@ -797,13 +797,16 @@ qed
 
 (* Local static completeness (as other forms of completeness, global, dynamic...)
    follows from static completeness of the base calculus *)
-theorem strong_static_comp: \<open>LA_is_AF_calculus.locally_saturated \<N> \<Longrightarrow> \<N> \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {to_AF {#}} \<Longrightarrow> to_AF {#} \<in> \<N>\<close>
+theorem strong_static_comp: 
+  \<open>LA_is_AF_calculus.locally_saturated \<N> \<Longrightarrow> \<N> \<Turnstile>\<union>\<G>e\<^sub>A\<^sub>F {to_AF {#}} \<Longrightarrow> to_AF {#} \<in> \<N>\<close>
   using core_LA_calculus.core.S_calculus_strong_statically_complete[OF F_disj_complete] .
 
-(* TODO:  - name the lemmas in Modular_Splitting_Calculi about integration of extra rules in derivations *)
+(* TODO:  - name the lemmas in Modular_Splitting_Calculi about integration of extra rules in
+   derivations *)
 
-sublocale strong_statically_complete_AF_calculus_lifting \<open>{#}\<close> F_Inf "(\<TTurnstile>\<union>\<G>e)" "(\<TTurnstile>\<union>\<G>e)" F.empty_ord.Red_Red_I
-  F.Red_F_\<G>_empty fml asn  core_LA_calculus.core.SInf core_LA_calculus.core.SRed\<^sub>I core_LA_calculus.core.SRed\<^sub>F
+sublocale strong_statically_complete_annotated_calculus \<open>{#}\<close> F_Inf "(\<TTurnstile>\<union>\<G>e)" "(\<TTurnstile>\<union>\<G>e)" 
+  F.empty_ord.Red_Red_I F.Red_F_\<G>_empty fml asn  core_LA_calculus.core.SInf 
+  core_LA_calculus.core.SRed\<^sub>I core_LA_calculus.core.SRed\<^sub>F
   using strong_static_comp by (unfold_locales, blast)
 
 theorem strong_dynamic_comp: \<open>is_derivation core_LA_calculus.core.S_calculus.derive \<N>i \<Longrightarrow> 
@@ -811,8 +814,9 @@ theorem strong_dynamic_comp: \<open>is_derivation core_LA_calculus.core.S_calcul
   (\<exists> i. to_AF {#} \<in> llnth \<N>i i)\<close>
   using core_LA_calculus.core.S_calculus_strong_dynamically_complete[OF F_disj_complete] .
 
-sublocale strong_dynamically_complete_AF_calculus_lifting \<open>{#}\<close> F_Inf "(\<TTurnstile>\<union>\<G>e)" "(\<TTurnstile>\<union>\<G>e)" F.empty_ord.Red_Red_I
-  F.Red_F_\<G>_empty fml asn  core_LA_calculus.core.SInf core_LA_calculus.core.SRed\<^sub>I core_LA_calculus.core.SRed\<^sub>F
+sublocale strong_dynamically_complete_annotated_calculus \<open>{#}\<close> F_Inf "(\<TTurnstile>\<union>\<G>e)" "(\<TTurnstile>\<union>\<G>e)" 
+  F.empty_ord.Red_Red_I F.Red_F_\<G>_empty fml asn  core_LA_calculus.core.SInf 
+  core_LA_calculus.core.SRed\<^sub>I core_LA_calculus.core.SRed\<^sub>F
   using strong_dynamic_comp by (unfold_locales, blast)
 
 

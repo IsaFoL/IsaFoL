@@ -484,7 +484,7 @@ definition F_of_Inf :: "(('f, 'v::countable) AF) inference \<Rightarrow> 'f infe
 
 section \<open>Lifting Calculi to Add Annotations\<close>
 
-locale AF_calculus_lifting = sound_calculus bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F
+locale calculus_with_annotated_consrel = sound_calculus bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F
   (* + propositional_interpretations \<J>*)
   for
     bot :: "'f" and
@@ -2639,10 +2639,10 @@ definition locally_fair :: \<open>('f, 'v) AF set infinite_llist \<Rightarrow> b
    \<or> (\<exists> J :: 'v total_interpretation. J \<Turnstile>\<^sub>p lim_inf \<N>i \<and>
         Inf_from (lim_inf \<N>i proj\<^sub>J J) \<subseteq> (\<Union> i. Red\<^sub>I (llnth \<N>i i proj\<^sub>J J)))\<close>
 
-end (* locale AF_calculus_lifting *)
+end (* locale calculus_with_annotated_consrel *)
 
-locale strong_statically_complete_AF_calculus_lifting =  
-  AF_calculus_lifting  bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F fml asn
+locale strong_statically_complete_annotated_calculus =  
+  calculus_with_annotated_consrel  bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F fml asn
   + S_calculus: calculus "to_AF bot" SInf AF_entails SRed\<^sub>I SRed\<^sub>F
   for
     bot :: "'f" and
@@ -2659,8 +2659,8 @@ locale strong_statically_complete_AF_calculus_lifting =
   + assumes
     strong_static_completeness: \<open>locally_saturated \<N> \<Longrightarrow> \<N> \<Turnstile>\<^sub>A\<^sub>F {to_AF bot} \<Longrightarrow> to_AF bot \<in> \<N>\<close>
 
-locale strong_dynamically_complete_AF_calculus_lifting =  
-  AF_calculus_lifting  bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F fml asn
+locale strong_dynamically_complete_annotated_calculus =  
+  calculus_with_annotated_consrel  bot Inf entails entails_sound Red\<^sub>I Red\<^sub>F fml asn
   + S_calculus: calculus "to_AF bot" SInf AF_entails SRed\<^sub>I SRed\<^sub>F
   for
     bot :: "'f" and
