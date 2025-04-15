@@ -193,7 +193,7 @@ proof (rule ccontr)
   }
   then have \<open>\<forall>j. R (F j) (F (Suc j))\<close> by blast
   then show False
-    using wf unfolding wfP_def wf_iff_no_infinite_down_chain by blast
+    using wf unfolding wf_iff_no_infinite_down_chain by blast
 qed
 
 lemma wf_exists_normal_form_full:

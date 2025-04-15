@@ -959,7 +959,7 @@ next
   proof -
     have \<open>{#Neg (L\<^sup>\<mapsto>\<^sup>0), Neg (L\<^sup>\<mapsto>\<^sup>1)#} \<in># clauses S\<close>
       using decided that
-      by (fastforce simp: penc_def additional_constraints_def additional_constraint_def)
+      by (auto 5 4 simp: penc_def additional_constraints_def additional_constraint_def add_mset_commute)
     then show False
       using decided(2) that
       apply (auto 7 4 simp: dpll_propagate.simps add_mset_eq_add_mset all_conj_distrib
@@ -975,7 +975,7 @@ next
   proof -
     have \<open>{#Neg (L\<^sup>\<mapsto>\<^sup>0), Neg (L\<^sup>\<mapsto>\<^sup>1)#} \<in># clauses S\<close>
       using decided that
-      by (fastforce simp: penc_def additional_constraints_def additional_constraint_def)
+      by (fastforce simp: penc_def additional_constraints_def additional_constraint_def add_mset_commute)
     then show False
       using decided(2) that
       apply (auto 7 4 simp: dpll_propagate.simps add_mset_eq_add_mset all_conj_distrib

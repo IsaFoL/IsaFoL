@@ -379,7 +379,7 @@ val unquery_var = perhaps (try (unprefix "?"))
 
 val is_long_identifier = forall Symbol_Pos.is_identifier o Long_Name.explode
 fun maybe_quote_with keywords quote y =
-  let val s = YXML.content_of y in
+  let val s = (YXML.parse_body #> XML.content_of) y in
     y |> ((not (is_long_identifier (unquote_tvar s)) andalso
            not (is_long_identifier (unquery_var s))) orelse
            Keyword.is_literal keywords s) ? quote
