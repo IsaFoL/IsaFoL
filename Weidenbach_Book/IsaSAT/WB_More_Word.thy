@@ -38,15 +38,11 @@ lemma bitOR_1_if_mod_2_nat:
 proof -
   have H: \<open>L OR 1 =  L + (if bin_last (int L) then 0 else 1)\<close>
     unfolding or_nat_def
-    apply (auto simp: or_nat_def bin_last_def xor_one_eq
+    by (auto simp: or_nat_def bin_last_def xor_one_eq
       bitXOR_1_if_mod_2_int)
-      apply presburger
-    done
   show \<open>L OR 1 = (if L mod 2 = 0 then L + 1 else L)\<close>
     unfolding H
-    apply (auto simp: or_nat_def bin_last_def)
-    apply presburger+
-    done
+    by (auto simp: or_nat_def bin_last_def) presburger
   then show \<open>L OR (Suc 0) = (if L mod 2 = 0 then L + 1 else L)\<close>
     by simp
 qed
