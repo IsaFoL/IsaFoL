@@ -3899,7 +3899,7 @@ proof -
     subgoal for opt1 CS opt2 CS'
       apply (rule IsaSAT_bounded_heur_model_if_sat[THEN order_trans, of CS _  opt1])
       subgoal by (rule H) auto
-        apply (auto simp: list_mset_rel_def mset_rel_def br_def
+        apply (auto simp: list_mset_rel_def
           br_def mset_rel_def p2rel_def rel_mset_def
           rel2p_def[abs_def] list_all2_op_eq_map_right_iff')
         done
