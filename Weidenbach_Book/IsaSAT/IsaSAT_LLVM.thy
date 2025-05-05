@@ -296,7 +296,7 @@ lemma IsaSAT_bounded_heur_alt_def:
         _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
         _ \<leftarrow> RETURN (IsaSAT_Profile.start_focused_mode);
         ASSERT(isasat_fast T);
-        _ \<leftarrow> isasat_current_progress 52 T;
+        _ \<leftarrow> isasat_current_progress 42 T;
         (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
         RETURN (b, if \<not>b \<and> get_conflict_wl_is_None_heur U then IsaSAT_Defs.extract_model_of_state_stat U
           else IsaSAT_Defs.extract_state_stat U)

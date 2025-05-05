@@ -88,7 +88,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
         _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
         _ \<leftarrow> RETURN (IsaSAT_Profile.start_focused_mode);
         ASSERT(isasat_fast T);
-        _ \<leftarrow> isasat_current_progress 52 T;
+        _ \<leftarrow> isasat_current_progress 42 T;
         (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
         let curr = get_restart_phase U;
         _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
