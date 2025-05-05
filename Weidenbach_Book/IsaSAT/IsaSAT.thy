@@ -3438,7 +3438,7 @@ lemma IsaSAT_bounded_heur_alt_def:
    }\<close>
   unfolding Let_def IsaSAT_bounded_heur_def init_state_wl_heur_fast_def
     bind_to_let_conv isasat_information_banner_def virtual_copy_def
-    id_apply IsaSAT_Profile.start_def IsaSAT_Profile.stop_def nres_monad1
+    id_apply IsaSAT_Profile.start_def IsaSAT_Profile.stop_def nres_monad1 isasat_current_progress_def
   unfolding
     convert_state_def de_Morgan_disj not_not if_not_swap
   by (auto intro!: bind_cong[OF refl] if_cong[OF refl] refl)
