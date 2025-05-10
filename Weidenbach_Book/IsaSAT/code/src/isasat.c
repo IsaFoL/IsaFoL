@@ -95,7 +95,7 @@ static void free_clause (CLAUSE *cl) {
   free(cl->clause);
 }
 
-int64_t IsaSAT_LLVM_IsaSAT_wrapped(CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CBOOL,int64_t, int64_t, CLAUSES);
+int64_t IsaSAT_LLVM_IsaSAT_wrapped(uint64_t, CBOOL, CBOOL, CBOOL, int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CBOOL,int64_t, int64_t, CLAUSES);
 
 CLAUSES new_clauses(int64_t size) {
   CLAUSES clauses;
@@ -951,6 +951,9 @@ READ_FILE:
   printf("c isasat-"); print_version(); printf("\n");
 
   CLAUSES clauses = parse();
+  uint64_t arena_size_hint = 5 * clauses.num_clauses; // guestimate overhead of headers
+  for (int i =0; i < clauses.num_clauses; ++i)
+    arena_size_hint += clauses.clauses[i].size;
 
   CLAUSE pc = new_clause();
   proof_clause = &pc;
@@ -967,7 +970,7 @@ READ_FILE:
   //      c B     47625262        274000         28925          2935            34          7082            11            22            11             0             7             0
 
 #endif
-  int64_t t = IsaSAT_LLVM_IsaSAT_wrapped(reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
+  int64_t t = IsaSAT_LLVM_IsaSAT_wrapped(arena_size_hint, reduce, restart, 1, restartint, restartmargin, 4, target_phases, fema,
 					 sema, unitinterval, subsume, reduceint, pureelimrounds, clauses);
   stop_profile(&total_prof);
 
