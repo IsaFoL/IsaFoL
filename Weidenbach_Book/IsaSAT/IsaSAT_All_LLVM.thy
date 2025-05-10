@@ -15,8 +15,8 @@ definition clauses_l_assn where
     (list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel)\<close>
 
 theorem IsaSAT_full_correctness:
-  \<open>(uncurry IsaSAT_code, uncurry (\<lambda>_. model_if_satisfiable_bounded))
-     \<in> [\<lambda>(_, a). (\<forall>C\<in>#a. \<forall>L\<in>#C. nat_of_lit L \<le> unat32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a clauses_l_assn\<^sup>d \<rightarrow>
+  \<open>(uncurry2 IsaSAT_code, uncurry2 (\<lambda>_ _. model_if_satisfiable_bounded))
+     \<in> [\<lambda>(_, a). (\<forall>C\<in>#a. \<forall>L\<in>#C. nat_of_lit L \<le> unat32_max)]\<^sub>a opts_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a clauses_l_assn\<^sup>d \<rightarrow>
       model_bounded_assn\<close>
   using IsaSAT_code.refine[FCOMP IsaSAT_bounded_heur_model_if_sat']
   unfolding model_bounded_assn_def clauses_l_assn_def

@@ -1600,7 +1600,7 @@ definition init_state_wl_heur :: \<open>nat multiset \<Rightarrow> twl_st_wl_heu
     RETURN (Tuple15 M [] D 0 W vm \<phi> 0 cach lbd vdom ivdom False lcount mark)}\<close>
 
 definition init_state_wl_heur_fast where
-  \<open>init_state_wl_heur_fast = init_state_wl_heur\<close>
+  \<open>init_state_wl_heur_fast _ = init_state_wl_heur\<close>
 
 (* TODO Move *)
 lemma clss_size_empty [simp]: \<open>clss_size fmempty {#} {#} {#} {#} {#} {#} {#} {#} = (0, 0 ,0, 0, 0)\<close>
@@ -2002,8 +2002,8 @@ definition init_trail_D_fast where
   \<open>init_trail_D_fast = init_trail_D\<close>
 
 
-definition init_state_wl_D' :: \<open>nat list \<times> nat \<Rightarrow>  (twl_st_wl_heur_init) nres\<close> where
-  \<open>init_state_wl_D' = (\<lambda>(\<A>\<^sub>i\<^sub>n, n). do {
+definition init_state_wl_D' :: \<open>nat \<Rightarrow> nat list \<times> nat \<Rightarrow>  (twl_st_wl_heur_init) nres\<close> where
+  \<open>init_state_wl_D' = (\<lambda>size_arena_hint (\<A>\<^sub>i\<^sub>n, n). do {
      ASSERT(Suc (2 * (n)) \<le> unat32_max);
      let n = Suc (n);
      let m = 2 * n;
@@ -2108,12 +2108,12 @@ lemma to_tuple_eq_iff[iff]: \<open>to_tuple S = to_tuple T \<longleftrightarrow>
   by (cases S; cases T) auto
  
 lemma init_state_wl_D0:
-  \<open>(init_state_wl_D', init_state_wl_heur) \<in>
-    [\<lambda>N. N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
-      lits_with_max_rel O \<langle>Id\<rangle>mset_rel \<rightarrow>
+  \<open>(uncurry init_state_wl_D', uncurry (\<lambda>_. init_state_wl_heur)) \<in>
+    [\<lambda>(_, N). N = \<A>\<^sub>i\<^sub>n \<and> distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
+      nat_rel \<times>\<^sub>f lits_with_max_rel O \<langle>Id\<rangle>mset_rel \<rightarrow>
       \<langle>\<langle>Id, Id, Id, nat_rel, \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel,
            Id, \<langle>bool_rel\<rangle>list_rel, Id, Id, Id, Id, Id, Id, Id, Id\<rangle>tuple15_rel\<rangle>nres_rel\<close>
-  (is \<open>?C \<in> [?Pre]\<^sub>f ?arg \<rightarrow> \<langle>?im\<rangle>nres_rel\<close>)
+  (is \<open>?C \<in> [\<lambda>(_, N). ?Pre N]\<^sub>f _ \<times>\<^sub>f ?arg \<rightarrow> \<langle>?im\<rangle>nres_rel\<close>)
 proof -
   have init_state_wl_heur_alt_def: \<open>init_state_wl_heur \<A>\<^sub>i\<^sub>n = do {
     M \<leftarrow> SPEC (\<lambda>M. (M, []) \<in> trail_pol \<A>\<^sub>i\<^sub>n);
@@ -2260,20 +2260,23 @@ proof -
   show ?thesis
     apply (intro frefI nres_relI)
     subgoal for x y
-    unfolding init_state_wl_heur_alt_def init_state_wl_D'_def
+    unfolding init_state_wl_heur_alt_def init_state_wl_D'_def uncurry_def
     apply (rewrite in \<open>let _ = Suc _in _\<close> Let_def)
     apply (rewrite in \<open>let _ = 2 * _in _\<close> Let_def)
     apply (cases x; simp only: prod.case)
-    apply (refine_rcg init[of y x] initialize_Bump_Init[where \<A>=\<A>\<^sub>i\<^sub>n, THEN fref_to_Down_curry, of _ \<open>Suc (snd x)\<close>] cach)
+    apply (cases y; simp only: prod.case)
+    apply (subst (asm) prod_rel_iff)
+    apply (refine_rcg init[of "snd y" "snd x"] initialize_Bump_Init[where \<A>=\<A>\<^sub>i\<^sub>n, THEN fref_to_Down_curry, of _ \<open>Suc (snd (snd x))\<close>] cach)
     subgoal for a b by (auto simp: lits_with_max_rel_def intro: le_uint32)
     subgoal by (auto intro!: simp: in_\<L>\<^sub>a\<^sub>l\<^sub>l_atm_of_\<A>\<^sub>i\<^sub>n
      lits_with_max_rel_def atms_of_\<L>\<^sub>a\<^sub>l\<^sub>l_\<A>\<^sub>i\<^sub>n)
     subgoal by auto
     subgoal by auto
     subgoal by auto
-    subgoal by (rule conflict)
-    subgoal by (rule mark)
-    subgoal by (rule RETURN_rule) (rule H; simp only:)
+    subgoal by auto
+    subgoal by (rule conflict) blast+
+    subgoal by (rule mark) blast+
+    subgoal by (rule RETURN_rule) (rule H; auto simp only:)
     subgoal using in_N0 by (auto simp: lits_with_max_rel_def P_def)
     subgoal by simp
     subgoal by (auto simp: lits_with_max_rel_def)
@@ -2282,7 +2285,7 @@ proof -
     subgoal unfolding phase_saving_def lits_with_max_rel_def by (auto intro!: K)
     subgoal by fast
     subgoal by (auto simp: lits_with_max_rel_def)
-      apply assumption
+      apply blast
     apply (rule refl)
     subgoal by (auto simp: P_def init_rll_def option_lookup_clause_rel_def
           lookup_clause_rel_def lits_with_max_rel_def tuple15_rel_def
@@ -2293,14 +2296,16 @@ proof -
 qed
 
 lemma init_state_wl_D':
-  \<open>(init_state_wl_D', init_state_wl_heur) \<in>
-    [\<lambda>\<A>\<^sub>i\<^sub>n. distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
-      lits_with_max_rel O \<langle>Id\<rangle>mset_rel \<rightarrow>
+  \<open>(uncurry init_state_wl_D', uncurry (\<lambda>_. init_state_wl_heur)) \<in>
+    [\<lambda>(n, \<A>\<^sub>i\<^sub>n). distinct_mset \<A>\<^sub>i\<^sub>n \<and> isasat_input_bounded \<A>\<^sub>i\<^sub>n]\<^sub>f
+      nat_rel \<times>\<^sub>f lits_with_max_rel O \<langle>Id\<rangle>mset_rel \<rightarrow>
       \<langle>\<langle>Id, Id, Id, nat_rel, \<langle>\<langle>Id\<rangle>list_rel\<rangle>list_rel,
            Id, \<langle>bool_rel\<rangle>list_rel, Id, Id, Id, Id, Id, Id, Id, Id\<rangle>tuple15_rel\<rangle>nres_rel\<close>
   apply -
   apply (intro frefI nres_relI)
-  by (rule init_state_wl_D0[THEN fref_to_Down, THEN order_trans])  auto
+  subgoal for x y
+    by (rule init_state_wl_D0[where \<A>\<^sub>i\<^sub>n = \<open>snd y\<close>, THEN fref_to_Down, THEN order_trans]) auto
+  done
 
 lemma init_state_wl_heur_init_state_wl':
   \<open>(init_state_wl_heur, RETURN o (\<lambda>_. init_state_wl))

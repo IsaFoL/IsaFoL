@@ -286,7 +286,7 @@ definition update_restart_mode :: \<open>isasat \<Rightarrow> isasat nres\<close
           heur \<leftarrow> RETURN (if curr = STABLE_MODE then incr_restart_phase_and_length_end lim heur else incr_restart_phase_end lim heur);
           heur \<leftarrow> RETURN (swap_emas heur);
           let lcount = get_learned_count S;
-          let (open, close) = (if curr = STABLE_MODE then (91, 125) else (123, 93));
+          let (open, close) = (if curr = STABLE_MODE then (91, 125) else (93, 123));
           let _ = isasat_print_progress close curr stats lcount;
           _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));
           _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.start_focused_mode) else RETURN (IsaSAT_Profile.start_stable_mode));

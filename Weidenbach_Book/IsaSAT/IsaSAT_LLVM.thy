@@ -216,13 +216,17 @@ sepref_def isasat_fast_init_code
 sepref_register
    cdcl_twl_stgy_restart_prog_wl_heur
 
+lemma init_state_wl_heur_fast_uncurry:
+  \<open>uncurry init_state_wl_heur_fast = uncurry (\<lambda>_. init_state_wl_heur)\<close>
+  by (auto simp: init_state_wl_heur_fast_def)
+
 declare init_state_wl_D'_code.refine[FCOMP init_state_wl_D',
-  unfolded lits_with_max_assn_alt_def[symmetric] init_state_wl_heur_fast_def[symmetric],
+  unfolded lits_with_max_assn_alt_def[symmetric] init_state_wl_heur_fast_uncurry[symmetric],
   unfolded init_state_wl_D'_code_isasat, sepref_fr_rules]
 
-lemma [sepref_fr_rules]: \<open>(init_state_wl_D'_code, init_state_wl_heur_fast)
-\<in> [\<lambda>x. distinct_mset x \<and>
-       (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x. nat_of_lit L \<le> unat32_max)]\<^sub>a lits_with_max_assn\<^sup>k \<rightarrow> isasat_init_assn\<close>
+lemma [sepref_fr_rules]: \<open>(uncurry init_state_wl_D'_code, uncurry init_state_wl_heur_fast)
+\<in> [\<lambda>(_, x). distinct_mset x \<and>
+       (\<forall>L\<in>#\<L>\<^sub>a\<^sub>l\<^sub>l x. nat_of_lit L \<le> unat32_max)]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a lits_with_max_assn\<^sup>k \<rightarrow> isasat_init_assn\<close>
   using init_state_wl_D'_code.refine[FCOMP init_state_wl_D']
   unfolding lits_with_max_assn_alt_def[symmetric] init_state_wl_D'_code_isasat
     init_state_wl_heur_fast_def
@@ -265,7 +269,7 @@ schematic_goal mk_free_ghost_assn[sepref_frame_free_rules]: \<open>MK_FREE ghost
   by synthesize_free
 
 lemma IsaSAT_bounded_heur_alt_def:
-  \<open>IsaSAT_bounded_heur opts CS = do{
+  \<open>IsaSAT_bounded_heur opts size_hint CS = do{
     _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
@@ -274,7 +278,7 @@ lemma IsaSAT_bounded_heur_alt_def:
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
     let b = opts_unbounded_mode opts;
-    S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
+    S \<leftarrow> init_state_wl_heur_fast size_hint \<A>\<^sub>i\<^sub>n';
     (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur_b CS S;
     let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
     _ \<leftarrow> RETURN (IsaSAT_Profile.stop_initialisation);
@@ -304,12 +308,12 @@ lemma IsaSAT_bounded_heur_alt_def:
     }
     else do {mop_free CS; RETURN (True, empty_init_code)}
         }\<close>
-  unfolding mop_free_def
- by (auto simp: IsaSAT_bounded_heur_def cong: if_cong)
+  unfolding mop_free_def 
+  by (auto simp: isasat_current_progress_def IsaSAT_bounded_heur_def init_state_wl_heur_fast_def Let_def cong: if_cong)
 
 sepref_def IsaSAT_code
-  is \<open>uncurry IsaSAT_bounded_heur\<close>
-  :: \<open>opts_assn\<^sup>d *\<^sub>a (clauses_ll_assn)\<^sup>d \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a model_stat_assn\<close>
+  is \<open>uncurry2 IsaSAT_bounded_heur\<close>
+  :: \<open>opts_assn\<^sup>d *\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>d \<rightarrow>\<^sub>a bool1_assn \<times>\<^sub>a model_stat_assn\<close>
   supply [[goals_limit=1]] isasat_fast_init_def[simp]
   unfolding IsaSAT_bounded_heur_alt_def empty_conflict_def[symmetric]
     get_conflict_wl_is_None (*extract_model_of_state_def[symmetric]*)
@@ -327,20 +331,20 @@ sepref_def IsaSAT_code
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 
-
+find_theorems init_state_wl_heur_fast
 sepref_register print_forward_rounds print_forward_subsumed print_forward_strengthened
 
 abbreviation (input) C_bool_to_bool :: \<open>8 word \<Rightarrow> bool\<close> where
   \<open>C_bool_to_bool g \<equiv> g \<noteq> 0\<close>
 
-definition IsaSAT_bounded_heur_wrapper :: \<open>8 word \<Rightarrow> 8 word \<Rightarrow> 8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow>
+definition IsaSAT_bounded_heur_wrapper :: \<open>nat \<Rightarrow> 8 word \<Rightarrow> 8 word \<Rightarrow> 8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> nat \<Rightarrow>
   8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> 8 word \<Rightarrow> 64 word \<Rightarrow> 64 word \<Rightarrow> _ \<Rightarrow> (nat) nres\<close>where
-  \<open>IsaSAT_bounded_heur_wrapper red res unbdd mini res1 res2 target_option fema sema units subsume reduceint purerounds C = do {
+  \<open>IsaSAT_bounded_heur_wrapper size_hint red res unbdd mini res1 res2 target_option fema sema units subsume reduceint purerounds C = do {
       let opts = IsaOptions (C_bool_to_bool red) (C_bool_to_bool res)
          (C_bool_to_bool unbdd) (C_bool_to_bool subsume) mini res1 res2
          (if target_option = 2 then TARGET_ALWAYS else if target_option = 0 then TARGET_NEVER else TARGET_STABLE_ONLY)
          fema sema units reduceint purerounds;
-      (b, (b', _, stats)) \<leftarrow> IsaSAT_bounded_heur (opts) C;
+      (b, (b', _, stats)) \<leftarrow> IsaSAT_bounded_heur (opts) size_hint  C;
       let (_ :: unit) = print_propa (stats_propagations stats);
       let (_ :: unit) = print_confl (stats_conflicts stats);
       let (_ :: unit) = print_dec (stats_decisions stats);
@@ -372,8 +376,8 @@ abbreviation bool_C_assn where
    \<open>bool_C_assn \<equiv> (word_assn' (TYPE(8)))\<close>
 
 sepref_def IsaSAT_wrapped
-  is \<open>uncurry13 IsaSAT_bounded_heur_wrapper\<close>
-  :: \<open>bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
+  is \<open>uncurry14 IsaSAT_bounded_heur_wrapper\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>abool_C_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
       (snat_assn' (TYPE(64)))\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a
       word64_assn\<^sup>k *\<^sub>a bool_C_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a word64_assn\<^sup>k *\<^sub>a (clauses_ll_assn)\<^sup>d \<rightarrow>\<^sub>a sint64_nat_assn\<close>
   supply [[goals_limit=1]] if_splits[split]
@@ -434,7 +438,7 @@ lemmas [llvm_code del] = units_since_last_GC_st_code_def
 export_llvm
     llvm_version is \<open>STRING_VERSION llvm_version()\<close>
     IsaSAT_code
-    IsaSAT_wrapped (*is \<open>int64_t IsaSAT_wrapped(CBOOL, CBOOL, CBOOL,
+    IsaSAT_wrapped (*is \<open>int64_t IsaSAT_wrapped(uint64_t, CBOOL, CBOOL, CBOOL,
         int64_t, int64_t, int64_t, CBOOL, int64_t, int64_t, int64_t, CLAUSES)\<close>*)
     IsaSAT_Profile_PROPAGATE is \<open>PROFILE_CST IsaSAT_Profile_PROPAGATE()\<close>
     IsaSAT_Profile_REDUCE is \<open>PROFILE_CST IsaSAT_Profile_REDUCE()\<close>

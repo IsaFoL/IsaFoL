@@ -58,8 +58,8 @@ definition extract_state_stat :: \<open>isasat \<Rightarrow> bool \<times> nat l
 definition empty_conflict :: \<open>nat literal list option\<close> where
   \<open>empty_conflict = Some []\<close>
 
-definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> (bool \<times> nat literal list \<times> isasat_stats)) nres\<close> where
-  \<open>IsaSAT_bounded_heur opts CS = do{
+definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> (bool \<times> nat literal list \<times> isasat_stats)) nres\<close> where
+  \<open>IsaSAT_bounded_heur opts size_hint CS = do{
     _ \<leftarrow> RETURN (IsaSAT_Profile.start_initialisation);
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
@@ -68,7 +68,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
     ASSERT(distinct_mset \<A>\<^sub>i\<^sub>n');
     let \<A>\<^sub>i\<^sub>n'' = virtual_copy \<A>\<^sub>i\<^sub>n';
     let b = opts_unbounded_mode opts;
-    S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
+    S \<leftarrow> init_state_wl_heur_fast size_hint \<A>\<^sub>i\<^sub>n';
     (T::twl_st_wl_heur_init) \<leftarrow> init_dt_wl_heur_b CS S;
     let T = convert_state \<A>\<^sub>i\<^sub>n'' T;
     if isasat_fast_init T \<and> \<not>is_failed_heur_init T
@@ -89,6 +89,7 @@ definition IsaSAT_bounded_heur :: \<open>opts \<Rightarrow> nat clause_l list \<
         _ \<leftarrow> RETURN (IsaSAT_Profile.start_focused_mode);
         ASSERT(isasat_fast T);
         _ \<leftarrow> isasat_current_progress 42 T;
+        _ \<leftarrow> isasat_current_progress 173 T;
         (b, U) \<leftarrow> cdcl_twl_stgy_restart_prog_bounded_wl_heur T;
         let curr = get_restart_phase U;
         _ \<leftarrow> (if curr = STABLE_MODE then RETURN (IsaSAT_Profile.stop_stable_mode) else RETURN (IsaSAT_Profile.stop_focused_mode));

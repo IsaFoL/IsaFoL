@@ -1531,8 +1531,8 @@ definition IsaSAT_use_fast_mode where
   \<open>IsaSAT_use_fast_mode = True\<close>
 
 
-definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> isasat_stats) nres\<close> where
-  \<open>IsaSAT_heur opts CS = do{
+definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat \<Rightarrow> nat clause_l list \<Rightarrow> (bool \<times> nat literal list \<times> isasat_stats) nres\<close> where
+  \<open>IsaSAT_heur opts size_hint CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
@@ -1560,7 +1560,7 @@ definition IsaSAT_heur :: \<open>opts \<Rightarrow> nat clause_l list \<Rightarr
          }
     }
     else do {
-        S \<leftarrow> init_state_wl_heur_fast \<A>\<^sub>i\<^sub>n';
+        S \<leftarrow> init_state_wl_heur_fast size_hint \<A>\<^sub>i\<^sub>n';
         (T::twl_st_wl_heur_init, _) \<leftarrow> init_dt_wl_heur False CS (S, []);
         let failed = is_failed_heur_init T \<or> \<not>isasat_fast_init T;
         if failed then do {
@@ -1658,7 +1658,7 @@ lemma all_lits_of_mm_extract_atms_clss:
 
 
 lemma IsaSAT_heur_alt_def:
-  \<open>IsaSAT_heur opts CS = do{
+  \<open>IsaSAT_heur opts size_hint CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
@@ -1873,7 +1873,7 @@ lemma twl_st_heur_parsing_no_WL_wl_twl_st_heur_parsing_no_WL_init:
 
 
 lemma IsaSAT_heur_IsaSAT:
-  \<open>IsaSAT_heur b CS \<le> \<Down>model_stat_rel (IsaSAT CS)\<close>
+  \<open>IsaSAT_heur b size_hint CS \<le> \<Down>model_stat_rel (IsaSAT CS)\<close>
 proof -
   have init_dt_wl_heur: \<open>init_dt_wl_heur True CS (S, []) \<le>
        \<Down>{((S, _), T). (S,T) \<in> twl_st_heur_parsing_no_WL \<A> True O {(S, T). S = remove_watched T \<and>
@@ -2392,7 +2392,7 @@ lemma SAT0'_SAT':
 lemma IsaSAT_heur_model_if_sat:
   assumes
     \<open>isasat_input_bounded (mset_set (\<Union>C\<in>set CS. atm_of ` set C))\<close>
-  shows \<open>IsaSAT_heur opts CS \<le> \<Down> model_stat_rel (model_if_satisfiable (mset `# mset CS))\<close>
+  shows \<open>IsaSAT_heur opts size_hint CS \<le> \<Down> model_stat_rel (model_if_satisfiable (mset `# mset CS))\<close>
   apply (rule IsaSAT_heur_IsaSAT[THEN order_trans])
   apply (rule order_trans)
   apply (rule ref_two_step')
@@ -2419,9 +2419,9 @@ lemma IsaSAT_heur_model_if_sat:
   apply (auto simp: model_stat_rel_def)
   done
 
-lemma IsaSAT_heur_model_if_sat': \<open>(uncurry IsaSAT_heur, uncurry (\<lambda>_. model_if_satisfiable)) \<in>
+lemma IsaSAT_heur_model_if_sat': \<open>(uncurry2 IsaSAT_heur, uncurry2 (\<lambda>_ _. model_if_satisfiable)) \<in>
    [\<lambda>(_, CS). (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> unat32_max)]\<^sub>f
-     Id \<times>\<^sub>r list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>model_stat_rel\<rangle>nres_rel\<close>
+     Id \<times>\<^sub>f Id \<times>\<^sub>f list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>model_stat_rel\<rangle>nres_rel\<close>
 proof -
   have H: \<open>isasat_input_bounded (mset_set (\<Union>C\<in>set CS. atm_of ` set C))\<close>
     if CS_p: \<open>\<forall>C\<in>#CS'. \<forall>L\<in>#C. nat_of_lit L \<le> unat32_max\<close> and
@@ -2450,8 +2450,8 @@ proof -
     apply (intro frefI nres_relI)
     unfolding uncurry_def
     apply clarify
-    subgoal for opt1 CS opt2 CS'
-    apply (rule IsaSAT_heur_model_if_sat[THEN order_trans, of CS _ \<open>opt1\<close>])
+    subgoal for hint1 opt1 CS hint2 opt2 CS'
+    apply (rule IsaSAT_heur_model_if_sat[THEN order_trans, of CS _ _ \<open>opt1\<close>])
     subgoal by (rule H) auto
     apply (auto simp: list_mset_rel_def mset_rel_def br_def
       br_def mset_rel_def p2rel_def rel_mset_def
@@ -3405,7 +3405,7 @@ definition empty_conflict_code' :: \<open>(bool \<times> _ list \<times> isasat_
 
 
 lemma IsaSAT_bounded_heur_alt_def:
-  \<open>IsaSAT_bounded_heur opts CS = do{
+  \<open>IsaSAT_bounded_heur opts size_hint CS = do{
     ASSERT(isasat_input_bounded (mset_set (extract_atms_clss CS {})));
     ASSERT(\<forall>C\<in>set CS. \<forall>L\<in>set C. nat_of_lit L \<le> unat32_max);
     let \<A>\<^sub>i\<^sub>n' = mset_set (extract_atms_clss CS {});
@@ -3444,7 +3444,7 @@ lemma IsaSAT_bounded_heur_alt_def:
   by (auto intro!: bind_cong[OF refl] if_cong[OF refl] refl)
 
 lemma IsaSAT_heur_bounded_IsaSAT_bounded:
-  \<open>IsaSAT_bounded_heur b CS \<le> \<Down>(bool_rel \<times>\<^sub>f model_stat_rel) (IsaSAT_bounded CS)\<close>
+  \<open>IsaSAT_bounded_heur b size_hint CS \<le> \<Down>(bool_rel \<times>\<^sub>f model_stat_rel) (IsaSAT_bounded CS)\<close>
 proof -
   have init_dt_wl_heur: \<open>init_dt_wl_heur_unb CS S \<le>
        \<Down>(twl_st_heur_parsing_no_WL \<A> True O {(S, T). S = remove_watched T \<and>
@@ -3834,7 +3834,7 @@ lemma ISASAT_bounded_SAT_l_bounded':
 lemma IsaSAT_bounded_heur_model_if_sat:
   assumes 
     \<open>isasat_input_bounded (mset_set (\<Union>C\<in>set CS. atm_of ` set C))\<close>
-  shows \<open>IsaSAT_bounded_heur opts CS \<le> \<Down> {((b, m), (b', m')). b=b' \<and> (\<not>b \<longrightarrow> (m,m') \<in> model_stat_rel)}
+  shows \<open>IsaSAT_bounded_heur opts size_hint CS \<le> \<Down> {((b, m), (b', m')). b=b' \<and> (\<not>b \<longrightarrow> (m,m') \<in> model_stat_rel)}
      (model_if_satisfiable_bounded (mset `# mset CS))\<close>
   apply (rule IsaSAT_heur_bounded_IsaSAT_bounded[THEN order_trans])
   apply (rule order_trans)
@@ -3865,7 +3865,7 @@ lemma IsaSAT_bounded_heur_model_if_sat:
   done
 
 lemma IsaSAT_bounded_heur_model_if_sat':
-  \<open>(uncurry IsaSAT_bounded_heur, uncurry (\<lambda>_. model_if_satisfiable_bounded)) \<in>
+  \<open>(uncurry2 IsaSAT_bounded_heur, uncurry2 (\<lambda>_ _. model_if_satisfiable_bounded)) \<in>
    [\<lambda>(_, CS). (\<forall>C\<in>#CS. \<forall>L\<in>#C. nat_of_lit L \<le> unat32_max)]\<^sub>f
      Id \<times>\<^sub>r list_mset_rel O \<langle>list_mset_rel\<rangle>mset_rel \<rightarrow> \<langle>{((b, m), (b', m')). b=b' \<and> (\<not>b \<longrightarrow> (m,m') \<in> model_stat_rel)}\<rangle>nres_rel\<close>
 proof -
@@ -3896,8 +3896,8 @@ proof -
     apply (intro frefI nres_relI)
     unfolding uncurry_def
     apply clarify
-    subgoal for opt1 CS opt2 CS'
-      apply (rule IsaSAT_bounded_heur_model_if_sat[THEN order_trans, of CS _  opt1])
+    subgoal for hint1 opt1 CS hint2 opt2 CS'
+      apply (rule IsaSAT_bounded_heur_model_if_sat[THEN order_trans, of CS _ _  opt1])
       subgoal by (rule H) auto
         apply (auto simp: list_mset_rel_def
           br_def mset_rel_def p2rel_def rel_mset_def

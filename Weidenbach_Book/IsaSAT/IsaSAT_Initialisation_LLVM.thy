@@ -1160,12 +1160,12 @@ sepref_def combine_lcount_impl
 sepref_register empty_mark_struct combine_conflict combine_ccach combine_lcount
 
 lemma init_state_wl_D'_alt_def:
-  \<open>init_state_wl_D' = (\<lambda>(\<A>\<^sub>i\<^sub>n, n). do {
+  \<open>init_state_wl_D' = (\<lambda>m (\<A>\<^sub>i\<^sub>n, n). do {
      ASSERT(Suc (2 * (n)) \<le> unat32_max);
      let n = Suc (n);
      let m = 2 * n;
      M \<leftarrow> init_trail_D \<A>\<^sub>i\<^sub>n n m;
-     let N = [];
+     let N = take 0 (replicate m (APos 0));
      let D = combine_conflict (True, 0, replicate n NOTIN);
      let mark = (0, replicate n None);
      let WS = replicate m [];
@@ -1181,8 +1181,8 @@ lemma init_state_wl_D'_alt_def:
    unfolding combine_conflict_def combine_ccach_def init_state_wl_D'_def combine_lcount_def by auto
 
 sepref_definition init_state_wl_D'_code
-  is \<open>init_state_wl_D'\<close>
-  :: \<open>(arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
+  is \<open>uncurry init_state_wl_D'\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a (arl64_assn atom_assn \<times>\<^sub>a uint32_nat_assn)\<^sup>k \<rightarrow>\<^sub>a isasat_init_assn\<close>
   supply[[goals_limit=1]]
   unfolding init_state_wl_D'_alt_def PR_CONST_def init_trail_D_fast_def[symmetric]  Suc_eq_plus1_left
     NoMark_def[symmetric] empty_mark_struct_def[symmetric] of_nat_snat[sepref_import_param]
@@ -1195,8 +1195,9 @@ sepref_definition init_state_wl_D'_code
   apply (rewrite at \<open>let _= \<hole>; _=_;_=_;_ = _;_=_; _ = _ in RETURN _\<close> annotate_assn[where A=\<open>phase_saver_assn\<close>])
   apply (rewrite in \<open>let _= \<hole>; _=_;_=_;_ = _; _= _; _=_ in RETURN _\<close> larray_fold_custom_replicate)
   apply (rewrite in \<open>let _= combine_conflict(True, _, \<hole>) in  _\<close> array_fold_custom_replicate)
+  apply (rewrite in \<open>let _ = take 0 \<hole> in let _ = combine_conflict (True, _, _) in _\<close> al_fold_custom_replicate(1))
+  apply (rewrite at \<open>APos \<hole>\<close> annot_snat_unat_downcast[where 'l=32])
   unfolding array_fold_custom_replicate
-  apply (rewrite at \<open>let _ = \<hole> in let _ = combine_conflict (True, _, _) in _\<close> al_fold_custom_empty[where 'l=64])
   apply (rewrite in \<open>let _= combine_conflict (True, \<hole>, _) in _\<close> unat_const_fold[where 'a=32])
   apply (rewrite at \<open>let _ = \<hole> in _\<close> annotate_assn[where A=\<open>arena_fast_assn\<close>])
   apply (rewrite at \<open>let _= \<hole>; _ = _ ; _ =_ in RETURN _\<close> annotate_assn[where A = \<open>vdom_fast_assn\<close>])
