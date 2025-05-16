@@ -503,7 +503,7 @@ FILE * read_pipe (const char * fmt,
 void LLVM_DS_NArray_narray_free1(int32_t *);
 
 void print_version() {
-  printf("sc2024, internally:");
+  printf("sc2025, internally:");
   int32_t* version = llvm_version();
   while(*version) {
     printf("%c", (char)*version);
