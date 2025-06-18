@@ -144,12 +144,15 @@ proof -
   ultimately show ?thesis by blast
 qed
 
+
 subsubsection \<open>Adding invariants\<close>
+
 paragraph \<open>Invariant tested in the function\<close>
+
 function DPLL_ci :: "int dpll\<^sub>W_ann_lits \<Rightarrow> int literal list list
   \<Rightarrow> int dpll\<^sub>W_ann_lits \<times> int literal list list" where
 "DPLL_ci Ms N =
-  (if \<not>dpll\<^sub>W_all_inv (Ms, mset (map mset N))
+  (if \<not>dpll\<^sub>W_all_inv (toS Ms N)
   then (Ms, N)
   else
    let (Ms', N') = DPLL_step (Ms, N) in
@@ -449,6 +452,36 @@ lemma [code]:
 "DPLL_tot S =
   (let S' = DPLL_step' S in
    if S' = S then S else DPLL_tot S')" by auto
+
+definition DPLL_trail where
+  \<open>DPLL_trail S = fst (rough_state_of S)\<close>
+
+lemma DPLL_step'_eq_iff_trail_length: \<open>DPLL_step' S = S \<longleftrightarrow> count_decided (DPLL_trail S) = count_decided (DPLL_trail (DPLL_step' S)) \<and>
+  length (DPLL_trail (DPLL_step' S)) = length (DPLL_trail S)\<close>
+proof -
+  have [dest]: \<open>backtrack_split x1 = (x1a, x21a # x22) \<Longrightarrow> count_decided x1 \<noteq> count_decided x22\<close> for x1 x1a x21a x22
+    by (metis add.left_neutral backtrack_split_fst_not_decided
+    backtrack_split_list_eq backtrack_split_snd_hd_decided
+    cancel_comm_monoid_add_class.diff_cancel count_decided_0_iff
+    count_decided_append count_decided_cons lessI list.sel(1) list.simps(3)
+    not_gr0 prod.sel(2) zero_less_diff)
+  let ?S' = \<open>rough_state_of S\<close>
+  have H: \<open>dpll⇩W_all_inv (toS (fst (DPLL_step ?S')) (snd (DPLL_step ?S')))\<close>
+    using DPLL_step_dpll⇩W_conc_inv[of S]
+    by auto
+  have [dest]: \<open>rough_state_of S = (x1, x2) \<Longrightarrow> state_of (x1, x2) = S\<close> for x1 x2
+    by (metis rough_state_of_inverse)
+  show ?thesis
+    by (auto simp: Let_def  DPLL_step'_def DPLL_trail_def DPLL_step_def split: prod.splits option.splits list.splits simp del: DPLL_tot.simps)
+      (use H in \<open>auto simp add: DPLL_step_def  dpll\<^sub>W_state.state_of_inverse split: prod.splits option.splits list.splits if_splits\<close>)
+qed
+
+lemma [code]:
+"DPLL_tot S =
+  (let k = count_decided (DPLL_trail S); S' = DPLL_step' S in
+  if length (DPLL_trail S') = length (DPLL_trail S) \<and> count_decided (DPLL_trail S') = k then S else DPLL_tot S')"
+  by (subst DPLL_tot.simps)
+   (auto simp: Let_def DPLL_step'_eq_iff_trail_length  simp del: DPLL_tot.simps)
 
 lemma DPLL_tot_DPLL_step_DPLL_tot[simp]: "DPLL_tot (DPLL_step' S) = DPLL_tot S"
   apply (cases "DPLL_step' S = S")
