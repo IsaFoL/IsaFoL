@@ -3,7 +3,6 @@ theory LN_HO_Term
     Main
     "HOL-Library.Uprod"
     "HOL-Library.Multiset"
-    "First_Order_Terms.Term"
     "HOL-ex.Sketch_and_Explore"
 begin
 

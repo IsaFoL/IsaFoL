@@ -1,5 +1,7 @@
 theory First_Order_to_Higher_Order_Terms
-  imports LN_HO_Term
+  imports
+    "First_Order_Terms.Term"
+    LN_HO_Term
 begin
 
 primrec foterm_to_hoterm :: "('f, 'v) Term.term \<Rightarrow> ('f, 'v) LN_HO_Term.term"  where
