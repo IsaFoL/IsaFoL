@@ -1,0 +1,8 @@
+session Locally_Nameless_Lambda_Calculus = HOL +
+  options [document = pdf, document_output = "output"]
+  sessions
+    First_Order_Terms
+  theories
+    LN_HO_Term
+  document_files
+    "root.tex"
