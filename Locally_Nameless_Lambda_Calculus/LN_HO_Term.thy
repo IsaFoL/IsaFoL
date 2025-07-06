@@ -58,7 +58,7 @@ lemma subst_bound_subst_bound_Free_idem[simp]:
   "subst_bound n u (subst_bound n (Free x) t) = subst_bound n (Free x) t"
   by (induction t arbitrary: n) simp_all
 
-lemma subst_free_idem_if_not_in_vars[simp]: "x \<notin> vars_term t \<Longrightarrow> subst_free x u t = t"
+lemma subst_free_ident_if_not_in_vars[simp]: "x \<notin> vars_term t \<Longrightarrow> subst_free x u t = t"
   by (induction t) simp_all
 
 lemma subst_bound_idem_if_subst_bound_subst_bound_idem:
@@ -76,7 +76,7 @@ next
     by force
 qed simp_all
 
-lemma subst_bound_idem_if_locally_closed:
+lemma subst_bound_ident_if_locally_closed:
   fixes t :: "('f, 'v) term"
   assumes inf_vars: "infinite (UNIV :: 'v set)"
   assumes "locally_closed t"
@@ -151,7 +151,7 @@ next
   then show ?case
     unfolding subst_bound.simps
     by (cases "x = z")
-      (simp_all add: subst_bound_idem_if_locally_closed[OF inf_vars \<open>locally_closed u\<close>])
+      (simp_all add: subst_bound_ident_if_locally_closed[OF inf_vars \<open>locally_closed u\<close>])
 next
   case (Bound i)
   then show ?case
@@ -230,9 +230,9 @@ lemma body_Abs_if_body:
   apply (induction t)
       apply (simp_all add: locally_closed.intros)
     apply (metis Abs subst_bound.simps(3))
-  using subst_bound_idem_if_locally_closed[OF inf_vars]
+  using subst_bound_ident_if_locally_closed[OF inf_vars]
    apply (metis Abs subst_bound.simps(4,5))
-  using subst_bound_idem_if_locally_closed[OF inf_vars]
+  using subst_bound_ident_if_locally_closed[OF inf_vars]
   by (metis Abs subst_bound.simps(5))
 
 lemma locally_closed_subst_bound:
