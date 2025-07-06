@@ -45,11 +45,11 @@ inductive locally_closed :: "('c, 'f) term \<Rightarrow> bool" where
   Abs: "locally_closed (Abs t)"
     if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> locally_closed (subst_bound 0 (Free x) t)"
 
-lemma locally_closed_App_iff: "locally_closed (App t\<^sub>1 t\<^sub>2) \<longleftrightarrow> locally_closed t\<^sub>1 \<and> locally_closed t\<^sub>2"
-  by (auto elim: locally_closed.cases intro: locally_closed.App)
-
 definition body where
   "body t \<longleftrightarrow> (\<exists>\<X>. \<forall>x. x |\<notin>| \<X> \<longrightarrow> locally_closed (subst_bound 0 (Free x) t))"
+
+lemma locally_closed_App_iff: "locally_closed (App t\<^sub>1 t\<^sub>2) \<longleftrightarrow> locally_closed t\<^sub>1 \<and> locally_closed t\<^sub>2"
+  by (auto elim: locally_closed.cases intro: locally_closed.App)
 
 lemma locall_closed_Abs_iff_body: "locally_closed (Abs t) \<longleftrightarrow> body t"
   by (metis Abs LN_HO_Term.term.simps(13,19,25) body_def locally_closed.cases term.sel(6))
@@ -57,6 +57,9 @@ lemma locall_closed_Abs_iff_body: "locally_closed (Abs t) \<longleftrightarrow> 
 lemma subst_bound_subst_bound_Free_idem[simp]:
   "subst_bound n u (subst_bound n (Free x) t) = subst_bound n (Free x) t"
   by (induction t arbitrary: n) simp_all
+
+lemma subst_free_idem_if_not_in_vars[simp]: "x \<notin> vars_term t \<Longrightarrow> subst_free x u t = t"
+  by (induction t) simp_all
 
 lemma subst_bound_idem_if_subst_bound_subst_bound_idem:
   "i \<noteq> j \<Longrightarrow>
