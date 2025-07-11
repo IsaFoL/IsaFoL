@@ -3,6 +3,7 @@ session Locally_Nameless_Lambda_Calculus = HOL +
   sessions
     First_Order_Terms
   theories
-    LN_HO_Term
+    LN_Lambda_Term
+    LN_Lambda_Typing
   document_files
     "root.tex"

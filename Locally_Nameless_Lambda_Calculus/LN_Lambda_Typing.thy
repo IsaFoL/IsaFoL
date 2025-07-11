@@ -1,6 +1,6 @@
-theory LN_HO_Typing
+theory LN_Lambda_Typing
   imports
-    LN_HO_Term
+    LN_Lambda_Term
 begin
 
 datatype ('\<alpha>, '\<kappa>) ty =

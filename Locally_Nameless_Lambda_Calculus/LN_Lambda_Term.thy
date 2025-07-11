@@ -1,4 +1,4 @@
-theory LN_HO_Term
+theory LN_Lambda_Term
   imports
     Main
     "HOL-Library.Uprod"
