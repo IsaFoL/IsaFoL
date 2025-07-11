@@ -5,5 +5,6 @@ session Locally_Nameless_Lambda_Calculus = HOL +
   theories
     LN_Lambda_Term
     LN_Lambda_Typing
+    First_Order_to_Higher_Order_Terms
   document_files
     "root.tex"
