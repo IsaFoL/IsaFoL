@@ -368,9 +368,6 @@ proof (induction \<F> t \<tau> rule: has_type.induct)
   qed
 qed (auto intro: locally_closed.intros)
 
-lemma free_vars_subst_bound_subset: "free_vars (subst_bound n u t) \<subseteq> free_vars t \<union> free_vars u"
-  by (induction t arbitrary: n) auto
-
 lemma has_type_weaken_funenv:
   "has_type \<C> \<F> t \<tau>\<^sub>1 \<Longrightarrow> x \<notin> free_vars t \<Longrightarrow> has_type \<C> (\<F>(x := \<tau>\<^sub>2)) t \<tau>\<^sub>1"
 proof (induction \<F> t \<tau>\<^sub>1 rule: has_type.induct)
@@ -443,7 +440,7 @@ next
     unfolding subst_free.simps
   proof (rule has_type.Abs)
     fix y
-    assume y_in: "y |\<notin>| finsert x (Abs_fset (free_vars t \<union> free_vars u) |\<union>| \<X>)"
+    assume y_in: "y |\<notin>| finsert x (free_vars_fset t |\<union>| free_vars_fset u |\<union>| \<X>)"
 
     then have "x \<noteq> y"
       by blast
@@ -460,8 +457,7 @@ next
         using Abs.prems \<open>x \<noteq> y\<close> by simp
     next
       have "y \<notin> free_vars u"
-        by (metis y_in finite_vars_term mem_Collect_eq finsertCI finite_Un Abs_fset_inverse Un_iff
-            funionI1)
+      by (metis y_in free_vars_fset.rep_eq[of u] funion_finsert_left[of x] funionCI[of y])
 
       then show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) u \<tau>\<^sub>2"
         using Abs.prems has_type_weaken_funenv by metis

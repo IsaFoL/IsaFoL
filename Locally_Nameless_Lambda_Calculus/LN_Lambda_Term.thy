@@ -16,12 +16,30 @@ datatype (type_symbols: '\<tau>, const_symbols: '\<Sigma>, free_vars: '\<V>) pre
   is_App: App "('\<tau>, '\<Sigma>, '\<V>) preterm" "('\<tau>, '\<Sigma>, '\<V>) preterm" |
   is_Abs: Abs "'\<tau>" "('\<tau>, '\<Sigma>, '\<V>) preterm"
 
+lemma finite_vars_term: "finite (free_vars t)"
+  by (induction t) simp_all
+
+declare fset_of_list.rep_eq[termination_simp]
+
+fun free_vars_fset :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> '\<V> fset" where
+  "free_vars_fset (Const _ _ ts) = ffUnion (free_vars_fset |`| fset_of_list ts)" |
+  "free_vars_fset (Free x) = {|x|}" |
+  "free_vars_fset (Bound _) = {||}" |
+  "free_vars_fset (App t\<^sub>1 t\<^sub>2) = free_vars_fset t\<^sub>1 |\<union>| free_vars_fset t\<^sub>2" |
+  "free_vars_fset (Abs _ t) = free_vars_fset t"
+
+lemma free_vars_rep_eq: "fset (free_vars_fset t) = free_vars t"
+  by (induction t) (simp_all add: ffUnion.rep_eq fimage.rep_eq fset_of_list.rep_eq)
+
 primrec subst_bound :: "nat \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
   "subst_bound n t (Const c \<tau>s ts) = Const c \<tau>s ts"|
   "subst_bound n t (Free f) = Free f" |
   "subst_bound n t (Bound k) = (if k = n then t else Bound k)" |
   "subst_bound n t (App t\<^sub>1 t\<^sub>2) = App (subst_bound n t t\<^sub>1) (subst_bound n t t\<^sub>2)" |
   "subst_bound n t (Abs \<tau> t\<^sub>1) = Abs \<tau> (subst_bound (Suc n) t t\<^sub>1)"
+
+lemma free_vars_subst_bound_subset: "free_vars (subst_bound n u t) \<subseteq> free_vars t \<union> free_vars u"
+  by (induction t arbitrary: n) auto
 
 inductive locally_closed :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
   Const: "locally_closed (Const c \<tau>s ts)"
@@ -31,9 +49,6 @@ inductive locally_closed :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> b
     if "locally_closed t\<^sub>1" and "locally_closed t\<^sub>2" |
   Abs: "locally_closed (Abs \<tau> t)"
     if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> locally_closed (subst_bound 0 (Free x) t)"
-
-lemma finite_vars_term: "finite (free_vars t)"
-  by (induction t) simp_all
 
 primrec subst_free
   :: "'\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
