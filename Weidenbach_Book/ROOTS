@@ -2,6 +2,7 @@ Entailment_Definition
 CDCL
 Normalisation
 Resolution_Superposition
+Stochastic_Local_Search
 Watched_Literals
 IsaSAT
 Weidenbach_Book_Base

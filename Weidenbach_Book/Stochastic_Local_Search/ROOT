@@ -1,0 +1,18 @@
+chapter Weidenbach_Book
+
+session "Stochastic_Local_Search" (Weidenbach_Book) = "HOL"  +
+  description \<open>This session contains all theories related to formalization
+  of local search\<close>
+  options [document = pdf, document_output = "output"]
+  sessions
+    Nested_Multisets_Ordinals
+    Weidenbach_Book_Base
+    Entailment_Definition
+  theories [quick_and_dirty = false, document = true]
+    Local_Search
+    Local_Search_Watch
+    Local_Search_Watch_List
+
+  document_files
+    "root.tex"
+    "biblio.bib"
