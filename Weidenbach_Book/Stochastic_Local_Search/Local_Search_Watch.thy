@@ -29,8 +29,8 @@ type_synonym 'a single_w_clss = \<open>'a single_w_cls multiset\<close>
 (*sls_state: M, N, br*)
 type_synonym 'a sls_watch_state = \<open>'a literal set \<times> 'a single_w_clss \<times> 'a clauses\<close>
 
-abbreviation broken :: \<open>'a sls_watch_state \<Rightarrow> 'a clauses\<close> where
-  \<open>broken S \<equiv> (snd (snd S))\<close>
+abbreviation sls_broken :: \<open>'a sls_watch_state \<Rightarrow> 'a clauses\<close> where
+  \<open>sls_broken S \<equiv> (snd (snd S))\<close>
 
 abbreviation sls2w_clss :: \<open>'a sls_watch_state \<Rightarrow> 'a single_w_clss\<close> where
   \<open>sls2w_clss S \<equiv> fst (snd S)\<close>
@@ -46,7 +46,7 @@ updating watch list:
   if other true literal l' exists:
      change watched literal
   else:
-    add clause to broken
+    add clause to sls_broken
 
 Because each clause has only one watched literal only the watched_lit is changed
 The update is local and consumes exactly one single_w_cls -> for all watch lists use reflexive-transitive closure @{term"(update_flip_watched L)\<^sup>*\<^sup>* "} 
@@ -57,19 +57,18 @@ inductive update_flip_watched :: \<open>'a literal \<Rightarrow> 'a sls_watch_st
   other_true_literal:
   \<open>L' \<in># clause_of C \<and> L' \<in> fst S \<Longrightarrow>
      update_flip_watched L (S, add_mset (C:: 'a single_w_cls) WL)
-            ((fst S, sls2w_clss S - {#C#} + {#WC L' (remove1_mset L' (clause_of C))#}, broken S), WL)\<close>
-| (*broken clauses*)
-  broken_clause:
+            ((fst S, sls2w_clss S - {#C#} + {#WC L' (remove1_mset L' (clause_of C))#}, sls_broken S), WL)\<close> |
+ sls_broken_clause:
   \<open>(\<forall>L'. L' \<in># clause_of C \<longrightarrow> L' \<notin> fst S) \<Longrightarrow>
      update_flip_watched L (S, add_mset C WL)
-       ((fst S, sls2w_clss S - {#C#}, add_mset (clause_of C) (broken S)), WL)\<close>
+       ((fst S, sls2w_clss S - {#C#}, add_mset (clause_of C) (sls_broken S)), WL)\<close>
 
 
 text\<open>
 - \<forall> C \<in> br:
   if -L \<in> C: br - {#C#} and -L := {#C#} + watch -L
 -Updating the watch list is done incrementally with update_flip_watched,
-  so there is no need for a complete new computation of broken clauses or watch lists
+  so there is no need for a complete new computation of sls_broken clauses or watch lists
   only local changes
 \<close>
 
@@ -102,7 +101,7 @@ were made by filtering, which was error prone. Also, the invariant had to be che
 The current version makes it easier to define the invariant without searching for a literal and clause.
 
 conditions:
-- all C in broken S are unsatisfied by the current model fst S
+- all C in sls_broken S are unsatisfied by the current model fst S
 - for every watched clause C in sls2w_clss S, the watched_lit C is present in the model fst S\<close>
   (*
 Invariant: 
@@ -116,7 +115,7 @@ Invariant:
 definition sls_watch_invariant :: \<open>'a sls_watch_state \<Rightarrow> bool\<close> where
   \<open>sls_watch_invariant S \<equiv> 
     (sls_invariant (convert_sls_watch_state S)) \<and>
-    (\<forall>C \<in># broken S. \<not>(fst S \<Turnstile> C)) \<and>
+    (\<forall>C \<in># sls_broken S. \<not>(fst S \<Turnstile> C)) \<and>
     (\<forall>C \<in># sls2w_clss S. watched_lit C \<in> fst S)
  \<close>
 
@@ -129,13 +128,14 @@ fun invariant_flipping:: \<open> 'a literal \<Rightarrow> 'a sls_watch_state \<t
     (sls_invariant (convert_sls_watch_state_step (S,WL))) \<and>
     (\<forall>C \<in># sls2w_clss S - WL. watched_lit C \<in> fst S) \<and>
     (\<forall>C \<in>#  WL. watched_lit C = L) \<and>
-    (\<forall>C \<in># broken S. \<not>(fst S \<Turnstile> C)) \<and> 
+    (\<forall>C \<in># sls_broken S. \<not>(fst S \<Turnstile> C)) \<and> 
      WL \<subseteq># sls2w_clss S \<and> 
     -L \<in> fst S
  \<close>
-  (*broken updated before*)
 
-lemma helper: \<open> N +A  -
+context
+begin
+private lemma helper: \<open> N +A  -
                {#Ca \<in># N. watched_lit C = watched_lit Ca#} =
   {#Ca \<in># N. watched_lit C \<noteq> watched_lit Ca#} + A\<close>
   by (metis mset_remove_filtered mset_subset_eq_multiset_union_diff_commute
@@ -162,7 +162,7 @@ lemma sls_watch_invariant_fststep_update_flip_watched:
     apply (metis atm_of_uminus atms_of_s_insert insert_Diff total_over_m_alt_def)
    apply (auto simp: total_over_m_def total_over_set_def uminus_lit_swap atms_of_ms_def)
   done
-
+end
 
 lemma sls_watch_invariant_nostep_update_flip_watched:
   assumes \<open>invariant_flipping L (S, {#})\<close>
@@ -171,13 +171,13 @@ lemma sls_watch_invariant_nostep_update_flip_watched:
 
 
 lemma sls_watch_invariant_update_flip_watched:
-  assumes  \<open>update_flip_watched L S S'\<close> \<open>invariant_flipping L S\<close>
+  assumes \<open>update_flip_watched L S S'\<close> \<open>invariant_flipping L S\<close>
   shows \<open>invariant_flipping L S'\<close> using assms
 proof (induction rule: update_flip_watched.induct)
   case (other_true_literal L' C S L WL)
   have [simp]: \<open>add_mset (clause_of C) 
-       (clause_of `# remove1_mset C (sls2w_clss S) + Local_Search_Watch.broken S) =
-     clause_of `# sls2w_clss S + Local_Search_Watch.broken S\<close>
+       (clause_of `# remove1_mset C (sls2w_clss S) + Local_Search_Watch.sls_broken S) =
+     clause_of `# sls2w_clss S + Local_Search_Watch.sls_broken S\<close>
     by (metis (no_types, lifting) Local_Search_Watch.invariant_flipping_def add_mset_remove_trivial_iff insert_subset_eq_iff
         msed_map_invL other_true_literal.prems union_mset_add_mset_left)
   have H: \<open>Ca \<in># add_mset (WC L' (remove1_mset L' (clause_of C))) (remove1_mset C (sls2w_clss S)) - WL ==>
@@ -192,18 +192,18 @@ proof (induction rule: update_flip_watched.induct)
      apply (auto dest!: H)[]
     by (metis insert_subset_eq_iff subset_mset_imp_subset_add_mset)
 next
-  case (broken_clause C S L WL)
+  case (sls_broken_clause C S L WL)
   have [simp]: \<open>Ca \<in># sls2w_clss S - WL \<longleftrightarrow> Ca\<in># sls2w_clss S - add_mset C WL \<or> Ca = C\<close> for Ca
-    by (smt (verit, ccfv_threshold) Local_Search_Watch.invariant_flipping_def add_mset_add_single broken_clause.prems
+    by (smt (verit, ccfv_threshold) Local_Search_Watch.invariant_flipping_def add_mset_add_single sls_broken_clause.prems
         diff_diff_add_mset diff_le_mono2_mset diff_union_cancelL in_diffD in_remove1_msetI insert_DiffM
         insert_subset_eq_iff)
-  have \<open>sls_invariant (fst S, add_mset (clause_of C) (clause_of `#remove1_mset C (sls2w_clss S) + Local_Search_Watch.broken S))\<close>
-    using broken_clause apply (cases S)apply (auto simp: sls_invariant_def invariant_flipping_def)
+  have \<open>sls_invariant (fst S, add_mset (clause_of C) (clause_of `#remove1_mset C (sls2w_clss S) + Local_Search_Watch.sls_broken S))\<close>
+    using sls_broken_clause apply (cases S)apply (auto simp: sls_invariant_def invariant_flipping_def)
       apply (metis insert_image mset_subset_eq_insertD total_over_m_insert)
      apply (metis (no_types, lifting) image_insert insert_DiffM insert_subset_eq_iff set_mset_add_mset_insert
         total_over_m_insert)
     by (metis image_eqI in_diffD)
-  then show ?case using broken_clause apply (auto simp: invariant_flipping_def)
+  then show ?case using sls_broken_clause apply (auto simp: invariant_flipping_def)
      apply (meson true_cls_def true_lit_def)
     by (meson insert_subset_eq_iff)
 qed
@@ -239,7 +239,7 @@ qed
 
 lemma clause_equiv:
   assumes \<open>(update_flip_watched L)\<^sup>*\<^sup>* S T\<close> and \<open>invariant_flipping L S\<close>
-  shows \<open>clause_of `# sls2w_clss (fst S) + broken (fst S) = clause_of `# sls2w_clss (fst T) + broken (fst T)\<close>
+  shows \<open>clause_of `# sls2w_clss (fst S) + sls_broken (fst S) = clause_of `# sls2w_clss (fst T) + sls_broken (fst T)\<close>
   using assms proof (induction rule: rtranclp_induct)
   case base
   then show ?case by auto
@@ -298,16 +298,16 @@ lemma rtranclp_watch_local_search_local_search:
       rtranclp.simps rtranclp_induct)
 
 lemma watch_local_search_cannot_be_stuck:
-  assumes \<open>broken S \<noteq> {#}\<close> and \<open>sls_watch_invariant S\<close>
+  assumes \<open>sls_broken S \<noteq> {#}\<close> and \<open>sls_watch_invariant S\<close>
   shows \<open>\<exists>T. watch_local_search S T\<close>
 proof -            
   obtain L where \<open>L \<in> fst S\<close>
-    using assms apply (cases S; cases \<open>broken S\<close>; auto simp: sls_watch_invariant_def sls_invariant_def)
+    using assms apply (cases S; cases \<open>sls_broken S\<close>; auto simp: sls_watch_invariant_def sls_invariant_def)
     by (meson atm_of_notin_atms_of_iff multiset_nonemptyE total_over_set_def)
   define M' br1 N' where def:
     \<open>M' = fst S - {L} \<union> {-L}\<close>
-    \<open>br1 = broken S - {#C \<in># broken S. -L \<in># C#}\<close>
-    \<open>N' = sls2w_clss S + image_mset (\<lambda>C. WC (-L) (C - {#-L#})) {#C \<in># broken S. -L \<in># C#}\<close>
+    \<open>br1 = sls_broken S - {#C \<in># sls_broken S. -L \<in># C#}\<close>
+    \<open>N' = sls2w_clss S + image_mset (\<lambda>C. WC (-L) (C - {#-L#})) {#C \<in># sls_broken S. -L \<in># C#}\<close>
   have \<open>\<exists>N'' br'. (update_flip_watched L)\<^sup>*\<^sup>* ((M', N', br1), WL) ((M', N'', br'), {#})\<close> for WL
   proof (induction WL arbitrary: M' N' br1)
     case empty
@@ -317,12 +317,12 @@ proof -
     then show ?case
     proof -
       have "\<exists>m p ma. update_flip_watched L ((M', N', br1), add_mset x WL) p \<and> (update_flip_watched L)\<^sup>*\<^sup>* p ((M', ma, m), {#})"
-        by (metis add broken_clause fstI other_true_literal)
+        by (metis add sls_broken_clause fstI other_true_literal)
       then show ?thesis
         by (meson converse_rtranclp_into_rtranclp)
     qed
   qed
-  then show ?thesis using watch_local_search.flip[of M' \<open>fst S\<close> L br1 \<open>broken S\<close>
+  then show ?thesis using watch_local_search.flip[of M' \<open>fst S\<close> L br1 \<open>sls_broken S\<close>
         N' \<open>sls2w_clss S\<close>] unfolding def[symmetric]
     by (metis \<open>L \<in> fst S\<close> assms(1) prod.exhaust_sel)
 qed
@@ -331,13 +331,13 @@ lemma nostep_watch_local_search_no_step_local_search:
   assumes \<open>\<And>T. \<not>watch_local_search S T\<close> and \<open>sls_watch_invariant S\<close>
   shows \<open>\<And>T. \<not>local_search (convert_sls_watch_state S) T\<close>
 proof -
-  have \<open>broken S = {#}\<close> using watch_local_search_cannot_be_stuck[of S]
+  have \<open>sls_broken S = {#}\<close> using watch_local_search_cannot_be_stuck[of S]
     using assms(1,2) by blast
   then have \<open>\<forall>C. C \<in># clause_of `# sls2w_clss S \<longrightarrow> (fst S \<Turnstile> C)\<close> using assms(2) apply (cases S) apply (auto simp: sls_watch_invariant_def)
     by (metis clause_of.simps true_cls_add_mset single_w_cls.exhaust_sel)
 
   show \<open>\<And>T. \<not>local_search (convert_sls_watch_state S) T\<close>
-    by (smt (verit) \<open>Local_Search_Watch.broken S = {#}\<close> \<open>\<forall>C. C \<in># clause_of `# sls2w_clss S \<longrightarrow> fst S \<Turnstile> C\<close> add_cancel_right_right convert_sls_watch_state.simps fst_conv
+    by (smt (verit) \<open>Local_Search_Watch.sls_broken S = {#}\<close> \<open>\<forall>C. C \<in># clause_of `# sls2w_clss S \<longrightarrow> fst S \<Turnstile> C\<close> add_cancel_right_right convert_sls_watch_state.simps fst_conv
         local_search.simps snd_conv surjective_pairing)
 qed
 

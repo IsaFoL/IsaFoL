@@ -4,7 +4,7 @@ Title: Efficient Local Search with Watched Literals
 Author: Mara Besemer as part of the Isabelle lecture in Freiburg, SS25
 Maintainer: Mathias Fleury, University of Freiburg
 
-In this file, we cache the watch lists instead of recalculating them.
+In this file, we cache the wl_sls_watched lists instead of recalculating them.
 *)
 
 theory Local_Search_Watch_List
@@ -15,14 +15,14 @@ type_synonym 'a sls_watch_state_list = \<open>'a literal set \<times> 'a single_
 
 
 
-abbreviation broken :: \<open>'a sls_watch_state_list \<Rightarrow> 'a clauses\<close> where
-  \<open>broken S \<equiv> fst (snd (snd S))\<close>
+abbreviation wl_sls_broken :: \<open>'a sls_watch_state_list \<Rightarrow> 'a clauses\<close> where
+  \<open>wl_sls_broken S \<equiv> fst (snd (snd S))\<close>
 
-abbreviation sls2w_clss :: \<open>'a sls_watch_state_list \<Rightarrow> 'a single_w_clss\<close> where
-  \<open>sls2w_clss S \<equiv> fst (snd S)\<close>
+abbreviation wl_sls2w_clss :: \<open>'a sls_watch_state_list \<Rightarrow> 'a single_w_clss\<close> where
+  \<open>wl_sls2w_clss S \<equiv> fst (snd S)\<close>
 
-abbreviation watch :: \<open>'a sls_watch_state_list \<Rightarrow> ('a literal \<Rightarrow> 'a single_w_cls multiset)\<close> where
-  \<open>watch S \<equiv> snd (snd (snd S))\<close>
+abbreviation wl_sls_watched :: \<open>'a sls_watch_state_list \<Rightarrow> ('a literal \<Rightarrow> 'a single_w_cls multiset)\<close> where
+  \<open>wl_sls_watched S \<equiv> snd (snd (snd S))\<close>
 
 
 fun convert_sls_watch_state_list :: \<open>'a sls_watch_state_list \<Rightarrow> 'a sls_watch_state\<close> where
@@ -32,12 +32,12 @@ fun convert_sls_watch_state_list :: \<open>'a sls_watch_state_list \<Rightarrow>
 definition sls_watch_invariant_list :: \<open>'a sls_watch_state_list \<Rightarrow> bool\<close> where
   \<open>sls_watch_invariant_list S \<equiv> 
     (sls_watch_invariant (convert_sls_watch_state_list S)) \<and>
-  watch S = (\<lambda>L. watched L (convert_sls_watch_state_list S))\<close>
+  wl_sls_watched S = (\<lambda>L. watched L (convert_sls_watch_state_list S))\<close>
 
 definition invariant_wl_flipping :: \<open>'a literal \<Rightarrow> 'a sls_watch_state_list \<Rightarrow> bool\<close> where
   \<open>invariant_wl_flipping L S \<equiv> 
-    (invariant_flipping L (convert_sls_watch_state_list S, watch S L)) \<and>
-    (watch S) = (\<lambda>L. watched L (convert_sls_watch_state_list S))
+    (invariant_flipping L (convert_sls_watch_state_list S, wl_sls_watched S L)) \<and>
+    (wl_sls_watched S) = (\<lambda>L. watched L (convert_sls_watch_state_list S))
   \<close>
 
 
@@ -55,9 +55,9 @@ broken_clause:
 
 
 text\<open>calculating WL1 instead of updating with update_flip_watched_list for simplicity\<close>
-inductive watch_local_search_list :: \<open>'a sls_watch_state_list \<Rightarrow> 'a sls_watch_state_list \<Rightarrow> bool\<close> where
+inductive watch_list_local_search :: \<open>'a sls_watch_state_list \<Rightarrow> 'a sls_watch_state_list \<Rightarrow> bool\<close> where
   flip:
-  \<open>watch_local_search_list
+  \<open>watch_list_local_search
       (M, N, br, WL)
       (M', N'', br', WL')\<close>
 if
@@ -105,7 +105,7 @@ proof -
   then have \<open>invariant_flipping L ((M', N', br'), WL' L)\<close>
     by (metis ST(1) assms(2) convert_sls_watch_state_list.simps invariant_wl_flipping_def
         sls_watch_invariant_update_flip_watched snd_eqD)
-  moreover have \<open>watch (M',N',br',WL') = (\<lambda>L. watched L (convert_sls_watch_state_list (M',N',br',WL')))\<close>
+  moreover have \<open>wl_sls_watched (M',N',br',WL') = (\<lambda>L. watched L (convert_sls_watch_state_list (M',N',br',WL')))\<close>
     using assms unfolding ST
   proof (induction rule: update_flip_watched_list.induct)
     case (other_true_literal L' C M WL L WL_remaining N br)
@@ -134,18 +134,18 @@ lemma rtranclp_sls_watch_invariant_update_flip_watched_list:
 thm watch_local_search_sls_watch_invariant
 
 lemma sls_watch_invariant_list_nostep_update_flip_watched:
-  assumes \<open>invariant_wl_flipping L S\<close> and \<open>watch S L = {#}\<close>
+  assumes \<open>invariant_wl_flipping L S\<close> and \<open>wl_sls_watched S L = {#}\<close>
   shows \<open>sls_watch_invariant_list S\<close>
   using assms sls_watch_invariant_nostep_update_flip_watched[of L \<open>convert_sls_watch_state_list S\<close>]
   unfolding sls_watch_invariant_list_def sls_watch_invariant_def
     invariant_wl_flipping_def
   by (cases S) auto
 
-lemma watch_local_search_list_sls_watch_invariant_list:
-  assumes \<open>watch_local_search_list S T\<close> and \<open>sls_watch_invariant_list S\<close>
+lemma watch_list_local_search_sls_watch_invariant_list:
+  assumes \<open>watch_list_local_search S T\<close> and \<open>sls_watch_invariant_list S\<close>
   shows \<open>sls_watch_invariant_list T\<close>
   using assms
-proof (induction rule: watch_local_search_list.induct)
+proof (induction rule: watch_list_local_search.induct)
   case (flip M' M L br1 br N' N WL1 N'' br' WL' WL)
   have start: \<open>sls_watch_invariant_list (M, N, br, WL)\<close>
     \<open>sls_watch_invariant (M, N, br)\<close>
