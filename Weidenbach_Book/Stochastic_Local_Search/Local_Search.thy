@@ -17,7 +17,7 @@ We do not care about termination and simply want to find a model.
 
 
 
-section \<open>Local Search (v1)\<close>
+section \<open>Basic Local Search\<close>
 
 text \<open>We start with a very simple state: the assignment and the clauses.\<close>
 
@@ -80,7 +80,7 @@ lemma sls_final_state_run:
 
 
 
-section \<open>Local Search (v2)\<close>
+section \<open>Local Search with Broken\<close>
 
 text \<open>Now we go a bit deeper and refine our previous calculus: we keep the set of \<^emph>\<open>broken\<close>
   clauses as part: this is the set of clauses that are not satisfied by the current assignment. Therefore, whenever flipping, we have to update the set.

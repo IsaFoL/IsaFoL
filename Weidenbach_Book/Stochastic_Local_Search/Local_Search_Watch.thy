@@ -9,11 +9,14 @@ theory Local_Search_Watch
   imports Local_Search 
 begin
 
+section \<open>Local Search with Iteration over Watched Lists\<close>
+
 text\<open>This theory defines a variant of local search with watched literals\<close>
 
-text\<open>old version: watched list as a collection (literal, multiset of clauses watched by literal) pairs
-this approach requires existential quantification\<close>
-text\<open>current version: watch lists as a datatype, where each clause stores its currently watched literal in a field (watched_lit)
+text\<open>old version: watched list as a collection (literal, multiset of clauses watched by literal)
+pairs this approach requires existential quantification\<close>
+text\<open>current version: watch lists as a datatype, where each clause stores its currently watched
+ literal in a field (@{term watched_lit})
 This simplifies flipping since not all clauses need to be checked and each clause
 has exactly one watched literal
 \<close>
@@ -35,21 +38,23 @@ abbreviation sls_broken :: \<open>'a sls_watch_state \<Rightarrow> 'a clauses\<c
 abbreviation sls2w_clss :: \<open>'a sls_watch_state \<Rightarrow> 'a single_w_clss\<close> where
   \<open>sls2w_clss S \<equiv> fst (snd S)\<close>
 
-text\<open>function for mapping a literal L to the multiset of single_w_clss S whose watched_lit equals L\<close>
+text\<open>function for mapping a literal L to the multiset of  @{term \<open>single_w_clss S\<close>}
+whose watched literal is equals to L\<close>
 definition watched :: \<open>'a literal \<Rightarrow> 'a sls_watch_state \<Rightarrow> 'a single_w_cls multiset\<close> where
   \<open>watched L S \<equiv> {#C \<in># sls2w_clss S. L = watched_lit C#}\<close>
 
 
 text\<open>
 updating watch list:
-\<forall> C watched by l (watched_lit = l):
+forall C s.t. watched literal is l:
   if other true literal l' exists:
      change watched literal
   else:
-    add clause to sls_broken
+    add clause to broken
 
-Because each clause has only one watched literal only the watched_lit is changed
-The update is local and consumes exactly one single_w_cls -> for all watch lists use reflexive-transitive closure @{term"(update_flip_watched L)\<^sup>*\<^sup>* "} 
+Because each clause has only one watched literal only the watched literal is changed
+The update is local and consumes exactly one single\_w\_cls: for all watch lists use
+reflexive-transitive closure @{term"(update_flip_watched L)\<^sup>*\<^sup>*"} 
 \<close>
 inductive update_flip_watched :: \<open>'a literal \<Rightarrow> 'a sls_watch_state \<times> 'a single_w_clss \<Rightarrow>
     'a sls_watch_state \<times> 'a single_w_clss \<Rightarrow> bool\<close> where
@@ -65,10 +70,11 @@ inductive update_flip_watched :: \<open>'a literal \<Rightarrow> 'a sls_watch_st
 
 
 text\<open>
-- \<forall> C \<in> br:
-  if -L \<in> C: br - {#C#} and -L := {#C#} + watch -L
--Updating the watch list is done incrementally with update_flip_watched,
-  so there is no need for a complete new computation of sls_broken clauses or watch lists
+- forall C in broken
+  if @{term \<open>-L \<in> C\<close>}: we remove it from the broken clauses @{term \<open>br - {#C#}\<close>} and
+watch it
+-Updating the watch list is done incrementally with @{term \<open>update_flip_watched\<close>},
+  so there is no need for a complete new computation of broken clauses or watch lists
   only local changes
 \<close>
 
@@ -101,17 +107,9 @@ were made by filtering, which was error prone. Also, the invariant had to be che
 The current version makes it easier to define the invariant without searching for a literal and clause.
 
 conditions:
-- all C in sls_broken S are unsatisfied by the current model fst S
-- for every watched clause C in sls2w_clss S, the watched_lit C is present in the model fst S\<close>
-  (*
-Invariant: 
-- sls_invariant holds
-- \<Union># (watched L) = N - br (all c \<in> N \<rightarrow> one watched literal)
-- all c \<in> br are not satis by M
-- C \<notin> br -> min one literal in watch (C \<notin> br \<Rightarrow> \<exists> L \<in> C \<inter> M : C \<in> watch(L))
-- watch list is consistent (before and after flipping)
-*)
-
+- all C in @{term \<open>sls_broken S\<close>} are unsatisfied by the current model fst S
+- for every watched clause C in @{term \<open>sls2w_clss S\<close>}, the watched literal of C is present in the model fst S\<close>
+ 
 definition sls_watch_invariant :: \<open>'a sls_watch_state \<Rightarrow> bool\<close> where
   \<open>sls_watch_invariant S \<equiv> 
     (sls_invariant (convert_sls_watch_state S)) \<and>

@@ -11,6 +11,8 @@ theory Local_Search_Watch_List
   imports Local_Search_Watch
 begin
 
+section \<open>Local Search with Watch Lists\<close>
+
 type_synonym 'a sls_watch_state_list = \<open>'a literal set \<times> 'a single_w_clss \<times> 'a clauses \<times> ('a literal \<Rightarrow> 'a single_w_cls multiset)\<close>
 
 
@@ -54,7 +56,7 @@ broken_clause:
        (M, N - {#C#}, add_mset (clause_of C) (br), WL(L:= WL_remaining))\<close>
 
 
-text\<open>calculating WL1 instead of updating with update_flip_watched_list for simplicity\<close>
+text\<open>calculating WL1 instead of updating with @{term update_flip_watched_list} for simplicity\<close>
 inductive watch_list_local_search :: \<open>'a sls_watch_state_list \<Rightarrow> 'a sls_watch_state_list \<Rightarrow> bool\<close> where
   flip:
   \<open>watch_list_local_search
@@ -70,6 +72,50 @@ if
   \<open>br \<noteq> {#}\<close>
   \<open>WL' L = {#}\<close>
 
+text \<open>This is the alternative definition where we update the watch list
+explicitly instead of doing it implicitly. This is closer to the implementation
+but makes proofs harder (hence was not done in the original work by Mara Besemer).\<close>
+lemma watch_list_local_search_alt:
+  assumes \<open>sls_watch_invariant_list (M,N,br,WL)\<close>
+  shows \<open>watch_list_local_search
+      (M, N, br, WL)
+      (M', N'', br', WL') \<longleftrightarrow>
+  (\<exists>br1 N' WL1 L.
+  M' = M - {L} \<union> {-L} \<and>
+  br1 = br - {#C \<in># br. -L \<in># C#}  \<and>
+  N' = N + image_mset (\<lambda>C. WC (-L) (C - {#-L#})) {#C \<in># br. -L \<in># C#} \<and>
+  WL1 = WL(-L := (\<lambda>C. WC (-L) (C - {#-L#})) `# {#C \<in># br. -L \<in># C#}) \<and>
+  (update_flip_watched_list L)\<^sup>*\<^sup>* (M', N', br1, WL1) (M', N'', br', WL') \<and>
+  L \<in> M \<and>
+  br \<noteq> {#} \<and>
+  WL' L = {#})\<close>
+proof -
+  have H: \<open>{#C \<in># N. - L = watched_lit C#} = {#}\<close> if \<open>L \<in> M\<close> for L
+    using assms that
+    unfolding sls_watch_invariant_list_def sls_watch_invariant_def
+    by (auto simp: filter_mset_empty_conv uminus_lit_swap consistent_interp_def
+        sls_invariant_def dest!: multi_member_split)
+  have corr_w: \<open>WL La = {#C \<in># N. La = watched_lit C#}\<close> for La
+    using assms
+    unfolding sls_watch_invariant_list_def sls_watch_invariant_def
+    by (auto simp: filter_mset_empty_conv uminus_lit_swap consistent_interp_def
+        sls_invariant_def watched_def dest!: multi_member_split)
+
+  show ?thesis
+    apply (rule iffI; (subst (asm)watch_list_local_search.simps)?; elim exE)
+    subgoal for M'a Ma L br1 bra N' Na WL1 N''a br'a WL'a WLa
+      using H[of L] corr_w apply -
+      apply (rule exI[of _ br1], rule exI[of _ N'], rule exI[of _ WL1],
+        rule exI[of _ L])
+      by (auto intro!: ext simp: watched_def 
+          simp flip: image_mset_filter_swap)
+    subgoal for br1 N' WL1 L
+      using corr_w apply -
+      by (rule watch_list_local_search.intros(1)[of _ M L br1 _ N' _ WL1])
+       (auto simp: H filter_mset_empty_conv watched_def intro!: ext 
+          simp flip: image_mset_filter_swap)
+    done
+qed
 
 lemma watch_list_eq:
   assumes
