@@ -23,7 +23,8 @@ class term_signature =
     Disj_tconst :: 'a and
     Imp_tconst :: 'a and
     Eq_tconst :: 'a and
-    Neq_tconst :: 'a
+    Neq_tconst :: 'a and
+    Diff_tconst :: 'a
 
 class type_signature = arity +
   fixes bool_tyctr :: 'a  and fun_tyctr :: 'a

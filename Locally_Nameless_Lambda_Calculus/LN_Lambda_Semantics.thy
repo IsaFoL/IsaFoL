@@ -320,4 +320,12 @@ definition true_clss ::
     proper_interp (interp.\<U> \<I>) (interp.\<J>\<^sub>t\<^sub>y \<I>) (interp.\<C> \<I>) (interp.\<J> \<I>) (interp.\<L> \<I>) \<and>
     (\<forall>\<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e. \<forall>C \<in> N. (\<I>, \<xi>\<^sub>t\<^sub>y, \<xi>\<^sub>t\<^sub>e) \<Turnstile>\<^sub>c C)"
 
+locale diff_aware_proper_interp = proper_interp +
+  assumes \<J>_Neq: "
+    \<lparr>\<U> = \<U>, \<C> = \<C>, \<J>\<^sub>t\<^sub>y = \<J>\<^sub>t\<^sub>y, \<J> = \<J>, \<L> = \<L>\<rparr> \<Turnstile>\<^sub>c\<^sub>s {
+      {#Neg (Upair
+          (App z (Const Diff_tconst [\<alpha>, \<beta>] [z, y]))
+          (App y (Const Diff_tconst [\<alpha>, \<beta>] [z, y]))),
+        Pos (Upair z y)#}}"
+
 end
