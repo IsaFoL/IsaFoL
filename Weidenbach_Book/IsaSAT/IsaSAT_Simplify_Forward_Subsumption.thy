@@ -2,7 +2,6 @@ theory IsaSAT_Simplify_Forward_Subsumption
   imports IsaSAT_Setup
     Watched_Literals.Watched_Literals_Watch_List_Inprocessing
     More_Refinement_Libs.WB_More_Refinement_Loops
-    IsaSAT_Restart
     IsaSAT_Simplify_Forward_Subsumption_Defs
 begin
 

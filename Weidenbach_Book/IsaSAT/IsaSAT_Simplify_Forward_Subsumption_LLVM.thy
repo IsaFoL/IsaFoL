@@ -354,7 +354,7 @@ sepref_def isa_is_candidate_forward_subsumption_impl
     mop_arena_lbd_st_def[symmetric]
     mop_arena_length_st_def[symmetric]
     mop_arena_status_st_def[symmetric]
-    UNSET_def[symmetric] tri_bool_eq_def[symmetric]
+    UNSET_def[symmetric] tri_bool_eq_def[symmetric] isa_subsumesizelim_def
   apply (annot_snat_const \<open>TYPE(64)\<close>)
   by sepref
 

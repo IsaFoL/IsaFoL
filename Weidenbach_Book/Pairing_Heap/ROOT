@@ -6,7 +6,6 @@ session "Pairing_Heap_LLVM" (Weidenbach_Book) = "Isabelle_LLVM"  +
     Isabelle_LLVM
     Word_Lib
     "HOL-Data_Structures"
-    Examples
     Pairing_Heap
     More_Refinement_Libs
     More_Sepref

@@ -111,6 +111,8 @@ definition maybe_push_to_occs_list2 where
     } else RETURN occs
   }\<close>
 
+definition isa_subsumesizelim :: \<open>nat\<close> where
+  \<open>isa_subsumesizelim \<equiv> 100\<close>
 definition isa_is_candidate_forward_subsumption where
   \<open>isa_is_candidate_forward_subsumption S C = do {
     ASSERT(arena_act_pre (get_clauses_wl_heur S) C);
@@ -127,7 +129,7 @@ definition isa_is_candidate_forward_subsumption where
     }) (0, 0 :: 64 word);
     let (lbd_limit, size_limit) = get_lsize_limit_stats_st S;
     let can_del =
-       sze \<noteq> 2 \<and> (status = LEARNED \<longrightarrow> lbd \<le> lbd_limit \<and> sze \<le> size_limit) \<and> (added \<ge> 2);
+       sze \<noteq> 2 \<and> (status = LEARNED \<longrightarrow> lbd \<le> lbd_limit \<and> sze \<le> size_limit) \<and> (added \<ge> 2) \<and> sze < isa_subsumesizelim;
     RETURN can_del
   }\<close>
 
