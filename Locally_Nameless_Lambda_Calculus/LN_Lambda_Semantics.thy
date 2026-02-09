@@ -126,7 +126,7 @@ type_synonym '\<Sigma> term_interp_fun = "'\<Sigma> \<Rightarrow> V list \<Right
 
 locale interp_fun = type_interp \<U> \<J>\<^sub>t\<^sub>y
   for \<U> and \<J>\<^sub>t\<^sub>y :: "('\<Sigma>\<^sub>t\<^sub>y :: type_signature) type_interp_fun" +
-  fixes \<C> :: "'\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty"
+  fixes \<C> :: "'\<Sigma> :: term_signature \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty"
   fixes \<J> :: "'\<Sigma> term_interp_fun"
   assumes "\<And>(\<xi>\<^sub>t\<^sub>y :: '\<V>\<^sub>t\<^sub>y \<Rightarrow> V) f \<alpha>s \<tau>s v \<D>s as.
     type_valuation \<U> \<xi>\<^sub>t\<^sub>y \<Longrightarrow>
@@ -134,6 +134,22 @@ locale interp_fun = type_interp \<U> \<J>\<^sub>t\<^sub>y
     (\<And>\<D>. \<D> \<in> list.set \<D>s \<Longrightarrow> \<D> \<in> \<U>) \<Longrightarrow>
     list_all2 (\<lambda>a \<tau>. a \<in> elts (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y \<tau>)) as \<tau>s \<Longrightarrow>
     \<J> f \<D>s as \<in> elts (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y v)"
+  assumes \<J>_True: "
+    \<J> True_tconst [] [] = 1"
+  assumes \<J>_False: "
+    \<J> False_tconst [] [] = 0"
+  assumes \<J>_Neg: "a \<in> {0, 1} \<Longrightarrow> b \<in> {0, 1} \<Longrightarrow>
+    \<J> Neg_tconst [] [a] = (if a = 0 then 1 else 0)"
+  assumes \<J>_Conj: "a \<in> {0, 1} \<Longrightarrow> b \<in> {0, 1} \<Longrightarrow>
+    \<J> Conj_tconst [] [a, b] = (if a = 1 \<and> b = 1 then 1 else 0)"
+  assumes \<J>_Disj: "a \<in> {0, 1} \<Longrightarrow> b \<in> {0, 1} \<Longrightarrow>
+    \<J> Disj_tconst [] [a, b] = (if a = 1 \<or> b = 1 then 1 else 0)"
+  assumes \<J>_Imp: "a \<in> {0, 1} \<Longrightarrow> b \<in> {0, 1} \<Longrightarrow>
+    \<J> Imp_tconst [] [a, b] = (if a = 0 \<or> b = 1 then 1 else 0)"
+  assumes \<J>_Eq: "\<D> \<in> \<U> \<Longrightarrow> c \<in> elts \<D> \<Longrightarrow> d \<in> elts \<D> \<Longrightarrow>
+    \<J> Eq_tconst [] [c, d] = (if c = d then 1 else 0)"
+  assumes \<J>_Neq: "\<D> \<in> \<U> \<Longrightarrow> c \<in> elts \<D> \<Longrightarrow> d \<in> elts \<D> \<Longrightarrow>
+    \<J> Neq_tconst [] [c, d] = (if c = d then 0 else 1)"
 
 type_synonym ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y, '\<V>, '\<Sigma>) lambda_designation_fun =
   "('\<V>\<^sub>t\<^sub>y \<Rightarrow> V) \<Rightarrow> ('\<V> \<Rightarrow> V) \<Rightarrow> (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> V"
@@ -157,7 +173,7 @@ locale interp =
   lambda_designation \<U> \<J>\<^sub>t\<^sub>y \<C> \<L>
   for \<U> and
     \<J>\<^sub>t\<^sub>y :: "('\<Sigma>\<^sub>t\<^sub>y :: type_signature) type_interp_fun" and
-    \<C> :: "'\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty" and
+    \<C> :: "'\<Sigma> :: term_signature \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty" and
     \<J> :: "'\<Sigma> term_interp_fun" and
     \<L> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y, '\<V>, '\<Sigma>) lambda_designation_fun"
 
@@ -248,8 +264,6 @@ subsection \<open>Rest\<close>
 locale proper_interp = interp +
   assumes "app (\<L> \<xi>\<^sub>t\<^sub>y \<xi> (Abs \<tau> t)) a = \<L> \<xi>\<^sub>t\<^sub>y (\<xi>(x := a)) (subst_bound 0 (Free x) t)"
 
-print_locale interp
-
 declare [[typedef_overloaded]]
 record ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>, '\<Sigma>) interp =
   \<U> :: "V set"
@@ -298,10 +312,8 @@ definition true_cls ::
   (infix \<open>\<Turnstile>\<^sub>c\<close> 50) where
   "\<I>\<xi> \<Turnstile>\<^sub>c C \<longleftrightarrow> (\<exists>L \<in># C. \<I>\<xi> \<Turnstile>\<^sub>l L)"
 
-print_locale proper_interp
-
 definition true_clss ::
-  "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>, '\<Sigma>) interp \<Rightarrow>
+  "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>, '\<Sigma> :: term_signature) interp \<Rightarrow>
     ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y, '\<V>, '\<Sigma>) atom literal multiset set \<Rightarrow> bool"
   (infix \<open>\<Turnstile>\<^sub>c\<^sub>s\<close> 50) where
   "\<I> \<Turnstile>\<^sub>c\<^sub>s N \<longleftrightarrow>
