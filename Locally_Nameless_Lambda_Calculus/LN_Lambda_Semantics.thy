@@ -328,4 +328,12 @@ locale diff_aware_proper_interp = proper_interp +
           (App y (Const Diff_tconst [\<alpha>, \<beta>] [z, y]))),
         Pos (Upair z y)#}}"
 
+definition entails (infix \<open>\<Turnstile>\<close> 50) where
+  "M \<Turnstile> N \<longleftrightarrow> (\<forall>\<I>. \<I> \<Turnstile>\<^sub>c\<^sub>s M \<longrightarrow> \<I> \<Turnstile>\<^sub>c\<^sub>s N)"
+
+definition diff_aware_entails (infix \<open>|\<approx>\<close> 50) where
+  "M |\<approx> N \<longleftrightarrow> (\<forall>\<I>.
+    diff_aware_proper_interp (interp.\<U> \<I>) (interp.\<J>\<^sub>t\<^sub>y \<I>) (interp.\<C> \<I>) (interp.\<J> \<I>) (interp.\<L> \<I>) \<longrightarrow>
+    \<I> \<Turnstile>\<^sub>c\<^sub>s M \<longrightarrow> \<I> \<Turnstile>\<^sub>c\<^sub>s N)"
+
 end
