@@ -28,7 +28,7 @@ fun free_vars_fset :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> '\<V> f
   "free_vars_fset (App t\<^sub>1 t\<^sub>2) = free_vars_fset t\<^sub>1 |\<union>| free_vars_fset t\<^sub>2" |
   "free_vars_fset (Abs _ t) = free_vars_fset t"
 
-lemma free_vars_rep_eq: "fset (free_vars_fset t) = free_vars t"
+lemma free_vars_fset_rep_eq: "fset (free_vars_fset t) = free_vars t"
   by (induction t) (simp_all add: ffUnion.rep_eq fimage.rep_eq fset_of_list.rep_eq)
 
 primrec subst_bound :: "nat \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where

@@ -26,7 +26,7 @@ class term_signature =
     Neq_tconst :: 'a
 
 class type_signature = arity +
-  fixes bool_tyctr :: 'a and fun_tyctr :: 'a
+  fixes bool_tyctr :: 'a  and fun_tyctr :: 'a
   assumes arity\<^sub>_tyctr_simps[simp]: "arity bool_tyctr = 0" "arity fun_tyctr = 2"
 
 
@@ -93,7 +93,9 @@ global_interpretation subst_prety: substitution where
   comp_subst = comp_subst_prety and
   id_subst = PretyVar and
   subst = subst_prety and
-  is_ground = "\<lambda>\<tau>. type_vars_prety \<tau> = {}"
+  apply_subst = "\<lambda>x \<sigma>. \<sigma> x" and
+  subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and
+  vars = type_vars_prety
 proof unfold_locales
   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
   show "subst_prety \<tau> (comp_subst_prety \<sigma>\<^sub>1 \<sigma>\<^sub>2) = subst_prety (subst_prety \<tau> \<sigma>\<^sub>1) \<sigma>\<^sub>2"
@@ -107,7 +109,22 @@ next
   assume "type_vars_prety \<tau> = {}"
   then show "\<forall>\<sigma>. subst_prety \<tau> \<sigma> = \<tau>"
     by (induction \<tau>) (simp_all add: list.map_ident_strong)
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
+  assume "\<And>x. x \<in> type_vars_prety \<tau> \<Longrightarrow> \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
+  then show "subst_prety \<tau> \<sigma>\<^sub>1 = subst_prety \<tau> \<sigma>\<^sub>2"
+    by (induction \<tau>) auto
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and x :: '\<V>\<^sub>t\<^sub>y
+  show "(\<sigma>(x := \<tau>)) x = \<tau>"
+    by simp
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and x y :: '\<V>\<^sub>t\<^sub>y
+  show "x \<noteq> y \<Longrightarrow> (\<sigma>(y := \<tau>)) x = \<sigma> x"
+    by simp
 qed
+
+find_theorems "subst_prety"
                                                             
 section \<open>Well-Formed Types\<close>
 
@@ -228,8 +245,8 @@ subsection \<open>Common Types\<close>
 lemma wf_prety_PretyCtr_bool_tyctr[intro]: "wf_prety (PretyCtr bool_tyctr [])"
   by (rule wf_prety.PretyCtr) simp_all
 
-definition TyBool :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty" where
-  "TyBool \<equiv> Abs_ty (PretyCtr bool_tyctr [])"
+definition TyBool :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty" ("\<bool>") where
+  "\<bool> \<equiv> Abs_ty (PretyCtr bool_tyctr [])"
 
 
 lemma wf_prety_PretyCtr_fun_tyctr[intro]: "wf_prety (PretyCtr fun_tyctr [Rep_ty \<tau>\<^sub>1, Rep_ty \<tau>\<^sub>2])"
@@ -312,12 +329,23 @@ next
     by (simp add: comp_subst_ty_conv)
 qed
 
+(*
+
+  comp_subst = comp_subst_prety and
+  id_subst = PretyVar and
+  subst = subst_prety and
+  apply_subst = "\<lambda>x \<sigma>. \<sigma> x" and
+  subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and
+  vars = type_vars_prety
+*)
 
 global_interpretation subst_ty: substitution where
   comp_subst = comp_subst_ty and
   id_subst = TyVar and
   subst = subst_ty and
-  is_ground = "\<lambda>\<tau>. type_vars \<tau> = {}"
+  apply_subst = "\<lambda>x \<sigma>. \<sigma> x" and
+  subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and
+  vars = type_vars
 proof unfold_locales
   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
   show "\<tau> \<cdot>\<^sub>t\<^sub>y (\<sigma>\<^sub>1 \<circ>\<^sub>t\<^sub>y \<sigma>\<^sub>2) = (\<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>1) \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>2"
@@ -331,6 +359,19 @@ next
   assume "type_vars \<tau> = {}"
   then show "\<forall>\<sigma>. \<tau> \<cdot>\<^sub>t\<^sub>y \<sigma> = \<tau>"
     by (induction \<tau>) (simp_all add: list.map_ident_strong)
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
+  assume "\<And>x. x \<in> type_vars \<tau> \<Longrightarrow> \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
+  then show "subst_ty \<tau> \<sigma>\<^sub>1 = subst_ty \<tau> \<sigma>\<^sub>2"
+    by (induction \<tau>) auto
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty" and x :: '\<V>\<^sub>t\<^sub>y
+  show "(\<sigma>(x := \<tau>)) x = \<tau>"
+    by simp
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty" and x y :: '\<V>\<^sub>t\<^sub>y
+  show "x \<noteq> y \<Longrightarrow> (\<sigma>(y := \<tau>)) x = \<sigma> x"
+    by simp
 qed
 
 section \<open>Type System\<close>
@@ -457,7 +498,7 @@ next
         using Abs.prems \<open>x \<noteq> y\<close> by simp
     next
       have "y \<notin> free_vars u"
-      by (metis y_in free_vars_fset.rep_eq[of u] funion_finsert_left[of x] funionCI[of y])
+      by (metis y_in free_vars_fset_rep_eq[of u] funion_finsert_left[of x] funionCI[of y])
 
       then show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) u \<tau>\<^sub>2"
         using Abs.prems has_type_weaken_funenv by metis
