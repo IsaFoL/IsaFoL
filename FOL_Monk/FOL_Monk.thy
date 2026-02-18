@@ -1,7 +1,7 @@
 (*
   FOL-Monk - First-Order Logic According to Monk
 
-  Authors: Andreas Halkjær From, John Bruntse Larsen, Anders Schlichtkrull & Jørgen Villadsen
+  Authors: Asta Halkjær Boserup, John Bruntse Larsen, Anders Schlichtkrull & Jørgen Villadsen
 *)
 
 theory FOL_Monk imports Main begin

@@ -1,5 +1,5 @@
 (*
-    Author: Andreas Halkjær From, DTU Compute, 2019
+    Author: Asta Halkjær Boserup, DTU Compute, 2019
     Contributors: Alexander Birch Jensen, Anders Schlichtkrull & Jørgen Villadsen
 *)
 

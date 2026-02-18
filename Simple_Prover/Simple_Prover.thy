@@ -1,4 +1,4 @@
-(* Authors: Jørgen Villadsen, Anders Schlichtkrull, Andreas Halkjær From *)
+(* Authors: Jørgen Villadsen, Anders Schlichtkrull, Asta Halkjær Boserup *)
 
 section \<open>A Certified Simple Prover for First-Order Logic\<close>
 

@@ -1,6 +1,6 @@
 (*
     Author: Jørgen Villadsen, DTU Compute, 2019
-    Contributors: Andreas Halkjær From, Alexander Birch Jensen & Anders Schlichtkrull
+    Contributors: Asta Halkjær Boserup, Alexander Birch Jensen & Anders Schlichtkrull
 *)
 
 section \<open>Formalizing a Sequent Calculus in Isabelle/HOL\<close>
