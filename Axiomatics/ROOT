@@ -1,0 +1,6 @@
+chapter Axiomatics
+
+session "Axiomatics" = "HOL" +
+  options [document = false]
+  theories
+    Axiomatics
