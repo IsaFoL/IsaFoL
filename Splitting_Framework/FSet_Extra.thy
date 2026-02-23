@@ -89,9 +89,9 @@ lemma fBall_fset_of_list_iff_Ball_set: \<open>fBall (fset_of_list A) P \<longlef
 lemma wf_fsubset: \<open>wfP (|\<subset>|)\<close>
 proof -
   have \<open>wfP (\<lambda> A B. fcard A < fcard B)\<close>
-    by (metis (no_types, lifting) in_measure wfPUNIVI wf_induct wf_measure)
+    by (simp add: wfp_if_convertible_to_nat)
   then show \<open>wfP (|\<subset>|)\<close>
-    by (smt (verit, ccfv_threshold) pfsubset_fcard_mono wfPUNIVI wfP_induct)
+    by (simp add: wfP_pfsubset)
 qed
  
 lemma non_zero_fcard_of_non_empty_set: \<open>fcard A > 0 \<longleftrightarrow> A \<noteq> {||}\<close>
