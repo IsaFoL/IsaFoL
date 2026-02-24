@@ -1605,9 +1605,6 @@ abbreviation prod_eq :: \<open>('i \<Rightarrow> 'm) rel\<close> (\<open>'(\<sim
 
 lemma refl_prod_eq: \<open>refl_on (\<Pi> i \<in> I. dom (\<M> i)) (\<sim>)\<close>
 proof
-  show \<open>(\<sim>) \<subseteq> (\<Pi> i \<in> I. dom (\<M> i)) \<times> (\<Pi> i \<in> I. dom (\<M> i))\<close>
-    by blast 
-next 
   fix f 
   assume f_in: \<open>f \<in> (\<Pi> i \<in> I. dom (\<M> i))\<close>
   then show \<open>(f, f) \<in> (\<sim>)\<close>
