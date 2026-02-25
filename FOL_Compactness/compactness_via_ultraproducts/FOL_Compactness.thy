@@ -1042,6 +1042,7 @@ lemma grounding_bot_is_bot[simp]: \<open>\<G> {\<^bold>\<bottom>} = {\<^bold>\<b
   using ex_ground_subst
   by auto
 
+(*
 lemma \<open>\<not> N \<Turnstile>\<^sub>m \<^bold>\<bottom> \<longleftrightarrow> \<not> N \<Turnstile>\<^sub>\<G>\<^sub>m \<^bold>\<bottom>\<close>
   for
     N :: \<open>('f, 'p, 'v) fm set\<close> and
@@ -1063,7 +1064,7 @@ next
     (* TODO *)
     sorry 
 qed
-
+*)
 end (* context *)
 
 subsubsection \<open>Other results\<close>
@@ -1599,10 +1600,7 @@ abbreviation prod_eq :: \<open>('i \<Rightarrow> 'm) rel\<close> (\<open>'(\<sim
     { (f, g). f \<in> (\<Pi> i \<in> I. dom (\<M> i)) \<and> g \<in> (\<Pi> i \<in> I. dom (\<M> i)) \<and> {i \<in> I. f i = g i} \<in> F }\<close>
 
 lemma refl_prod_eq: \<open>refl_on (\<Pi> i \<in> I. dom (\<M> i)) (\<sim>)\<close>
-proof
-  show \<open>(\<sim>) \<subseteq> (\<Pi> i \<in> I. dom (\<M> i)) \<times> (\<Pi> i \<in> I. dom (\<M> i))\<close>
-    by blast 
-next 
+proof 
   fix f 
   assume f_in: \<open>f \<in> (\<Pi> i \<in> I. dom (\<M> i))\<close>
   then show \<open>(f, f) \<in> (\<sim>)\<close>
@@ -1657,8 +1655,7 @@ proof
 qed
 
 lemma equiv_prod_eq: \<open>equiv (\<Pi> i \<in> I. dom (\<M> i)) (\<sim>)\<close>
-  by (simp add: equivI refl_prod_eq sym_prod_eq trans_prod_eq) 
-
+  unfolding equiv_def using equivI refl_prod_eq sym_prod_eq trans_prod_eq by blast
 
 lemma prod_eq_class_nonempty: \<open>f \<in> (\<Pi> i \<in> I. dom (\<M> i)) \<Longrightarrow> prod_eq `` {f} \<noteq> {}\<close>
   using equiv_class_self equiv_prod_eq

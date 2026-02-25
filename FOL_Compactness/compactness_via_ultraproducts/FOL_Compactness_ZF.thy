@@ -504,7 +504,7 @@ text \<open>
 (* Definition 1.5 *)
 definition is_model_of
   :: \<open>('f, 'p, 'm) model \<Rightarrow> ('f, 'p, 'v) fm set \<Rightarrow> bool\<close>
-  where
+  where               
   \<open>is_model_of \<M> T \<longleftrightarrow> (\<forall> \<phi> \<in> T. \<forall> V. is_vars (dom \<M>) V \<longrightarrow> \<M>,V \<Turnstile> \<phi>)\<close>
 
 lemma is_model_of_conj_iff:
@@ -1068,21 +1068,6 @@ qed
 *)
 
 end (* context *)
-
-
-subsubsection \<open>Other results\<close>
-
-lemma satD:
-  \<open>satisfiable T \<Longrightarrow>
-    \<exists> \<M> :: ('f, 'p, ('f, 'v) tm) model. is_canonical \<M> (language T) \<and> is_model_of \<M> T\<close>
-  for T :: \<open>('f, 'p, 'v) fm set\<close> .
-
-(*
-lemma satI: \<open>\<exists> \<M> :: ('f, 'p, 'm) model. is_model_of \<M> T \<Longrightarrow> satisfiable T\<close>
-  for T :: \<open>('f, 'p, 'v) fm set\<close>
-  sorry 
-*)
-
 
 section \<open>Filters and ultrafilters\<close> 
 
@@ -1659,8 +1644,7 @@ proof
 qed
 
 lemma equiv_prod_eq: \<open>equiv (\<Pi> i \<in> I. dom (\<M> i)) (\<sim>)\<close>
-  by (simp add: equivI refl_prod_eq sym_prod_eq trans_prod_eq) 
-
+  unfolding equiv_def using equivI refl_prod_eq sym_prod_eq trans_prod_eq by blast
 
 lemma prod_eq_class_nonempty: \<open>f \<in> (\<Pi> i \<in> I. dom (\<M> i)) \<Longrightarrow> prod_eq `` {f} \<noteq> {}\<close>
   using equiv_class_self equiv_prod_eq
@@ -2589,33 +2573,57 @@ qed
 
 end (* locale ultraprod *)
 
+subsubsection \<open>Other results\<close>
+
+lemma satD:
+  \<open>satisfiable T \<Longrightarrow>
+    \<exists> \<M> :: ('f, 'p, ('f, 'v) tm) model. is_canonical \<M> (language T) \<and> is_model_of \<M> T\<close>
+  for T :: \<open>('f, 'p, 'v) fm set\<close> .
+
+(*
+lemma satI: \<open>\<exists> \<M> :: ('f, 'p, 'm) model. is_model_of \<M> T \<Longrightarrow> satisfiable T\<close>
+  for T :: \<open>('f, 'p, 'v) fm set\<close>
+  sorry 
+*)
+
 
 
 section \<open>Compactness proof of full first-order logic using HOLZF\<close>
 
-definition Vstruct2struct where
- "Vstruct2struct I \<equiv> struct (elts (fst I)) (fst (snd I)) (snd (snd I))"
+definition is_Vstruct where
+ "is_Vstruct I \<equiv> struct (elts (fst I)) (fst (snd I)) (snd (snd I))"
 
-lemma Vdom_Abs_is_fst: \<open>Vstruct2struct I \<Longrightarrow> 
-  dom (Abs_model (elts (fst I), fst (snd I), snd (snd I))) = elts (fst I)\<close>
-  using dom_Abs_is_fst Abs_model_inverse dom.rep_eq unfolding Vstruct2struct_def by blast
 
-(* TODO
-abbreviation Vsatisfiable where
-  \<open>Vsatisfiable T \<equiv> \<close>
-*)
+definition Vstruct2model where
+ "Vstruct2model M \<equiv> Abs_model (elts (fst M),(fst (snd M)),snd (snd M))"
+
+
+lemma Vdom_is_fst: \<open>is_Vstruct I \<Longrightarrow> 
+  dom (Vstruct2model I) = elts (fst I)\<close>
+  using dom_Abs_is_fst Abs_model_inverse dom.rep_eq unfolding is_Vstruct_def Vstruct2model_def by blast
+
+
 (*
 abbreviation satisfiable :: \<open>('f, 'p, 'v) fm set \<Rightarrow> bool\<close> where
   \<open>satisfiable T \<equiv>
     (\<exists> \<M> :: ('f, 'p, ('f, 'v) tm) model. is_canonical \<M> (language T) \<and> is_model_of \<M> T)\<close> 
 *)
-
-
 (*
-lemma sat_compactness1: \<open>satisfiable T \<Longrightarrow> \<forall> T' \<subseteq> T. finite T' \<longrightarrow> satisfiable T'\<close>
-  using is_model_of_mono satI
-  by blast
+abbreviation is_canonical_model :: \<open>('f, 'p, ('f, 'v) tm) model \<Rightarrow> ('f, 'p, 'v) fm set \<Rightarrow> bool\<close> where
+  \<open>is_canonical_model \<M> T \<equiv> is_canonical \<M> (language T) \<and> is_model_of \<M> T\<close>
 *)
+
+abbreviation is_Vmodel_of where
+\<open>is_Vmodel_of I T \<equiv> is_model_of (Vstruct2model I) T\<close>
+
+abbreviation Vsatisfiable where
+  \<open>Vsatisfiable T \<equiv> (\<exists>I. is_Vstruct I \<and> is_Vmodel_of I T)\<close>
+
+lemma VsatI: \<open>\<exists>I. is_Vstruct I \<and> is_Vmodel_of I T \<Longrightarrow> Vsatisfiable T\<close>
+  for T :: \<open>('f, 'p, 'v) fm set\<close> .
+
+lemma Vsat_compactness1: \<open>Vsatisfiable T \<Longrightarrow> \<forall> T' \<subseteq> T. finite T' \<longrightarrow> Vsatisfiable T'\<close>
+  by (metis is_model_of_mono)
 
 abbreviation (input) I_fm2 
   :: \<open>'i set \<Rightarrow> ('i \<Rightarrow> ('f, 'p, 'm) model) \<Rightarrow> ('i \<Rightarrow> 'v \<Rightarrow> 'm) \<Rightarrow> ('f, 'p, 'v) fm \<Rightarrow> 'i set\<close>
@@ -2629,35 +2637,61 @@ text \<open>
 lemma iff_square: \<open>A \<longleftrightarrow> B \<Longrightarrow> C \<longleftrightarrow> D \<Longrightarrow> B \<longleftrightarrow> D \<Longrightarrow> A \<longleftrightarrow> C\<close>
   by blast 
 
-(*
-lemma sat_compactness2:
-  \<open>\<forall> T' \<subseteq> T. finite T' \<longrightarrow> satisfiable T' \<Longrightarrow> satisfiable T\<close>
+lemma Vsat_compactness2:
+  \<open>\<forall> T' \<subseteq> T. finite T' \<longrightarrow> Vsatisfiable T' \<Longrightarrow> Vsatisfiable T\<close>
   for
     T :: \<open>('f, 'p, 'v) fm set\<close> 
 proof (cases \<open>T = {}\<close>) 
   case True
-  then show ?thesis
-    by (meson emptyE is_model_of_def satI) 
+  let ?I = \<open>(1,(\<lambda>f vl. 0),(\<lambda>p. {[0]}))\<close>
+  let ?M = \<open>elts 1\<close>
+  let ?FN = \<open>(\<lambda>f vl. 0)\<close>
+  let ?REL = \<open>(\<lambda>p. {[0]})\<close>
+  have \<open>?M \<noteq> {}\<close>
+    by simp
+  moreover have \<open>\<forall>f es. (\<forall>e \<in> List.set es. e \<in> elts 1) \<longrightarrow> ?FN f es \<in> ?M\<close>
+    by simp
+  moreover have \<open>\<forall>p. \<forall> es \<in> ?REL p. \<forall> e \<in> List.set es. e \<in> ?M\<close>
+    by simp
+  ultimately have I_struct: \<open>struct ?M ?FN ?REL\<close>
+    by (rule struct.intro)
+  then have \<open>is_Vstruct ?I\<close>
+    unfolding is_Vstruct_def by simp
+  moreover have \<open>is_Vmodel_of ?I T\<close>
+    using is_model_of_def emptyE True by auto
+  ultimately show ?thesis
+    by metis
 next
   case False
 
   \<comment>\<open>This proof is mostly inspired by the one in
     \<^url>\<open>https://www.people.vcu.edu/~bmcody/Compactness-Notes.pdf\<close>, although slightly modified here
-    and there.\<close>
+    and there.
+    I think the document moved to 
+    \<^url>\<open>https://brentcody.github.io/syllabi/compactness_notes_4-8-2014.pdf\<close>
+    TODO: check with Ghilain that this is the correct document.
+\<close>
 
-  let ?I = \<open>{ T' :: ('f, 'p, 'v) fm set. finite T' \<and> T' \<subseteq> T }\<close>
+  find_theorems elts set
+
+  assume \<open>\<forall> T' \<subseteq> T. finite T' \<longrightarrow> Vsatisfiable T'\<close>
+  then obtain I where \<open>is_Vstruct I\<close> \<open>\<forall>T' \<subseteq> T. is_Vmodel_of I T'\<close>
+    sledgehammer sorry
+  define I_elts where \<open>I_elts = {fst I |I. is_Vstruct I \<and> (\<exists>T'\<subseteq> T. finite T' \<and> is_Vmodel_of I T')}\<close>
+  then obtain I_dom where \<open>elts I_dom = I_elts\<close> sorry
+
 
   have dummy_I_nonempty: \<open>?I \<noteq> {}\<close>
     using False
     by blast 
 
-  assume \<open>\<forall> T' \<subseteq> T. finite T' \<longrightarrow> satisfiable T'\<close>
-  then have \<open>\<forall> T' \<in> ?I. satisfiable T'\<close>
+  assume \<open>\<forall> T' \<subseteq> T. finite T' \<longrightarrow> Vsatisfiable T'\<close>
+  then have \<open>\<forall> T' \<in> ?I. Vsatisfiable T'\<close>
     by blast 
   then obtain
     \<M> :: \<open>('f, 'p, 'v) fm set \<Rightarrow> ('f, 'p, ('f, 'v) tm) model\<close> where
     \<open>\<forall> i \<in> ?I. is_canonical (\<M> i) (language i) \<and> is_model_of (\<M> i) i\<close>
-    by moura
+    sorry (* by moura *)
   then have 
     all_\<M>_canonical: \<open>\<forall> i \<in> ?I. is_canonical (\<M> i) (language i)\<close> and
     i_modelled_by: \<open>\<forall> i \<in> ?I. is_model_of (\<M> i) i\<close>
@@ -2832,16 +2866,16 @@ next
       unfolding los[OF vars] .
   }
   then show ?thesis
-    by (meson is_model_of_def satI)  
+    using is_model_of_def  sorry  
 qed
-*)
+
 
 (* Theorem 1.6 and 3.2 *)
-(*
-theorem sat_compactness: \<open>satisfiable T \<longleftrightarrow> (\<forall> T' \<subseteq> T. finite T' \<longrightarrow> satisfiable T')\<close>
-  using sat_compactness1 sat_compactness2
+
+theorem Vsat_compactness: \<open>Vsatisfiable T \<longleftrightarrow> (\<forall> T' \<subseteq> T. finite T' \<longrightarrow> Vsatisfiable T')\<close>
+  using Vsat_compactness1 Vsat_compactness2
   by blast 
-*)
+
 
 (*
 corollary unsat_compactness: \<open>unsatisfiable T \<longleftrightarrow> (\<exists> T' \<subseteq> T. finite T' \<and> unsatisfiable T')\<close>
