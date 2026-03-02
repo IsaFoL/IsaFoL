@@ -2633,18 +2633,18 @@ next
     \<open>\<forall> i \<in> ?I. is_canonical (\<M> i) (language i) \<and> is_model_of (\<M> i) i\<close>
     by moura
   then have 
-    all_\<M>_canonical: \<open>\<forall> i \<in> ?I. is_canonical (\<M> i) (language i)\<close> and
+   (* all_\<M>_canonical: \<open>\<forall> i \<in> ?I. is_canonical (\<M> i) (language i)\<close> and*)
     i_modelled_by: \<open>\<forall> i \<in> ?I. is_model_of (\<M> i) i\<close>
     by blast+ 
   then have
     structs: \<open>\<forall> i \<in> ?I. struct (dom (\<M> i)) (interp_fn (\<M> i)) (interp_rel (\<M> i))\<close>
     using model_is_struct
     by blast
-
+(*
   have \<open>\<forall> f. \<forall> i\<^sub>1 \<in> ?I. \<forall> i\<^sub>2 \<in> ?I. interp_fn (\<M> i\<^sub>1) f = interp_fn (\<M> i\<^sub>2) f\<close>
     using all_\<M>_canonical[unfolded is_canonical_def]
     by auto 
-
+*)
   let ?\<beta> = \<open>\<lambda> i _. \<some> x. x \<in> dom (\<M> i)\<close>
 
   have vars: \<open>\<forall> i \<in> ?I. is_vars (dom (\<M> i)) (?\<beta> i)\<close>

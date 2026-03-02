@@ -2597,21 +2597,18 @@ definition is_Vstruct where
 definition Vstruct2model where
  "Vstruct2model M \<equiv> Abs_model (elts (fst M),(fst (snd M)),snd (snd M))"
 
+abbreviation Vdom where
+  "Vdom I \<equiv> dom (Vstruct2model I)"
+
+abbreviation Vinterp_fn where
+  \<open>Vinterp_fn I \<equiv> interp_fn (Vstruct2model I)\<close>
+
+abbreviation Vinterp_rel where
+  \<open>Vinterp_rel I \<equiv> interp_rel (Vstruct2model I)\<close>
 
 lemma Vdom_is_fst: \<open>is_Vstruct I \<Longrightarrow> 
   dom (Vstruct2model I) = elts (fst I)\<close>
   using dom_Abs_is_fst Abs_model_inverse dom.rep_eq unfolding is_Vstruct_def Vstruct2model_def by blast
-
-
-(*
-abbreviation satisfiable :: \<open>('f, 'p, 'v) fm set \<Rightarrow> bool\<close> where
-  \<open>satisfiable T \<equiv>
-    (\<exists> \<M> :: ('f, 'p, ('f, 'v) tm) model. is_canonical \<M> (language T) \<and> is_model_of \<M> T)\<close> 
-*)
-(*
-abbreviation is_canonical_model :: \<open>('f, 'p, ('f, 'v) tm) model \<Rightarrow> ('f, 'p, 'v) fm set \<Rightarrow> bool\<close> where
-  \<open>is_canonical_model \<M> T \<equiv> is_canonical \<M> (language T) \<and> is_model_of \<M> T\<close>
-*)
 
 abbreviation is_Vmodel_of where
 \<open>is_Vmodel_of I T \<equiv> is_model_of (Vstruct2model I) T\<close>
@@ -2665,21 +2662,11 @@ next
   case False
 
   \<comment>\<open>This proof is mostly inspired by the one in
-    \<^url>\<open>https://www.people.vcu.edu/~bmcody/Compactness-Notes.pdf\<close>, although slightly modified here
-    and there.
-    I think the document moved to 
-    \<^url>\<open>https://brentcody.github.io/syllabi/compactness_notes_4-8-2014.pdf\<close>
-    TODO: check with Ghilain that this is the correct document.
+    \<^url>\<open>https://brentcody.github.io/syllabi/compactness_notes_4-8-2014.pdf\<close>,
+    although slightly modified here and there.
 \<close>
 
-  find_theorems elts set
-
-  assume \<open>\<forall> T' \<subseteq> T. finite T' \<longrightarrow> Vsatisfiable T'\<close>
-  then obtain I where \<open>is_Vstruct I\<close> \<open>\<forall>T' \<subseteq> T. is_Vmodel_of I T'\<close>
-    sledgehammer sorry
-  define I_elts where \<open>I_elts = {fst I |I. is_Vstruct I \<and> (\<exists>T'\<subseteq> T. finite T' \<and> is_Vmodel_of I T')}\<close>
-  then obtain I_dom where \<open>elts I_dom = I_elts\<close> sorry
-
+  let ?I = \<open>{ T' :: ('f, 'p, 'v) fm set. finite T' \<and> T' \<subseteq> T }\<close>
 
   have dummy_I_nonempty: \<open>?I \<noteq> {}\<close>
     using False
@@ -2689,25 +2676,45 @@ next
   then have \<open>\<forall> T' \<in> ?I. Vsatisfiable T'\<close>
     by blast 
   then obtain
+    \<M> where
+    \<open>\<forall> i \<in> ?I. is_Vstruct (\<M> i) \<and> is_Vmodel_of (\<M> i) i\<close>
+    by moura
+  then have i_modelled_by: \<open>\<forall> i \<in> ?I. is_Vmodel_of (\<M> i) i\<close>
+    by blast+
+(*
+  then obtain I where \<open>is_Vstruct I\<close> \<open>\<forall>T' \<subseteq> T. is_Vmodel_of I T'\<close>
+    sledgehammer sorry
+  define I_elts where \<open>I_elts = {fst I |I. is_Vstruct I \<and> (\<exists>T'\<subseteq> T. finite T' \<and> is_Vmodel_of I T')}\<close>
+  then obtain I_dom where \<open>elts I_dom = I_elts\<close> sorry
+*)
+(*
+  have dummy_I_nonempty: \<open>?I \<noteq> {}\<close>
+    using False
+    by blast 
+*)
+(*
+  assume \<open>\<forall> T' \<subseteq> T. finite T' \<longrightarrow> Vsatisfiable T'\<close>
+  then have \<open>\<forall> T' \<in> ?I. Vsatisfiable T'\<close>
+    by blast 
+  then obtain
     \<M> :: \<open>('f, 'p, 'v) fm set \<Rightarrow> ('f, 'p, ('f, 'v) tm) model\<close> where
     \<open>\<forall> i \<in> ?I. is_canonical (\<M> i) (language i) \<and> is_model_of (\<M> i) i\<close>
-    sorry (* by moura *)
-  then have 
+    sorry (* by moura *)*)
+(*  then have 
     all_\<M>_canonical: \<open>\<forall> i \<in> ?I. is_canonical (\<M> i) (language i)\<close> and
     i_modelled_by: \<open>\<forall> i \<in> ?I. is_model_of (\<M> i) i\<close>
-    by blast+ 
+    by blast+ *)
   then have
-    structs: \<open>\<forall> i \<in> ?I. struct (dom (\<M> i)) (interp_fn (\<M> i)) (interp_rel (\<M> i))\<close>
-    using model_is_struct
-    by blast
-
+    structs: \<open>\<forall> i \<in> ?I. struct (Vdom (\<M> i)) (Vinterp_fn (\<M> i)) (Vinterp_rel (\<M> i))\<close>
+    using model_is_struct by blast
+(*
   have \<open>\<forall> f. \<forall> i\<^sub>1 \<in> ?I. \<forall> i\<^sub>2 \<in> ?I. interp_fn (\<M> i\<^sub>1) f = interp_fn (\<M> i\<^sub>2) f\<close>
     using all_\<M>_canonical[unfolded is_canonical_def]
     by auto 
+*)
+  let ?\<beta> = \<open>\<lambda> i _. \<some> x. x \<in> Vdom (\<M> i)\<close>
 
-  let ?\<beta> = \<open>\<lambda> i _. \<some> x. x \<in> dom (\<M> i)\<close>
-
-  have vars: \<open>\<forall> i \<in> ?I. is_vars (dom (\<M> i)) (?\<beta> i)\<close>
+  have vars: \<open>\<forall> i \<in> ?I. is_vars (Vdom (\<M> i)) (?\<beta> i)\<close>
     unfolding is_vars_def
     using some_in_eq struct.M_nonempty structs
     by fastforce
@@ -2813,7 +2820,7 @@ next
     using filter_to_ultrafilter[of F ?I]
     by blast 
 
-  interpret ultraprod ?I F' \<M> ?\<beta>
+  interpret ultraprod ?I F' "\<lambda>i. Vstruct2model (\<M> i)" ?\<beta>
     unfolding ultraprod_def
     using F'_ultrafilter structs vars
     by blast 
@@ -2825,7 +2832,7 @@ next
       vars: \<open>is_vars (dom \<A>) \<beta>\<close> 
     then have
       singleton_\<phi>_in_dummy_I: \<open>{\<phi>} \<in> ?I\<close> and
-      \<open>\<forall> i \<in> ?I. \<phi> \<in> i \<longrightarrow> \<M> i,(\<lambda> v. rep (\<beta> v) i) \<Turnstile> \<phi>\<close>
+      \<open>\<forall> i \<in> ?I. \<phi> \<in> i \<longrightarrow> Vstruct2model (\<M> i),(\<lambda> v. rep (\<beta> v) i) \<Turnstile> \<phi>\<close>
     proof (blast, intro ballI impI)
       fix i
       assume
@@ -2833,14 +2840,14 @@ next
         \<phi>_in_i: \<open>\<phi> \<in> i\<close> and
         \<phi>_in_T: \<open>\<phi> \<in> T\<close>
 
-      have \<open>\<forall> \<beta>. is_vars (dom (\<M> i)) \<beta> \<longrightarrow> \<M> i,\<beta> \<Turnstile> \<phi>\<close>
+      have \<open>\<forall> \<beta>. is_vars (Vdom (\<M> i)) \<beta> \<longrightarrow> Vstruct2model (\<M> i),\<beta> \<Turnstile> \<phi>\<close>
         using \<phi>_in_i i_in_dummy_I i_modelled_by is_model_of_def
         by blast
-      then show \<open>\<M> i,(\<lambda> v. rep (\<beta> v) i) \<Turnstile> \<phi>\<close>
+      then show \<open>Vstruct2model (\<M> i),(\<lambda> v. rep (\<beta> v) i) \<Turnstile> \<phi>\<close>
         using vars dom_\<A> i_in_dummy_I rep_def some_i_in_Mi
         by auto
     qed
-    then have \<open>{i \<in> ?I. \<phi> \<in> i} \<subseteq> {i \<in> ?I. \<M> i,(\<lambda> v. rep (\<beta> v) i) \<Turnstile> \<phi>}\<close>
+    then have \<open>{i \<in> ?I. \<phi> \<in> i} \<subseteq> {i \<in> ?I. Vstruct2model (\<M> i),(\<lambda> v. rep (\<beta> v) i) \<Turnstile> \<phi>}\<close>
       by blast 
     moreover have \<open>{i \<in> ?I. \<phi> \<in> i} \<in> ?J\<close>
     proof -
@@ -2859,7 +2866,7 @@ next
     then have \<open>{i \<in> ?I. \<phi> \<in> i} \<in> F'\<close>
       using F_subset dummy_J_subset
       by fastforce 
-    ultimately have \<open>{i \<in> ?I. \<M> i,(\<lambda> v. rep (\<beta> v) i) \<Turnstile> \<phi>} \<in> F'\<close>
+    ultimately have \<open>{i \<in> ?I. Vstruct2model (\<M> i),(\<lambda> v. rep (\<beta> v) i) \<Turnstile> \<phi>} \<in> F'\<close>
       using filter.upwards_closed[OF ultrafilter_is_filter[OF F'_ultrafilter]]
       by (metis (mono_tags, lifting) mem_Collect_eq subsetI) 
     then have \<open>\<A>,\<beta> \<Turnstile> \<phi>\<close>
