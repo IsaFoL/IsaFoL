@@ -2872,8 +2872,12 @@ next
     then have \<open>\<A>,\<beta> \<Turnstile> \<phi>\<close>
       unfolding los[OF vars] .
   }
+  then have \<open>is_model_of \<A> T\<close>
+    using is_model_of_def by blast
+  (*then obtain \<A>\<^sub>Z\<^sub>F where \<open>Vstruct2model \<A>\<^sub>Z\<^sub>F = \<A>\<close>
+    sorry *)
   then show ?thesis
-    using is_model_of_def  sorry  
+    sorry  
 qed
 
 
