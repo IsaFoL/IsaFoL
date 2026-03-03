@@ -1997,30 +1997,7 @@ next
   qed
   then show \<open>?Pa \<in> F \<longleftrightarrow> ?Pb \<in> F\<close>
     using filter.closed_int[OF F_filter] filter.upwards_closed[OF F_filter]
-    by (smt (verit, ccfv_threshold) CollectD dummy_A_in_F inf_le1 subset_eq) 
-  (* proof (intro iffI)
-   *   assume \<open>?Pa \<in> F\<close>
-   *   then have \<open>?Pa \<inter> ?A \<in> F\<close>
-   *     using filter.closed_int[OF F_filter _ dummy_A_in_F]
-   *     by blast 
-   *   moreover have \<open>?Pa \<inter> ?A \<subseteq> ?Pb\<close>
-   *     using Pa_inter_A_eq_Pb_inter_A
-   *     by blast  
-   *   ultimately show \<open>?Pb \<in> F\<close>
-   *     using filter.upwards_closed[OF F_filter]
-   *     by (metis (no_types, lifting) CollectD F_filter filter.in_F_subset_S subsetI) 
-   * next
-   *   assume \<open>?Pb \<in> F\<close>
-   *   then have \<open>?Pb \<inter> ?A \<in> F\<close>
-   *     using filter.closed_int[OF F_filter _ dummy_A_in_F]
-   *     by blast
-   *   moreover have \<open>?Pb \<inter> ?A \<subseteq> ?Pa\<close>
-   *     using Pa_inter_A_eq_Pb_inter_A
-   *     by blast 
-   *   ultimately show \<open>?Pa \<in> F\<close>
-   *     using filter.upwards_closed[OF F_filter]
-   *     by (metis (no_types, lifting) CollectD F_filter filter.in_F_subset_S subsetI) 
-   * qed *)
+    by (smt (verit, ccfv_threshold) CollectD dummy_A_in_F inf_le1 subset_eq)
 qed
 
 lemma well_definedness_FN:
@@ -2573,7 +2550,7 @@ qed
 
 end (* locale ultraprod *)
 
-subsubsection \<open>Other results\<close>
+subsection \<open>Other results\<close>
 
 lemma satD:
   \<open>satisfiable T \<Longrightarrow>
@@ -2681,37 +2658,11 @@ next
     by moura
   then have i_modelled_by: \<open>\<forall> i \<in> ?I. is_Vmodel_of (\<M> i) i\<close>
     by blast+
-(*
-  then obtain I where \<open>is_Vstruct I\<close> \<open>\<forall>T' \<subseteq> T. is_Vmodel_of I T'\<close>
-    sledgehammer sorry
-  define I_elts where \<open>I_elts = {fst I |I. is_Vstruct I \<and> (\<exists>T'\<subseteq> T. finite T' \<and> is_Vmodel_of I T')}\<close>
-  then obtain I_dom where \<open>elts I_dom = I_elts\<close> sorry
-*)
-(*
-  have dummy_I_nonempty: \<open>?I \<noteq> {}\<close>
-    using False
-    by blast 
-*)
-(*
-  assume \<open>\<forall> T' \<subseteq> T. finite T' \<longrightarrow> Vsatisfiable T'\<close>
-  then have \<open>\<forall> T' \<in> ?I. Vsatisfiable T'\<close>
-    by blast 
-  then obtain
-    \<M> :: \<open>('f, 'p, 'v) fm set \<Rightarrow> ('f, 'p, ('f, 'v) tm) model\<close> where
-    \<open>\<forall> i \<in> ?I. is_canonical (\<M> i) (language i) \<and> is_model_of (\<M> i) i\<close>
-    sorry (* by moura *)*)
-(*  then have 
-    all_\<M>_canonical: \<open>\<forall> i \<in> ?I. is_canonical (\<M> i) (language i)\<close> and
-    i_modelled_by: \<open>\<forall> i \<in> ?I. is_model_of (\<M> i) i\<close>
-    by blast+ *)
+
   then have
     structs: \<open>\<forall> i \<in> ?I. struct (Vdom (\<M> i)) (Vinterp_fn (\<M> i)) (Vinterp_rel (\<M> i))\<close>
     using model_is_struct by blast
-(*
-  have \<open>\<forall> f. \<forall> i\<^sub>1 \<in> ?I. \<forall> i\<^sub>2 \<in> ?I. interp_fn (\<M> i\<^sub>1) f = interp_fn (\<M> i\<^sub>2) f\<close>
-    using all_\<M>_canonical[unfolded is_canonical_def]
-    by auto 
-*)
+
   let ?\<beta> = \<open>\<lambda> i _. \<some> x. x \<in> Vdom (\<M> i)\<close>
 
   have vars: \<open>\<forall> i \<in> ?I. is_vars (Vdom (\<M> i)) (?\<beta> i)\<close>
@@ -2823,7 +2774,11 @@ next
   interpret ultraprod ?I F' "\<lambda>i. Vstruct2model (\<M> i)" ?\<beta>
     unfolding ultraprod_def
     using F'_ultrafilter structs vars
-    by blast 
+    by blast
+
+  find_theorems  " small _ \<Longrightarrow> _ "
+
+  define A\<^sub>Z\<^sub>F where \<open>A\<^sub>Z\<^sub>F = ZFC_in_HOL.set A\<close>
 
   {
     fix \<phi> and \<beta> :: \<open>'v \<Rightarrow> _ set\<close> 
@@ -2872,10 +2827,14 @@ next
     then have \<open>\<A>,\<beta> \<Turnstile> \<phi>\<close>
       unfolding los[OF vars] .
   }
+  find_theorems
   then have \<open>is_model_of \<A> T\<close>
     using is_model_of_def by blast
-  (*then obtain \<A>\<^sub>Z\<^sub>F where \<open>Vstruct2model \<A>\<^sub>Z\<^sub>F = \<A>\<close>
-    sorry *)
+  find_theorems elts set
+  then obtain \<A>\<^sub>Z\<^sub>F where
+    \<open>is_Vmodel_of \<A>\<^sub>Z\<^sub>F T\<close>
+    unfolding is_model_of_def 
+    sorry
   then show ?thesis
     sorry  
 qed
