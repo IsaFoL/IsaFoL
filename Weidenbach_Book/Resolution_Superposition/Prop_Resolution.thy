@@ -70,7 +70,7 @@ lemma simplify_preserve_models_eq:
 lemma simplify_preserves_finite:
  assumes "simplify \<psi> \<psi>'"
  shows "finite \<psi> \<longleftrightarrow> finite \<psi>'"
- using assms by (induct rule: simplify.induct, auto simp add: remove_def)
+ using assms by (induct rule: simplify.induct, auto simp add: )
 
 lemma rtranclp_simplify_preserves_finite:
  assumes "rtranclp simplify \<psi> \<psi>'"
@@ -530,9 +530,8 @@ function build_sem_tree :: "'v :: linorder set \<Rightarrow> 'v clause_set \<Rig
      (build_sem_tree (Set.remove (Min atms) atms) \<psi>))"
 by auto
 termination
-  apply (relation "measure (\<lambda>(A, _).  card A)", simp_all)
-  apply (metis Min_in card_Diff1_less remove_def)+
-done
+  by (relation "measure (\<lambda>(A, _).  card A)", simp_all add: card_gt_0_iff)
+
 declare build_sem_tree.induct[case_names tree]
 
 lemma unsatisfiable_empty[simp]:
@@ -579,8 +578,8 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
     moreover have "atms_of_ms \<psi> = Set.remove (Min atms) atms \<union> atms_of_s (Ia \<union> {Pos (Min atms)})"
       using Min_in atms f un by fastforce
     moreover have disj': "Set.remove (Min atms) atms \<inter> atms_of_s (Ia \<union> {Pos (Min atms)}) = {}"
-      by simp (metis disj disjoint_iff_not_equal member_remove)
-    moreover have "finite (Set.remove (Min atms) atms)" using f by (simp add: remove_def)
+      by simp (simp add: Diff_Int_distrib2 disj)
+    moreover have "finite (Set.remove (Min atms) atms)" using f by (simp add:)
     ultimately have subtree1: "partial_interps (build_sem_tree (Set.remove (Min atms) atms) \<psi>)
         (Ia \<union> {Pos (Min atms)}) \<psi>"
       using IH1[of "Ia \<union> {Pos (Min (atms))}"] atms f unsat finite by metis
@@ -594,7 +593,7 @@ proof (induct arbitrary: I rule: build_sem_tree.induct)
 
     moreover have disj': "Set.remove (Min atms) atms \<inter> atms_of_s (Ia \<union> {Neg (Min atms)}) = {}"
       using disj by auto
-    moreover have "finite (Set.remove (Min atms) atms)" using f by (simp add: remove_def)
+    moreover have "finite (Set.remove (Min atms) atms)" using f by simp
     ultimately have subtree2: "partial_interps (build_sem_tree (Set.remove (Min atms) atms) \<psi>)
         (Ia \<union> {Neg (Min atms)}) \<psi>"
       using IH2[of "Ia \<union> {Neg (Min (atms))}"]  atms f unsat finite by metis

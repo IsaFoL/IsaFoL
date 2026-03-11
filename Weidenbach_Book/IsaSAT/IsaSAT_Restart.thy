@@ -319,7 +319,7 @@ lemma in_set_delete_index_and_swapD:
   \<open>x \<in> set (delete_index_and_swap xs i) \<Longrightarrow> x \<in> set xs\<close>
   apply (cases \<open>i < length xs\<close>)
   apply (auto dest!: in_set_butlastD)
-  by (metis List.last_in_set in_set_upd_cases list.size(3) not_less_zero)
+  by (metis Misc.last_in_set in_set_upd_cases list.size(3) not_less0)+
 
 lemma delete_index_vdom_heur_twl_st_heur_restart_ana:
   \<open>(S, T) \<in> twl_st_heur_restart_ana r \<Longrightarrow> i < length (get_tvdom S) \<Longrightarrow>

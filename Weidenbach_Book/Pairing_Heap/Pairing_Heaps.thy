@@ -34,6 +34,7 @@ lemma mset_nodes_link[simp]: \<open>mset_nodes (link a b) = mset_nodes a + mset_
 lemma mset_nodes_merge_pairs: \<open>merge_pairs a \<noteq> None \<Longrightarrow> mset_nodes (the (merge_pairs a)) = sum_list (map mset_nodes a)\<close>
   apply (induction a rule: merge_pairs.induct)
   subgoal by auto
+  subgoal by auto
   subgoal for h1 h2 hs
     by (cases hs)
      (auto simp: Let_def split: option.splits)

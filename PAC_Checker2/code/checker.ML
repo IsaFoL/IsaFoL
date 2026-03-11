@@ -2,18 +2,11 @@
 val _ = if 5 <= Word.wordSize then () else raise (Fail ("wordSize less than 5"));
 
 structure Uint32 : sig
-  val set_bit : Word32.word -> IntInf.int -> bool -> Word32.word
   val shiftl : Word32.word -> IntInf.int -> Word32.word
   val shiftr : Word32.word -> IntInf.int -> Word32.word
   val shiftr_signed : Word32.word -> IntInf.int -> Word32.word
   val test_bit : Word32.word -> IntInf.int -> bool
 end = struct
-
-fun set_bit x n b =
-  let val mask = Word32.<< (0wx1, Word.fromLargeInt (IntInf.toLarge n))
-  in if b then Word32.orb (x, mask)
-     else Word32.andb (x, Word32.notb mask)
-  end
 
 fun shiftl x n =
   Word32.<< (x, Word.fromLargeInt (IntInf.toLarge n))
@@ -128,6 +121,41 @@ end (*struct Uint64*)
 
 
 
+structure Bit_Shifts : sig
+  type int = IntInf.int
+  val push : int -> int -> int
+  val drop : int -> int -> int
+end = struct
+
+open IntInf;
+
+fun fold _ [] y = y
+  | fold f (x :: xs) y = fold f xs (f x y);
+
+fun replicate n x = (if n <= 0 then [] else x :: replicate (n - 1) x);
+
+val max_index = pow (fromInt 2, Word.wordSize) - fromInt 1; (*largest possible word*)
+
+val word_of_int = Word.fromLargeInt o toLarge;
+
+val word_max_index = word_of_int max_index;
+
+fun words_of_int k = case divMod (k, max_index)
+  of (b, s) => word_of_int s :: replicate b word_max_index;
+
+fun push' i k = << (k, i);
+
+fun drop' i k = ~>> (k, i);
+
+(* The implementations are formally total, though indices >~ max_index will produce heavy computation load *)
+
+fun push i = fold push' (words_of_int (abs i));
+
+fun drop i = fold drop' (words_of_int (abs i));
+
+end;
+
+
    fun array_blit src si dst di len = (
       src=dst andalso raise Fail ("array_blit: Same arrays");
       ArraySlice.copy {
@@ -144,49 +172,25 @@ end (*struct Uint64*)
 
 
 
-structure Integer_Bit : sig
-  val test_bit : IntInf.int -> IntInf.int -> bool
-  val set_bit : IntInf.int -> IntInf.int -> bool -> IntInf.int
-  val shiftl : IntInf.int -> IntInf.int -> IntInf.int
-  val shiftr : IntInf.int -> IntInf.int -> IntInf.int
+structure Str_Literal : sig
+  type int = IntInf.int
+  val literal_of_asciis : int list -> string
+  val asciis_of_literal : string -> int list
 end = struct
 
-val maxWord = IntInf.pow (2, Word.wordSize);
-
-fun test_bit x n =
-  if n < maxWord then IntInf.andb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))) <> 0
-  else raise (Fail ("Bit index too large: " ^ IntInf.toString n));
-
-fun set_bit x n b =
-  if n < maxWord then
-    if b then IntInf.orb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n)))
-    else IntInf.andb (x, IntInf.notb (IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))))
-  else raise (Fail ("Bit index too large: " ^ IntInf.toString n));
-
-fun shiftl x n =
-  if n < maxWord then IntInf.<< (x, Word.fromLargeInt (IntInf.toLarge n))
-  else raise (Fail ("Shift operand too large: " ^ IntInf.toString n));
-
-fun shiftr x n =
-  if n < maxWord then IntInf.~>> (x, Word.fromLargeInt (IntInf.toLarge n))
-  else raise (Fail ("Shift operand too large: " ^ IntInf.toString n));
-
-end; (*struct Integer_Bit*)
-
-structure Str_Literal =
-struct
+open IntInf;
 
 fun map f [] = []
-  | map f (x :: xs) = f x :: map f xs; (* deliberate clone not relying on List._ module *)
+  | map f (x :: xs) = f x :: map f xs; (* deliberate clone not relying on List._ structure *)
 
-fun check_ascii (k : IntInf.int) =
+fun check_ascii k =
   if 0 <= k andalso k < 128
   then k
   else raise Fail "Non-ASCII character in literal";
 
-val char_of_ascii = Char.chr o IntInf.toInt o check_ascii;
+val char_of_ascii = Char.chr o toInt o (fn k => k mod 128);
 
-val ascii_of_char = check_ascii o IntInf.fromInt o Char.ord;
+val ascii_of_char = check_ascii o fromInt o Char.ord;
 
 val literal_of_asciis = String.implode o map char_of_ascii;
 
@@ -414,7 +418,7 @@ fun showsp_nat p n =
 
 fun less_int k l = IntInf.< (integer_of_int k, integer_of_int l);
 
-fun nat k = Nat (max ord_integer (0 : IntInf.int) (integer_of_int k));
+fun nat x = (nat_of_integer o integer_of_int) x;
 
 fun showsp_int p i =
   (if less_int i zero_int
@@ -567,8 +571,8 @@ type 'a zero_neq_one = {one_zero_neq_one : 'a one, zero_zero_neq_one : 'a zero};
 val one_zero_neq_one = #one_zero_neq_one : 'a zero_neq_one -> 'a one;
 val zero_zero_neq_one = #zero_zero_neq_one : 'a zero_neq_one -> 'a zero;
 
-fun of_bool A_ true = one (one_zero_neq_one A_)
-  | of_bool A_ false = zero (zero_zero_neq_one A_);
+fun of_bool A_ false = zero (zero_zero_neq_one A_)
+  | of_bool A_ true = one (one_zero_neq_one A_);
 
 val one_integera : IntInf.int = (1 : IntInf.int);
 
@@ -686,8 +690,8 @@ datatype memory_allocation = Allocated | Mem_Out;
 
 fun suc n = plus_nat n one_nat;
 
-fun fold f (x :: xs) s = fold f xs (f x s)
-  | fold f [] s = s;
+fun fold f [] s = s
+  | fold f (x :: xs) s = fold f xs (f x s);
 
 fun rev xs = fold (fn a => fn b => a :: b) xs [];
 
@@ -737,9 +741,6 @@ fun blit A_ src si dst di len =
   (fn () => 
     array_blit src (integer_of_nat
                      si) dst (integer_of_nat di) (integer_of_nat len));
-
-fun gen_length n (x :: xs) = gen_length (suc n) xs
-  | gen_length n [] = n;
 
 fun nth_oo A_ v a = (fn b => array_nth_oo v a b) o integer_of_nat;
 
@@ -829,6 +830,9 @@ fun ht_copy (A1_, A2_, A3_) B_ n src dst =
            in
              ht_copy (A1_, A2_, A3_) B_ (minus_nat n one_nat) src x ()
            end));
+
+fun length_tailrec [] n = n
+  | length_tailrec (x :: xs) n = length_tailrec xs (suc n);
 
 fun ls_delete A_ k [] = ([], false)
   | ls_delete A_ k ((l, w) :: ls) =
@@ -995,7 +999,7 @@ fun merge f (x :: xs) (y :: ys) =
   | merge f xs [] = xs
   | merge f [] (v :: va) = v :: va;
 
-fun size_list x = gen_length zero_nata x;
+fun size_list xs = length_tailrec xs zero_nata;
 
 fun msort f [] = []
   | msort f [x] = [x]
@@ -1036,18 +1040,19 @@ fun char_of_integer k = let
 
 fun explode s = map char_of_integer (Str_Literal.asciis_of_literal s);
 
-fun msort2 f (v :: vb :: va :: vd) =
-  merge f
-    (msort f
-      (v :: take (divide_nat (suc (size_list vd))
-                   (nat_of_integer (2 : IntInf.int)))
-              (vb :: va :: vd)))
-    (msort f
-      (drop (divide_nat (suc (size_list vd)) (nat_of_integer (2 : IntInf.int)))
-        (vb :: va :: vd)))
-  | msort2 f [x, y] = (if f x y then [x, y] else [y, x])
+fun msort2 f [] = []
   | msort2 f [x] = [x]
-  | msort2 f [] = [];
+  | msort2 f [x, y] = (if f x y then [x, y] else [y, x])
+  | msort2 f (v :: vb :: va :: vd) =
+    merge f
+      (msort f
+        (v :: take (divide_nat (suc (size_list vd))
+                     (nat_of_integer (2 : IntInf.int)))
+                (vb :: va :: vd)))
+      (msort f
+        (drop (divide_nat (suc (size_list vd))
+                (nat_of_integer (2 : IntInf.int)))
+          (vb :: va :: vd)));
 
 fun op_list_length x = size_list x;
 
@@ -1126,16 +1131,16 @@ fun lexord_eq (A1_, A2_) [] uu = true
     less A2_ x y orelse eq A1_ x y andalso lexord_eq (A1_, A2_) xs ys
   | lexord_eq (A1_, A2_) (v :: va) [] = false;
 
-fun imp_nfoldli (x :: ls) c f s =
-  (fn () =>
-    let
-      val b = c s ();
-    in
-      (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
-        else (fn () => s))
-        ()
-    end)
-  | imp_nfoldli [] c f s = (fn () => s);
+fun imp_nfoldli [] c f s = (fn () => s)
+  | imp_nfoldli (x :: ls) c f s =
+    (fn () =>
+      let
+        val b = c s ();
+      in
+        (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
+          else (fn () => s))
+          ()
+      end);
 
 fun is_Nil a = (case a of [] => true | _ :: _ => false);
 
@@ -1218,7 +1223,7 @@ fun sort_all_coeffs_impl x =
 fun pAC_update_impl x =
   iam_update (heap_list (heap_prod (heap_list heap_literal) heap_int)) x;
 
-val version : string = "ba04de96";
+val version : string = "dce64180";
 
 fun is_CL (CL (x11, x12, x13)) = true
   | is_CL (Extension (x21, x22, x23)) = false

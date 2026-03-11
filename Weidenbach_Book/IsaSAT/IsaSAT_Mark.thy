@@ -362,12 +362,16 @@ qed
 definition conflict_from_lookup where
   \<open>conflict_from_lookup = (\<lambda>(n, xs). SPEC(\<lambda>D. mset_as_position xs D \<and> n = size D))\<close>
 
+lemma all_elements_same_replicate: 
+  \<open>\<forall>x. x \<in> set xs \<longrightarrow> x = a \<Longrightarrow> xs = replicate (length xs) a\<close>
+  by (induction xs) auto
+
 lemma Ex_mset_as_position:
   \<open>Ex (mset_as_position xs)\<close>
 proof (induction \<open>size {#x \<in># mset xs. x \<noteq> None#}\<close> arbitrary: xs)
   case 0
   then have xs: \<open>xs = replicate (length xs) None\<close>
-    by (auto simp: filter_mset_empty_conv dest: replicate_length_same)
+    by (auto simp: filter_mset_empty_conv intro: all_elements_same_replicate)
   show ?case
     by (subst xs) (auto simp: mset_as_position.empty intro!: exI[of _ \<open>{#}\<close>])
 next
