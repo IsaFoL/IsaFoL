@@ -610,7 +610,7 @@ proof -
     minimal_difference_between_valid_index[OF dom ia i] ia_ge
     by (cases \<open>ia < i\<close>)
      (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
-       Misc.slice_def header_size_def split: if_splits)
+       Misc.slice_def header_size_def split: if_splits simp flip: take_update)
 qed
 
 lemma clause_slice_extra_information_mark_to_delete_dead:
@@ -632,7 +632,7 @@ proof -
     by (cases \<open>ia < i\<close>)
      (auto simp: extra_information_mark_to_delete_def STATUS_SHIFT_def drop_update_swap
        arena_dead_clause_def
-       Misc.slice_def header_size_def split: if_splits)
+       Misc.slice_def header_size_def split: if_splits simp del: take_update)
 qed
 
 lemma length_extra_information_mark_to_delete[simp]:
@@ -741,7 +741,7 @@ proof -
     by (cases \<open>ia < i\<close>)
      (auto simp: extra_information_mark_to_delete_def drop_update_swap
        update_lbd_def SHIFTS_def arena_status_def arena_used_def
-       Misc.slice_def header_size_def split: if_splits)
+       Misc.slice_def header_size_def split: if_splits simp flip: take_update)
 qed
 
 lemma length_update_lbd[simp]:
@@ -863,7 +863,7 @@ proof -
     by (cases \<open>ia < i\<close>)
      (auto simp: extra_information_mark_to_delete_def drop_update_swap
        update_pos_direct_def SHIFTS_def
-       Misc.slice_def header_size_def split: if_splits)
+       Misc.slice_def header_size_def split: if_splits simp flip: take_update)
 qed
 
 
@@ -985,7 +985,7 @@ proof -
     by (cases \<open>ia < i\<close>)
      (auto simp: extra_information_mark_to_delete_def drop_update_swap
        swap_lits_def SHIFTS_def swap_def ac_simps
-       Misc.slice_def header_size_def split: if_splits)
+       Misc.slice_def header_size_def split: if_splits simp flip: take_update)
 qed
 
 lemma length_swap_lits[simp]:
