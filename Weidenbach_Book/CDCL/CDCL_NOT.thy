@@ -858,6 +858,129 @@ lemma
    apply (rule wf_less_than)
   by (rule dpll_bj_trail_mes_decreasing_less_than; use fin in simp)
 
+text \<open>The set version above above is actually largely overestimating the number of transation
+  if you simply count the number of states. Let's do a better count:\<close>
+fun dpll_mes_set :: \<open>nat \<Rightarrow> nat list set\<close> where
+  \<open>dpll_mes_set 0 = {[]}\<close> |
+  \<open>dpll_mes_set (Suc n) = {replicate (Suc n) 3} \<union> (Cons 1) ` dpll_mes_set n \<union> (Cons 2) ` dpll_mes_set n\<close>
+
+lemma finite_dpll_mes_set[simp]: \<open>finite (dpll_mes_set n)\<close>
+  by (induction n) auto
+
+lemma \<open>map (\<lambda>n. (card (dpll_mes_set (n)), (2^(n+1) - (1::nat)), card (dpll_mes_set (n)) -  (2^(n+1) - (1::nat)))) [0, Suc 0, Suc (Suc 0), Suc (Suc (Suc 0))] = A\<close>
+  apply auto
+  oops
+
+lemma card_dpll_mes_set: \<open>card (dpll_mes_set (n)) = 2^(n+1) - 1\<close>
+proof -
+  have \<open>card (dpll_mes_set (n)) = 2^(n+1) - 1\<close> if \<open>n=Suc (Suc 0)\<close>
+    using that apply auto
+    done
+  have \<open>card (dpll_mes_set (n)) = 2^(n+1) - 1\<close> if \<open>n=0\<close>
+    using that apply auto
+    done
+  have [simp]:
+    \<open>3 # replicate n 3 \<notin> (#) (Suc 0) ` dpll_mes_set n\<close>
+    \<open>3 # replicate n 3 \<notin> (#) 2 ` dpll_mes_set n\<close>
+    \<open>(#) (Suc 0) ` dpll_mes_set n \<inter> (#) 2 ` dpll_mes_set n = {}\<close>
+    for n
+    by auto
+  have \<open>card ((#) a ` dpll_mes_set n) =  card (dpll_mes_set n)\<close>
+    by (simp add: card_image)
+  have \<open>Suc (2 ^ n + 2 ^ n - Suc (Suc 0)) = 2 * 2 ^ n - Suc 0\<close> for n
+    by (metis Suc_1 Suc_mask_eq_exp add_Suc_right add_Suc_shift
+      add_diff_cancel_left' diff_Suc_1' mult_1 mult_Suc)
+  then have [simp]: \<open>Suc (4 * 2 ^ n - Suc (Suc 0)) = 4 * 2 ^ n - Suc 0\<close> for n
+    by (metis mult_2 mult_numeral_left_semiring_numeral num_double power_Suc)
+  show ?thesis
+    by (induction n) (auto simp: card_Un_disjoint card_Un_disjoint card_image)
+qed
+
+lemma Suc_in_dpll_mes_set_Suc[simp]:
+  \<open>Suc 0 # x \<in> dpll_mes_set (Suc n) \<longleftrightarrow> x \<in> dpll_mes_set n\<close>
+  \<open>Suc 1 # x \<in> dpll_mes_set (Suc n) \<longleftrightarrow> x \<in> dpll_mes_set n\<close>
+  \<open>3 # x \<in> dpll_mes_set (Suc n) \<longleftrightarrow> x = replicate n 3\<close>
+  by (cases n; auto; fail)+
+
+lemma Suc_in_dpll_mes_set:
+  \<open>Suc 0 # x \<in> dpll_mes_set n \<longleftrightarrow> n > 0 \<and> x \<in> dpll_mes_set (n-1)\<close>
+  \<open>Suc 1 # x \<in> dpll_mes_set n \<longleftrightarrow> n > 0 \<and> x \<in> dpll_mes_set (n-1)\<close>
+  \<open>3 # x \<in> dpll_mes_set n \<longleftrightarrow> n > 0 \<and> x = replicate (n-1) 3\<close>
+  by (cases n; auto; fail)+
+
+lemma in_dpll_mes_set_length[dest]: \<open>x \<in> dpll_mes_set n \<Longrightarrow> length x = n\<close>
+  by (induction n arbitrary: x) auto
+
+
+lemma in_dpll_mes_set_iff:
+  \<open>xs \<in> dpll_mes_set n \<longleftrightarrow> (length xs = n \<and> set xs \<subseteq> {1,2,3} \<and> (\<forall>n < length xs. xs !n = 3 \<longrightarrow> set (drop n xs) \<subseteq> {3}))\<close>
+  (is \<open>?A = ?B\<close>)
+proof -
+  have H: \<open>xs \<in> dpll_mes_set n \<Longrightarrow> set xs \<subseteq> {1,2,3}\<close> for xs
+    by (induction n arbitrary: xs) force+
+
+  show ?thesis
+  proof
+    have \<open>xs \<in> dpll_mes_set n\<Longrightarrow> (\<forall>n < length xs. xs !n = 3 \<longrightarrow> set (drop n xs) \<subseteq> {3})\<close>
+      apply (induction n arbitrary: xs)
+      apply (auto simp: )
+      apply (metis in_set_dropD in_set_replicate replicate_Suc)
+      apply (metis (no_types, opaque_lifting) Suc_less_eq drop_Suc_Cons
+        not0_implies_Suc nth_Cons_0 nth_Cons_Suc numeral_3_eq_3 singletonD
+        subset_iff)
+      by (metis (no_types, opaque_lifting) One_nat_def Suc_1 diff_Suc_1'
+        drop_Suc_Cons less_Suc_eq_0_disj n_not_Suc_n nth_Cons' numeral_3_eq_3
+        singleton_iff subset_code(1))
+    then show ?B if ?A
+      using H in_dpll_mes_set_length that by presburger
+  next
+    assume ?B
+    then show ?A
+      apply (induction n arbitrary: xs)
+      apply auto
+      apply (case_tac xs)
+      apply (auto simp: nth_Cons drop_Suc split: nat.splits)
+      by (metis drop0 insert_subset length_greater_0_conv list.simps(15)
+        list.size(3) list_eq_replicate_iff_nempty replicate_0 set_empty2
+        subset_singleton_iff zero_less_Suc)
+  qed
+qed
+
+
+lemma dpll_bj_trail_mes_dpll_mes_set:
+  assumes
+    inv: \<open>inv S\<close> and
+    N_A: \<open>atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A\<close> and
+    M_A: \<open>atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A\<close> and
+    nd: \<open>no_dup (trail S)\<close> and
+    fin_A: \<open>finite A\<close>
+  shows \<open>(DPLL_mes\<^sub>W (atms_of_ms A) (trail S)) \<in> dpll_mes_set (card (atms_of_ms A))\<close>
+  using assms(1,2)
+proof -
+  define n where
+    \<open>n = card (atms_of_ms A) - card (atm_of ` lits_of_l (trail S))\<close>
+
+  have [simp]: \<open>length (trail S) = card (atm_of ` lits_of_l (trail S))\<close>
+    using nd by (auto simp: no_dup_def lits_of_def image_image dest: distinct_card)
+  have 1: \<open>card (atm_of ` lits_of_l (trail S)) + (card (atms_of_ms A) - card (atm_of ` lits_of_l (trail S))) =
+    card (atms_of_ms A)\<close>
+    by (meson M_A atms_of_ms_finite card_mono fin_A ordered_cancel_comm_monoid_diff_class.add_diff_inverse)
+  have H: \<open>n < card (atms_of_ms A) \<Longrightarrow>
+    (map (\<lambda>L. if is_decided L then (2::nat) else 1) (rev (trail S)) @ replicate (card (atms_of_ms A) - card (atm_of ` lits_of_l (trail S))) 3) ! n = 3 \<Longrightarrow>
+    n \<ge> length (trail S)\<close> for n
+    apply (auto simp: split: if_splits)
+    unfolding nth_append
+    by (smt (z3) One_nat_def Suc_1
+      \<open>length (trail S) = card (atm_of ` lits_of_l (trail S))\<close> ex_map_conv
+      length_map length_rev linorder_not_le n_not_Suc_n nth_mem numeral_3_eq_3
+      numeral_eq_one_iff verit_eq_simplify(12))
+
+  show ?thesis
+    using 1 by (auto simp: in_dpll_mes_set_iff dest: H)
+qed
+
+text \<open>The full proof is below, once we know that the invariant holds.\<close>
+
 
 subsubsection \<open>Normal Forms\<close>
 
@@ -1265,6 +1388,169 @@ next
   ultimately show ?case
     using IH dpll_bj_trail_mes_decreasing_prop[of T U A] dpll fin_A by linarith
 qed
+
+
+subsubsection \<open>Bound\<close>
+
+
+lemma rtranclp_dpll_bj_trail_mes_decreasing_less_than:
+  assumes dpll: \<open>dpll_bj\<^sup>+\<^sup>+ S T\<close> and inv: \<open>inv S\<close> and
+    N_A: \<open>atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A\<close> and
+    M_A: \<open>atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A\<close> and
+    nd: \<open>no_dup (trail S)\<close> and
+    fin_A: \<open>finite A\<close>
+  shows \<open>(DPLL_mes\<^sub>W (atms_of_ms A) (trail T), DPLL_mes\<^sub>W (atms_of_ms A) (trail S)) \<in>
+    lexn less_than (card ((atms_of_ms A)))\<close>
+  using assms
+proof (induction rule: tranclp_induct)
+  case (base y)
+  then show ?case using dpll_bj_trail_mes_decreasing_less_than by metis
+next
+  case (step T U)
+  have  \<open>dpll_bj\<^sup>*\<^sup>* S T\<close>
+    using rtranclp_dpll_bj_inv by (meson step.hyps(1) tranclp_into_rtranclp)
+  have
+    inv: \<open>inv T\<close> and
+    N_A: \<open>atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T T) \<subseteq> atms_of_ms A\<close> and
+    M_A: \<open>atm_of ` lits_of_l (trail T) \<subseteq> atms_of_ms A\<close> and
+    nd: \<open>no_dup (trail T)\<close>
+      using inv rtranclp_dpll_bj_inv \<open>dpll_bj\<^sup>*\<^sup>* S T\<close> apply (meson step.hyps(1))
+      using N_A \<open>dpll_bj\<^sup>*\<^sup>* S T\<close> inv rtranclp_dpll_bj_atms_of_ms_clauses_inv apply blast
+      using M_A N_A \<open>dpll_bj\<^sup>*\<^sup>* S T\<close> inv rtranclp_dpll_bj_atms_in_trail_in_set apply presburger
+      using \<open>dpll_bj\<^sup>*\<^sup>* S T\<close> inv nd rtranclp_dpll_bj_no_dup by blast
+  then have \<open>(DPLL_mes\<^sub>W (atms_of_ms A) (trail U), DPLL_mes\<^sub>W (atms_of_ms A) (trail T)) \<in>
+    lexn less_than (card ((atms_of_ms A)))\<close>
+    using dpll_bj_trail_mes_decreasing_less_than using step by metis
+  moreover have \<open>(DPLL_mes\<^sub>W (atms_of_ms A) (trail T), DPLL_mes\<^sub>W (atms_of_ms A) (trail S)) \<in>
+    lexn less_than (card ((atms_of_ms A)))\<close>
+    using step by metis
+  ultimately show ?case
+    using lexn_transI[OF trans_less_than] unfolding trans_def by fast
+qed
+
+text \<open>Complexity bound counting the number of transitions, not the number of states.\<close>
+lemma dpll_bj_2pown_transitions_bound:
+  assumes
+    dpll: \<open>(dpll_bj^^n) S T\<close> and
+    inv: \<open>inv S\<close> and
+    N_A: \<open>atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T S) \<subseteq> atms_of_ms A\<close> and
+    M_A: \<open>atm_of ` lits_of_l (trail S) \<subseteq> atms_of_ms A\<close> and
+    nd: \<open>no_dup (trail S)\<close> and
+    fin_A: \<open>finite A\<close>
+  shows \<open>n \<le> 2^(card (atms_of_ms A) + 1) - 2\<close>
+  using assms(1,2)
+proof -
+  have \<open>\<exists>S'. (\<forall>m \<le> n. (dpll_bj^^m) S (S' m) \<and> (dpll_bj^^(n - m)) (S' m) T) \<and> (\<forall>m<n. (dpll_bj) (S' m) (S' (m+1))) \<and>S' 0 = S \<and> S' n = T\<close>
+    using dpll
+  proof (induction n arbitrary: T)
+    case 0
+    then show ?case by force
+  next
+    case (Suc n U)
+    then obtain T where ST: \<open>(dpll_bj^^n) S T\<close> and TU: \<open>dpll_bj T U\<close>
+      by auto
+    then obtain S' where f: \<open>(\<forall>m\<le>n. (dpll_bj ^^ m) S (S' m) \<and> (dpll_bj ^^ (n - m)) (S' m) T)\<close> and IH: \<open>S' 0 = S \<and> S' n = T\<close> and
+      trans: \<open>\<forall>m<n. (dpll_bj) (S' m) (S' (m+1))\<close>
+      using Suc(1)[OF ST] by auto
+    let ?f = \<open>f (Suc n := Suc n)\<close>
+    let ?S' = \<open>S' (Suc n := U)\<close>
+    have SS'm_le: \<open>m \<le> n \<Longrightarrow> (dpll_bj ^^ m) S (?S' m) \<and> (dpll_bj ^^ (n - m)) (?S' m) T\<close> for m
+      by (use f in auto)
+    moreover have \<open>m = Suc n \<Longrightarrow> (dpll_bj ^^ m) S (?S' m)\<close> for m
+      using SS'm_le[of \<open>n\<close>] IH TU by auto
+    moreover have \<open>m = Suc n \<Longrightarrow> (dpll_bj ^^ (Suc n-m)) (?S' m) U\<close> for m
+      using SS'm_le[of \<open>n\<close>] TU by auto
+    ultimately show ?case
+      using Suc(2) IH apply -
+      apply (rule exI[of _ ?S'])
+      using Suc_diff_le TU le_Suc_eq trans by auto
+  qed
+  then obtain S' :: \<open>nat \<Rightarrow> 'st\<close> where
+    S': \<open>m \<le> n \<Longrightarrow> (dpll_bj^^m) S (S' m) \<and> (dpll_bj^^(n - m)) (S' m) T\<close> and
+    trans: \<open>m<n \<Longrightarrow> (dpll_bj) (S' m) (S' (m+1))\<close> and
+    \<open>S' 0 = S\<close> and
+    \<open>S' n = T\<close> for m
+    by auto
+  define \<S> where \<open>\<S> \<equiv> DPLL_mes\<^sub>W (atms_of_ms A) ` trail  ` S' ` {0..<Suc n}\<close>
+  define \<T> where \<open>\<T> \<equiv> map (\<lambda>n. DPLL_mes\<^sub>W (atms_of_ms A) (trail (S' n))) [0..<Suc n]\<close>
+
+  have H: \<open>DPLL_mes\<^sub>W (atms_of_ms A) (trail T) \<in> dpll_mes_set (card (atms_of_ms A))\<close> if \<open>(dpll_bj^^n) S T\<close> for n T
+  proof -
+    have \<open>dpll_bj\<^sup>*\<^sup>* S T\<close>
+      using that by (meson relpowp_imp_rtranclp)
+    then have
+      inv: \<open>inv T\<close> and
+      N_A: \<open>atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T T) \<subseteq> atms_of_ms A\<close> and
+      M_A: \<open>atm_of ` lits_of_l (trail T) \<subseteq> atms_of_ms A\<close> and
+      nd: \<open>no_dup (trail T)\<close>
+      using inv rtranclp_dpll_bj_inv apply blast
+      using N_A \<open>dpll_bj\<^sup>*\<^sup>* S T\<close> inv rtranclp_dpll_bj_atms_of_ms_clauses_inv apply blast
+      using M_A N_A \<open>dpll_bj\<^sup>*\<^sup>* S T\<close> inv rtranclp_dpll_bj_atms_in_trail_in_set apply presburger
+      using \<open>dpll_bj\<^sup>*\<^sup>* S T\<close> inv nd rtranclp_dpll_bj_no_dup by blast
+    from this fin_A show ?thesis
+      by (rule dpll_bj_trail_mes_dpll_mes_set)
+  qed
+  have \<open>DPLL_mes\<^sub>W (atms_of_ms A) (trail (S' m)) \<in> dpll_mes_set (card (atms_of_ms A))\<close> if \<open>m \<le> n\<close> for m
+    by (rule H) (use S'[of m] that in auto)
+  then have subset: \<open>\<S> \<subseteq> dpll_mes_set (card (atms_of_ms A))\<close>
+    using S' unfolding \<S>_def by auto
+
+  have Suc_diff_extra_var_simp: \<open>m' \<ge> m \<Longrightarrow> Suc x = m' - m \<longleftrightarrow> m' = m + Suc x\<close> for m m' x
+    by auto
+  have diff: \<open>DPLL_mes\<^sub>W (atms_of_ms A) (trail (S' m)) \<noteq> DPLL_mes\<^sub>W (atms_of_ms A) (trail (S' m'))\<close> if \<open>m \<le> n\<close> \<open>m' \<le> n\<close> \<open>m < m'\<close> for m m'
+  proof -
+    have 1: \<open>(dpll_bj^^(k)) (S' m) (S' (m+k))\<close> if \<open>m+k \<le> n\<close> for k
+      using that
+    proof (induction k)
+      case 0
+      then show ?case by auto
+    next
+      case (Suc k)
+      then have \<open>(dpll_bj ^^ k) (S' m) (S' (m + k))\<close>
+        by auto
+      moreover have \<open>dpll_bj (S' (m + k)) ((S' (Suc (m + k))))\<close> if \<open>m + k < n\<close>
+        using trans[of \<open>m + k\<close>] that
+        by auto
+      ultimately show ?case
+        using Suc by  auto
+    qed
+    have
+      inv: \<open>inv (S' m)\<close> and
+      N_A: \<open>atms_of_mm (clauses\<^sub>N\<^sub>O\<^sub>T (S' m)) \<subseteq> atms_of_ms A\<close> and
+      M_A: \<open>atm_of ` lits_of_l (trail (S' m)) \<subseteq> atms_of_ms A\<close> and
+      nd: \<open>no_dup (trail (S' m))\<close>
+      apply (meson S' inv relpowp_imp_rtranclp rtranclp_dpll_bj_inv that(1))
+      apply (metis N_A S' inv relpowp_imp_rtranclp rtranclp_dpll_bj_atms_of_ms_clauses_inv that(1))
+      apply (meson M_A N_A S' inv relpowp_imp_rtranclp rtranclp_dpll_bj_atms_in_trail_in_set that(1))
+      by (meson S' inv nd relpowp_imp_rtranclp rtranclp_dpll_bj_no_dup that(1))
+    have 2: \<open>dpll_bj\<^sup>+\<^sup>+ (S' m) (S' (m + k))\<close> if \<open>m+k \<le> n\<close> \<open>k > 0\<close> for k
+      using 1[OF that(1)] that(2) by (meson tranclp_power)
+    moreover have \<open>(a, a) \<notin> lexn less_than n\<close> for n a
+      by (simp add: wf_lexn)
+    ultimately have \<open>DPLL_mes\<^sub>W (atms_of_ms A) (trail (S' m)) \<noteq> DPLL_mes\<^sub>W (atms_of_ms A) (trail (S' (m+k)))\<close> if \<open>m+k \<le> n\<close> \<open>k > 0\<close> for k
+      using 1[OF that(1)] 2[OF that] rtranclp_dpll_bj_trail_mes_decreasing_less_than[OF _ inv N_A M_A nd fin_A, of \<open>S' (m+k)\<close>]
+      by auto
+    from this[of \<open>m' - m\<close>] show ?thesis using \<open>m < m'\<close>  \<open>m' \<le> n\<close> by auto
+  qed
+  have \<open>DPLL_mes\<^sub>W (atms_of_ms A) (trail (S' m)) \<noteq> DPLL_mes\<^sub>W (atms_of_ms A) (trail (S' m'))\<close> if \<open>m < Suc n\<close> \<open>m' < Suc n\<close> \<open>m \<noteq> m'\<close> for m m'
+    by (cases \<open>m<m'\<close>; cases \<open>m'\<le>m\<close>) (use diff[of m m'] diff[of m' m] that in auto)
+  then have distinct_\<T>: \<open>distinct \<T>\<close>
+    unfolding \<T>_def distinct_conv_nth
+    by (auto simp: nth_append)
+  have \<T>_\<S>: \<open>\<S> = set \<T>\<close>
+    unfolding \<S>_def \<T>_def atLeast_upt[of \<open>Suc n\<close>] using less_Suc_eq by fastforce
+  have length_\<T>: \<open>length \<T> = Suc n\<close>
+    unfolding \<T>_def by auto
+  have \<open>card \<S> = Suc n\<close>
+    by (simp add: \<T>_\<S> length_\<T> distinct_card distinct_\<T>)
+
+  moreover have \<open>card \<S> \<le> 2 ^ (card (atms_of_ms A)+1) - 1\<close>
+    using card_mono[OF _ subset] unfolding card_dpll_mes_set[of \<open>(card (atms_of_ms A))\<close>]
+    by auto
+  ultimately show ?thesis
+    using Suc_leD by presburger
+qed
+
 
 end \<comment> \<open>End of the locale @{locale dpll_with_backjumping}.\<close>
 
