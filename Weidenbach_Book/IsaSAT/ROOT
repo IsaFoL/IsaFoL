@@ -11,6 +11,7 @@ session "IsaSAT" (Weidenbach_Book) = "Watched_Literals"  +
     Word_Lib
     "HOL-Data_Structures"
     Pairing_Heap_LLVM
+    Examples
   theories
     Pairing_Heaps_Impl_LLVM
     IsaSAT_Arena

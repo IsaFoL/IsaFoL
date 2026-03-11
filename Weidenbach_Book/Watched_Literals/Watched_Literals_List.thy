@@ -1619,8 +1619,8 @@ proof -
         by (rule update_clauses.intros(1)[OF TWL_L_L'_UW_N])
       have K1: \<open>mset (watched_l (swap (N\<propto>C) i K')) = {#N\<propto>C!K', N\<propto>C!(1 - i)#}\<close>
         using J_NE C_N_U C' K'_2 K'_le two_le_length_C
-          by (auto simp: init_clss_l_mapsto_upd S image_mset_remove1_mset_if
-            take_2_if swap_def i_def)
+        by (auto simp: init_clss_l_mapsto_upd S image_mset_remove1_mset_if
+            take_2_if swap_def i_def split: nat.splits)
       have K2: \<open>mset (unwatched_l (swap (N\<propto>C) i K')) = add_mset (N\<propto>C ! i)
                    (remove1_mset (N\<propto>C ! K') (mset (unwatched_l (N\<propto>C))))\<close>
         using J_NE C_N_U C' K'_2 K'_le two_le_length_C
@@ -1692,7 +1692,7 @@ proof -
       have K1: \<open>mset (watched_l (swap (N\<propto>C) i K')) = {#N\<propto>C!K', N\<propto>C!(1 - i)#}\<close>
         using J_NE C_N_U C' K'_2 K'_le two_le_length_C
           by (auto simp: init_clss_l_mapsto_upd S image_mset_remove1_mset_if
-            take_2_if swap_def i_def)
+            take_2_if swap_def i_def split: nat.splits)
       have K2: \<open>mset (unwatched_l (swap (N\<propto>C) i K')) = add_mset (N\<propto>C ! i)
                    (remove1_mset (N\<propto>C ! K') (mset (unwatched_l (N\<propto>C))))\<close>
         using J_NE C_N_U C' K'_2 K'_le two_le_length_C

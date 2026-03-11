@@ -288,14 +288,14 @@ lemma Collect_req_remove1:
 
 lemma card_remove:
   \<open>card (Set.remove a A) = (if a \<in> A then card A - 1 else card A)\<close>
-  by (auto simp: Set.remove_def)
+  by auto
 
 lemma sorted_unadded_literals_cons_in_undef[simp]:
   \<open>undefined_lit M (lit_of K) \<Longrightarrow>
              atm_of (lit_of K) \<in> set all_clauses_literals \<Longrightarrow>
              Suc (length (sorted_unadded_literals (K # M))) =
              length (sorted_unadded_literals M)\<close>
-  by (auto simp flip: distinct_card simp: Set.filter_def Collect_req_remove2
+  by (auto simp flip: distinct_card simp: Collect_req_remove2
     card_remove isabelle_should_do_that_automatically
     card_gt_0_iff simp flip: less_eq_Suc_le)
 

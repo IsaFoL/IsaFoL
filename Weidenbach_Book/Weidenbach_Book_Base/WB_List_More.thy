@@ -179,7 +179,7 @@ lemma Set_insert_diff_remove: \<open>B - insert a A = Set.remove a (B - A)\<clos
   by auto
 
 lemma Set_remove_insert: \<open>a \<notin> A' \<Longrightarrow> Set.remove a (insert a A') = A'\<close>
-  by (auto simp: Set.remove_def)
+  by (auto simp:)
 
 lemma diff_eq_insertD:
   \<open>B - A = insert a A' \<Longrightarrow> a \<in> B\<close>
@@ -1422,11 +1422,6 @@ lemma distinct_set_mset_eq_iff:
   assumes \<open>distinct_mset M\<close> \<open>distinct_mset N\<close>
   shows \<open>set_mset M = set_mset N \<longleftrightarrow> M = N\<close>
   using assms distinct_mset_set_mset_ident by fastforce
-
-lemma (in -) distinct_mset_union2:
-  \<open>distinct_mset (A + B) \<Longrightarrow> distinct_mset B\<close>
-  using distinct_mset_union[of B A]
-  by (auto simp: ac_simps)
 
 lemma in_remove1_msetI: \<open>x \<noteq> a \<Longrightarrow> x \<in># M \<Longrightarrow> x \<in># remove1_mset a M\<close>
   by (simp add: in_remove1_mset_neq)

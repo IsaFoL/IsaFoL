@@ -466,8 +466,8 @@ proof -
     count_decided_append count_decided_cons lessI list.sel(1) list.simps(3)
     not_gr0 prod.sel(2) zero_less_diff)
   let ?S' = \<open>rough_state_of S\<close>
-  have H: \<open>dpll⇩W_all_inv (toS (fst (DPLL_step ?S')) (snd (DPLL_step ?S')))\<close>
-    using DPLL_step_dpll⇩W_conc_inv[of S]
+  have H: \<open>dpll\<^sub>W_all_inv (toS (fst (DPLL_step ?S')) (snd (DPLL_step ?S')))\<close>
+    using DPLL_step_dpll\<^sub>W_conc_inv[of S]
     by auto
   have [dest]: \<open>rough_state_of S = (x1, x2) \<Longrightarrow> state_of (x1, x2) = S\<close> for x1 x2
     by (metis rough_state_of_inverse)

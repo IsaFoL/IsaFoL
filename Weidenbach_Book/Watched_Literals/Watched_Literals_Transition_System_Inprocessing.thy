@@ -1258,7 +1258,8 @@ proof -
     by (auto simp: cdcl_twl_pure_remove.simps filter_mset_empty_conv all_conj_distrib
       Decided_Propagated_in_iff_in_lits_of_l clauses_to_update_prop.simps
       split: if_splits dest: has_blit_Cons)
-     (auto simp:  clause_alt_def Decided_Propagated_in_iff_in_lits_of_l split: if_splits; fail)+
+       (auto simp:  clause_alt_def Decided_Propagated_in_iff_in_lits_of_l 
+           split: if_splits; meson Decided_Propagated_in_iff_in_lits_of_l no_has_blit_propagate)+
   moreover have \<open>past_invs T\<close>
     using pure by (auto simp: cdcl_twl_pure_remove.simps past_invs.simps
       Propagated_eq_DecidedD)

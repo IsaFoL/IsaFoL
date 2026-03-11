@@ -1,7 +1,7 @@
 # default Isabelle path (the default is currently my home computer)
 # you can use a command like
 # make ISABELLE2018=<path/to/isabelle> ISABELLE=<path/to/isabelle> all
-ISABELLERELEASE=/home/mathias/Documents/isabelle/Isabelle2025
+ISABELLERELEASE=/home/mathias/Documents/isabelle/Isabelle2025-2
 ISABELLE=/home/mathias/Documents/isabelle/isabelle
 
 # the concrete path to the isabelle executable
@@ -9,7 +9,7 @@ RUN_ISABELLERELEASE="$(ISABELLERELEASE)/bin/isabelle"
 RUN_ISABELLE="$(ISABELLE)/bin/isabelle"
 
 # destination of the documentation
-ISABELLERELEASE_HOME=/home/mathias/.isabelle/Isabelle2025/browser_info
+ISABELLERELEASE_HOME=/home/mathias/.isabelle/Isabelle2025-2/browser_info
 ISABELLE_HOME=/home/mathias/.isabelle/browser_info
 
 # some more paths to extract the version
@@ -35,10 +35,10 @@ HOL:
 
 Weidenbach_Book:
 	$(RUN_ISABELLERELEASE) build -d '$$AFP' -b Sepref_IICF
-	$(RUN_ISABELLERELEASE) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D Weidenbach_Book
+	$(RUN_ISABELLERELEASE) build -d '$$AFP' -d '$$ISABELLE_LLVM' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -b -D Weidenbach_Book
 
 PAC:
-	$(RUN_ISABELLERELEASE) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -v -b -D PAC_Checker2
+	$(RUN_ISABELLERELEASE) build -d '$$AFP' -d '$$ISABELLE_LLVM' -d 'Weidenbach_Book' -o browser_info -o "document=pdf" -o "document_variants=document:outline=/proof,/ML;userguide" -b -D PAC_Checker2
 
 GRAT: HOL
 	$(RUN_ISABELLERELEASE) build -d '$$AFP' -o browser_info -o "document=pdf" -v -b -D GRAT/gratchk

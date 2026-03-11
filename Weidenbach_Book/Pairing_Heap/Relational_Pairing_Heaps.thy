@@ -334,10 +334,10 @@ proof -
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis distinct_mset_add union_ac(3))
-    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 group_cancel.add1 group_cancel.add2)
+    using dist apply (smt (verit, del_insts) distinct_mset_union2 group_cancel.add1 group_cancel.add2)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
-    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 group_cancel.add1 group_cancel.add2)
+    using dist apply (smt (verit, del_insts) distinct_mset_union2 group_cancel.add1 group_cancel.add2)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
@@ -396,7 +396,7 @@ proof -
     subgoal using prevs1
       apply (cases ch\<^sub>m; cases b)
       apply (auto)
-      apply (metis WB_List_More.distinct_mset_union2 add_diff_cancel_right' distinct_mem_diff_mset mset_add node_in_mset_nodes sum_mset.insert union_iff)
+      apply (metis distinct_mset_union2 add_diff_cancel_right' distinct_mem_diff_mset mset_add node_in_mset_nodes sum_mset.insert union_iff)
       apply (metis (no_types, lifting) add_mset_disjoint(1) distinct_mset_add mset_add node_in_mset_nodes sum_mset.insert union_iff)+
       done
     subgoal
@@ -519,21 +519,21 @@ proof -
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis distinct_mset_add union_ac(3))
-    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 group_cancel.add1 group_cancel.add2)
+    using dist apply (smt (verit, del_insts) distinct_mset_union2 group_cancel.add1 group_cancel.add2)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
-    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 group_cancel.add1 group_cancel.add2)
-    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
-    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
-    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (smt (verit, del_insts) distinct_mset_union2 group_cancel.add1 group_cancel.add2)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
-    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 union_commute union_lcomm)
-    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 union_commute union_lcomm)
-    using dist apply (smt (verit, del_insts) WB_List_More.distinct_mset_union2 union_commute union_lcomm)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
+    using dist apply (smt (verit, del_insts) distinct_mset_union2 union_commute union_lcomm)
+    using dist apply (smt (verit, del_insts) distinct_mset_union2 union_commute union_lcomm)
+    using dist apply (smt (verit, del_insts) distinct_mset_union2 union_commute union_lcomm)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
     using dist apply (metis (no_types, lifting) distinct_mset_add union_assoc union_commute)
@@ -970,7 +970,7 @@ proof -
     apply (smt (verit) assms(3) hp_next_None_notin_children hp_next_children.elims list.discI list.inject list.sel(1) option_hd_Nil option_hd_Some_hd)
     using assms(1) x y apply (cases xs rule: rev_cases; auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
         encoded_hp_prop_def arr)
-    apply (metis WB_List_More.distinct_mset_union2 add_diff_cancel_right' assms(2) distinct_mset_in_diff
+    apply (metis distinct_mset_union2 add_diff_cancel_right' assms(2) distinct_mset_in_diff
       hp_next_children_simps(1) hp_next_children_skip_first_append node_in_mset_nodes option.map(2)
       sum_image_mset_sum_map)
     using assms(1) x y apply (cases ys;auto simp: ac_simps encoded_hp_prop_list2_conc_def encoded_hp_prop_list_def
@@ -1877,7 +1877,7 @@ lemma map_option_node_map_option_node_iff:
 lemma distinct_mset_hp_parent: \<open>distinct_mset (mset_nodes h) \<Longrightarrow>  hp_parent a h = Some ya \<Longrightarrow> distinct_mset (mset_nodes ya)\<close>
   apply (induction a h arbitrary: ya rule: hp_parent.induct)
   apply (auto simp: hp_parent_simps_if hp_parent_children_cons split: if_splits option.splits)
-  apply (metis (no_types, lifting) WB_List_More.distinct_mset_union2 distinct_mset_union hp_parent_children_Some_iff in_list_in_setD list.map(2) map_append sum_list.Cons sum_list_append)
+  apply (metis (no_types, lifting) distinct_mset_union2 distinct_mset_union hp_parent_children_Some_iff in_list_in_setD list.map(2) map_append sum_list.Cons sum_list_append)
   by (metis distinct_mset_union)
 
 lemma in_find_key_children_same_hp_parent:
@@ -2511,7 +2511,7 @@ proof (induction h arbitrary: i)
       using dist i_c
       by (auto simp: x3a_def disjunct_not_in distinct_mset_add)
     have dist_c_zs: \<open>distinct_mset (mset_nodes c + sum_list (map mset_nodes zs))\<close>
-      using WB_List_More.distinct_mset_union2 dist x3a_def by auto
+      using distinct_mset_union2 dist x3a_def by auto
     consider
       \<open>i = node c\<close> |
       \<open>i \<noteq> node c\<close>

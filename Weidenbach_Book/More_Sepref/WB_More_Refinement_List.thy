@@ -85,7 +85,7 @@ lemma tl_swap_relevant:
 
 lemma swap_only_first_relevant:
   \<open>b \<ge> i \<Longrightarrow> a < length xs  \<Longrightarrow>take i (swap xs a b) = take i (xs[a := xs ! b])\<close>
-  by (auto simp: swap_def)
+  by (metis WB_More_Refinement_List.swap_def take_update_cancel)
 
 text \<open>TODO this should go to a different place from the previous lemmas, since it concerns
 \<^term>\<open>Misc.slice\<close>, which is not part of \<^theory>\<open>HOL.List\<close> but only part of the Refinement Framework.

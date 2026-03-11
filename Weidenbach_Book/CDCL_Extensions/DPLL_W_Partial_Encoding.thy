@@ -562,7 +562,7 @@ lemma Collect_req_remove1:
 
 lemma card_remove:
   \<open>card (Set.remove a A) = (if a \<in> A then card A - 1 else card A)\<close>
-  by (auto simp: Set.remove_def)
+  by auto
 
 lemma isabelle_should_do_that_automatically: \<open>Suc (a - Suc 0) = a \<longleftrightarrow> a \<ge> 1\<close>
   by auto

@@ -1338,8 +1338,7 @@ proof -
     remove1_mset (W L ! w) (mset (take j (W La) @ drop w (W La)))\<close> if [simp]: \<open>La = L\<close> for La
     using w_le j_w
     by (auto simp: S take_Suc_conv_app_nth Cons_nth_drop_Suc[symmetric]
-        list_update_append)
-
+        list_update_append simp del: take_update)
   have \<open>case x of (i, K, b) \<Rightarrow> i \<in># dom_m N \<longrightarrow> K \<in> set (N \<propto> i) \<and> K \<noteq> La \<and>
        correctly_marked_as_binary N (i, K, b)\<close>
     if
@@ -1645,7 +1644,7 @@ proof -
     using L j_w dom i_xa
     unfolding correct_watching_except.simps H1  W'_def[symmetric] W_W' H2 W_W2 H4 H3 \<L>[symmetric]
     by (intro conjI impI ballI)
-     (simp_all add: L' W_W' W_W2 H3 H4 drop_map)
+     (simp_all add: L' W_W' W_W2 H3 H4 drop_map del: take_update)
 qed
 
 definition unit_propagation_inner_loop_wl_loop_pre where
@@ -3943,7 +3942,8 @@ proof -
           (auto simp add: state_wl_l_def drop_map)
       then show ?thesis
         using iT'_T
-        by (cases \<open>get_conflict_wl T' = None\<close>) auto
+        by (cases \<open>get_conflict_wl T' = None\<close>)
+          (auto simp: zero_less_iff_neq_zero simp del: drop_all)
     qed
     have remaining: \<open>RETURN (if get_conflict_wl S = None then remaining_nondom_wl 0 L S else 0) \<le> SPEC (\<lambda>_. True)\<close>
       by auto

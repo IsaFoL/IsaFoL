@@ -867,7 +867,7 @@ lemma [twl_st_l_init]:
   \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow> get_learned_clauses_init T = {#} \<longleftrightarrow> learned_clss_l (get_clauses_l_init S) = {#}\<close>
   \<open>(S, T) \<in> twl_st_l_init \<Longrightarrow> get_unit_learned_clauses_init T = {#} \<longleftrightarrow> get_learned_unit_clauses_l_init S = {#}
     \<close>
-  by (cases S; cases T; auto simp: twl_st_l_init_def; fail)+
+  by (cases S; cases T; force simp: twl_st_l_init_def; fail)+
 
 
 lemma init_dt_pre_already_propagated_unit_init_l:
