@@ -2,8 +2,6 @@ theory IsaSAT_Backtrack
   imports IsaSAT_Backtrack_Defs
 begin
 
-declare list_update_beyond[simp] (*removed in Isabelle2025*)
-
 hide_const (open) NEMonad.ASSERT NEMonad.RETURN NEMonad.SPEC
 
 chapter \<open>Backtrack\<close>
@@ -60,11 +58,6 @@ definition empty_conflict_and_extract_clause_heur ::
      ASSERT(length outl \<noteq> 1 \<longrightarrow> C!1 \<in># \<L>\<^sub>a\<^sub>l\<^sub>l \<A>);
      RETURN ((True, D), C, if length outl = 1 then 0 else get_level M (C!1))
   }\<close>
-
-lemma mset_take_update_last_take[simp]:
-  \<open>mset ((take ba aa)[ba := x]) = mset (take ba aa)\<close>
-  by (metis order_refl take_update_cancel
-    take_update_swap)
 
 lemma empty_conflict_and_extract_clause_heur_empty_conflict_and_extract_clause:
   assumes
@@ -231,8 +224,7 @@ proof -
           get_maximum_level_add_mset swap_nth_relevant max_def take_update_swap
           swap_only_first_relevant tl_update_swap mset_update nth_tl
           get_maximum_level_remove_non_max_lvl tl_take_nth_con list_update_beyond
-          simp del: 
-          aa2_def[symmetric])
+          aa2_def[symmetric] split: if_splits)
     moreover have \<open>mset
       (take (ba + 1)
         (if get_level M (aa[ba := outl ! ba] ! 1)
@@ -242,10 +234,14 @@ proof -
       mset (take (ba + 1) outl)\<close>
       using ba_le ba_ge1 ba_ge1_aa_ge aa0
       unfolding mset_aa
-      by (cases \<open>ba = 1\<close>)
-        (auto simp: take_Suc_conv_app_nth l_aa_outl
+      apply (cases \<open>ba = 1\<close>)
+      apply  (auto simp: take_Suc_conv_app_nth l_aa_outl in_set_upd_eq_aux
           take_swap_relevant swap_only_first_relevant mset_aa set_aa_outl
-          mset_update add_mset_remove_trivial_If simp add: take_update)
+          mset_update add_mset_remove_trivial_If split: nat.splits if_splits)
+      apply (metis le_refl mset_aa take_update_cancel take_update_swap)
+      apply (metis take_update_cancel set_aa_outl take_update le_refl)
+      by (metis mset_aa take_update_cancel take_update le_refl)
+    thm take_update_cancel take_update_swap
     ultimately show ?I
       using ba_ge1 ba_le
       unfolding I_def prod.simps
@@ -2174,7 +2170,7 @@ proof -
       W'W: \<open>(?W', W) \<in> \<langle>Id\<rangle>map_fun_rel (D\<^sub>0  (all_atms_st U'))\<close> and
       vmtf: \<open>?vm' \<in> bump_heur  (all_atms_st U') M1\<close> and
       n_d_M1: \<open>no_dup M1\<close> and
-      empty_cach: \<open>cach_refinement_empty (all_atms_st U') ?cach\<close> and
+      empty_cach: \<open>cach_refinement_empty  (all_atms_st U') ?cach\<close> and
       \<open>length ?outl = Suc 0\<close> and
       outl: \<open>out_learned M1 None ?outl\<close> and
       lcount: \<open>clss_size_corr N NE UE NEk UEk NS US N0 U0 ?lcount\<close> and

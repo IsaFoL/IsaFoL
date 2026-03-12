@@ -732,17 +732,19 @@ proof -
     apply (subst inj_image_mset_eq_iff[of uminus])
     apply (rule inj)
     by (auto simp: inj_on_def)[]
-  have get_unit_twl_st_l: \<open>(s, x) \<in> twl_st_l_init \<Longrightarrow> get_learned_unit_clauses_l_init s = {#} \<Longrightarrow>
+  have \<open>\<forall>a b. (a, b) \<in># ran_m aa \<longrightarrow> b \<Longrightarrow> {#mset (fst x). x \<in># ran_m aa#} =
+       {#mset (fst x). x \<in># init_clss_l aa#}\<close> for aa
+    by (metis filter_mset_True filter_mset_cong0 prod.exhaust_sel)
+  then have get_unit_twl_st_l: \<open>(s, x) \<in> twl_st_l_init \<Longrightarrow> get_learned_unit_clauses_l_init s = {#} \<Longrightarrow>
       learned_clss_l (get_clauses_l_init s) = {#} \<Longrightarrow>
       get_subsumed_learned_clauses_l_init s = {#} \<Longrightarrow>
     {#mset (fst x). x \<in># ran_m (get_clauses_l_init s)#} +
     (get_unit_clauses_l_init s + get_subsumed_init_clauses_l_init s) =
     clause `# get_init_clauses_init x + get_unit_init_clauses_init x +
       get_subsumed_init_clauses_init x\<close> for s x
-    apply (cases s; cases x)
-    apply (auto simp: twl_st_l_init_def mset_take_mset_drop_mset')
-    by (metis (mono_tags, lifting) add.right_neutral all_clss_l_ran_m)
-
+    by (cases s; cases x)
+     (force simp: twl_st_l_init_def mset_take_mset_drop_mset' image_mset_filter_swap2
+        intro!: filter_mset_cong_inner_outer)+
   have init_dt_pre: \<open>init_dt_pre CS (to_init_state_l init_state_l)\<close>
     by (rule init_dt_pre_init)
 
@@ -788,7 +790,7 @@ proof -
         , auto simp: ac_simps)
     subgoal for b ba T Ta
       by (cases T; cases Ta)
-        (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
+        (force simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')+
     subgoal for b ba T Ta
       by (rule cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_prog[THEN fref_to_Down, of _ \<open>fst Ta\<close>,
            THEN order_trans])
@@ -808,7 +810,7 @@ proof -
       by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset'
         , auto simp: ac_simps)
     subgoal for b ba _ _ _ _ T Ta
-      by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
+      by (cases T; cases Ta) (force simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')+
     subgoal for b ba _ _ _ _ T Ta
       by (rule cdcl_twl_stgy_restart_prog_l_cdcl_twl_stgy_restart_prog[THEN fref_to_Down, of _ \<open>fst Ta\<close>,
            THEN order_trans])
@@ -823,7 +825,7 @@ proof -
       by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset'
         , auto simp: ac_simps)
     subgoal for b ba T Ta
-      by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
+      by (cases T; cases Ta) (force simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
     subgoal for b ba T Ta
       apply (rule order_trans)
       apply (rule cdcl_twl_stgy_restart_prog_early_l_cdcl_twl_stgy_restart_abs_early_l[THEN fref_to_Down, of _ \<open>fst T\<close>])
@@ -1225,22 +1227,27 @@ proof -
           ((af,
           {#TWL_Clause (mset (watched_l (fst x))) (mset (unwatched_l (fst x)))
           . x \<in># init_clss_l aa#},
-          {#}, y, ac, {#}, NS, US, N0, U0, {#}, ae),
+          bb, y, ac, {#}, NS, US, N0, U0, {#}, ae),
          OC)\<close> and
 	x: \<open>x \<in># dom_m aa\<close> and
 	learned: \<open>learned_clss_l aa = {#}\<close>
-	for af aa y ac ae x OC NS US N0 U0
+	for af aa y ac ae x OC NS US N0 U0 bb
     proof -
       have irred: \<open>irred aa x\<close>
-        using that by (cases \<open>fmlookup aa x\<close>) (auto simp: ran_m_def dest!: multi_member_split
-	  split: if_splits)
+        using that by (cases \<open>fmlookup aa x\<close>) (fastforce simp: ran_m_def dest!: multi_member_split
+	  split: if_splits)+
       have \<open>Multiset.Ball
 	({#TWL_Clause (mset (watched_l (fst x))) (mset (unwatched_l (fst x)))
 	 . x \<in># init_clss_l aa#} +
-	 {#})
+	 bb)
 	struct_wf_twl_cls\<close>
 	using struct unfolding twl_struct_invs_init_def fst_conv twl_st_inv.simps
 	by fast
+      then have \<open>Multiset.Ball
+	({#TWL_Clause (mset (watched_l (fst x))) (mset (unwatched_l (fst x)))
+	 . x \<in># init_clss_l aa#})
+	struct_wf_twl_cls\<close>
+	      by auto
       then show \<open>length (aa  \<propto> x) \<ge> 2\<close> \<open>distinct (aa  \<propto> x)\<close>
         using x learned in_ran_mf_clause_inI[OF x, of True] irred
 	by (auto simp: mset_take_mset_drop_mset' dest!: multi_member_split[of x]
@@ -1252,13 +1259,12 @@ proof -
       for x
       using 2
       by (cases T)
-       (auto simp: init_dt_wl_spec_def RETURN_RES_refine_iff
+       (force simp: init_dt_wl_spec_def RETURN_RES_refine_iff
         finalise_init_def from_init_state_def state_wl_l_init_def
-	state_wl_l_init'_def to_init_state_def to_init_state_l_def
+        state_wl_l_init'_def to_init_state_def to_init_state_l_def
        init_state_l_def init_dt_wl'_def RES_RETURN_RES
        init_dt_spec_def init_state_wl_def twl_st_l_init_def
-       intro: 1)
-
+       intro!: 1)
     show ?thesis
       apply (rule rewatch_st_correctness[THEN order_trans])
       subgoal by (rule empty_watched)
@@ -1320,7 +1326,7 @@ proof -
     subgoal using bounded by (auto simp: isasat_input_bounded_nempty_def extract_atms_clss_alt_def
       simp del: isasat_input_bounded_def)
     subgoal by auto
-    subgoal by auto
+    subgoal by force
     subgoal for \<A> b ba T Ta U U'
       by (rule cdcl_twl_stgy_restart_prog_wl_D)
     subgoal by (rule init_dt_wl_pre)
@@ -1335,7 +1341,7 @@ proof -
     subgoal using bounded by (auto simp: isasat_input_bounded_nempty_def extract_atms_clss_alt_def
       simp del: isasat_input_bounded_def)
     subgoal by auto
-    subgoal by auto
+    subgoal by force
     subgoal for \<A> b ba T Ta U U'
       unfolding twl_st_l_init[symmetric]
       by (rule cdcl_twl_stgy_restart_prog_wl_D)
@@ -1353,7 +1359,7 @@ proof -
       by (cases U; cases T')
         (auto simp: state_wl_l_init_def state_wl_l_init'_def)
     subgoal for \<A> b ba T \<A>' T' bb bc
-      by (auto simp: state_wl_l_init_def state_wl_l_init'_def)
+      by (force simp: state_wl_l_init_def state_wl_l_init'_def)
     apply (rule rewatch_st_fst; assumption)
     subgoal by (rule cdcl_twl_stgy_restart_prog_early_wl_D2)
     done
@@ -2154,7 +2160,7 @@ proof -
     show ?thesis
       apply (rule finalise_init_finalise_init_full[unfolded conc_fun_RETURN,
         THEN order_trans])
-      by (use 1 2 learned 4 T in \<open>auto simp: from_init_state_def convert_state_def\<close>)
+      by (use 1 2 learned 4 T in \<open>auto 4 3 simp: from_init_state_def convert_state_def\<close>)
   qed
 
   have isasat_fast: \<open>isasat_fast Td\<close>
@@ -2843,15 +2849,18 @@ proof -
     apply (subst inj_image_mset_eq_iff[of uminus])
     apply (rule inj)
     by (auto simp: inj_on_def)[]
-  have get_unit_twl_st_l: \<open>(s, x) \<in> twl_st_l_init \<Longrightarrow> get_learned_unit_clauses_l_init s = {#} \<Longrightarrow>
+  have \<open>\<forall>a b. (a, b) \<in># ran_m aa \<longrightarrow> b \<Longrightarrow> {#mset (fst x). x \<in># ran_m aa#} =
+       {#mset (fst x). x \<in># init_clss_l aa#}\<close> for aa
+    by (metis filter_mset_True filter_mset_cong0 prod.exhaust_sel)
+  then have get_unit_twl_st_l: \<open>(s, x) \<in> twl_st_l_init \<Longrightarrow> get_learned_unit_clauses_l_init s = {#} \<Longrightarrow>
       learned_clss_l (get_clauses_l_init s) = {#} \<Longrightarrow>
     {#mset (fst x). x \<in># ran_m (get_clauses_l_init s)#} +
     (get_unit_clauses_l_init s + get_subsumed_init_clauses_l_init s) =
     clause `# get_init_clauses_init x + (get_unit_init_clauses_init x +
       get_subsumed_init_clauses_init x)\<close> for s x
-    apply (cases s; cases x)
-    apply (auto simp: twl_st_l_init_def mset_take_mset_drop_mset')
-    by (metis (mono_tags, lifting) add.right_neutral all_clss_l_ran_m)
+    by (cases s; cases x)
+     (force simp: twl_st_l_init_def mset_take_mset_drop_mset' image_mset_filter_swap2
+        intro!: filter_mset_cong_inner_outer)
 
   have init_dt_pre: \<open>init_dt_pre CS (to_init_state_l init_state_l)\<close>
     by (rule init_dt_pre_init)
@@ -2900,7 +2909,7 @@ proof -
       by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset',
         auto simp: ac_simps)
     subgoal for T Ta finished finisheda
-      by (cases T; cases Ta) (auto simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
+      by (cases T; cases Ta) (auto 4 3 simp: twl_st_l_init twl_st_init twl_st_l_init_def mset_take_mset_drop_mset')
     subgoal for T Ta finished finisheda
       by (rule cdcl_twl_stgy_restart_prog_bounded_l_cdcl_twl_stgy_restart_prog_bounded[THEN fref_to_Down, of _ \<open>fst Ta\<close>,
            THEN order_trans])
@@ -3102,22 +3111,27 @@ proof -
           ((af,
           {#TWL_Clause (mset (watched_l (fst x))) (mset (unwatched_l (fst x)))
           . x \<in># init_clss_l aa#},
-          {#}, y, ac, {#}, NS, US, N0, U0, {#}, ae),
+          bb, y, ac, {#}, NS, US, N0, U0, {#}, ae),
          OC)\<close> and
 	x: \<open>x \<in># dom_m aa\<close> and
 	learned: \<open>learned_clss_l aa = {#}\<close>
-	for af aa y ac ae x OC NS US N0 U0
+	for af aa y ac ae x OC NS US N0 U0 bb
     proof -
       have irred: \<open>irred aa x\<close>
-        using that by (cases \<open>fmlookup aa x\<close>) (auto simp: ran_m_def dest!: multi_member_split
+        using that by (cases \<open>fmlookup aa x\<close>) (auto 4 3 simp: ran_m_def dest!: multi_member_split
 	  split: if_splits)
       have \<open>Multiset.Ball
 	({#TWL_Clause (mset (watched_l (fst x))) (mset (unwatched_l (fst x)))
 	 . x \<in># init_clss_l aa#} +
-	 {#})
+	 bb)
 	struct_wf_twl_cls\<close>
 	using struct unfolding twl_struct_invs_init_def fst_conv twl_st_inv.simps
 	by fast
+	then have \<open>Multiset.Ball
+	({#TWL_Clause (mset (watched_l (fst x))) (mset (unwatched_l (fst x)))
+	 . x \<in># init_clss_l aa#})
+	struct_wf_twl_cls\<close>
+	  by auto
       then show \<open>length (aa  \<propto> x) \<ge> 2\<close> \<open>distinct (aa  \<propto> x)\<close>
         using x learned in_ran_mf_clause_inI[OF x, of True] irred
 	by (auto simp: mset_take_mset_drop_mset' dest!: multi_member_split[of x]
@@ -3129,12 +3143,12 @@ proof -
       for x
       using 2
       by (cases T)
-       (auto simp: init_dt_wl_spec_def RETURN_RES_refine_iff
+       (force simp: init_dt_wl_spec_def RETURN_RES_refine_iff
         finalise_init_def from_init_state_def state_wl_l_init_def
 	state_wl_l_init'_def to_init_state_def to_init_state_l_def
        init_state_l_def init_dt_wl'_def RES_RETURN_RES
        init_dt_spec_def init_state_wl_def twl_st_l_init_def
-       intro: 1)
+       intro!: 1)
 
     show ?thesis
       apply (rule rewatch_st_correctness[THEN order_trans])
@@ -3177,7 +3191,7 @@ proof -
     subgoal by (auto simp: isasat_input_bounded_nempty_def extract_atms_clss_alt_def state_wl_l_init'_def
        state_wl_l_init_def
       simp del: isasat_input_bounded_def)
-    subgoal by (auto simp: isasat_input_bounded_nempty_def extract_atms_clss_alt_def state_wl_l_init'_def
+    subgoal by (auto 4 3 simp: isasat_input_bounded_nempty_def extract_atms_clss_alt_def state_wl_l_init'_def
        state_wl_l_init_def
       simp del: isasat_input_bounded_def)
     apply (rule rewatch_st_fst; assumption)
@@ -3736,7 +3750,7 @@ proof -
     show ?thesis
       apply (rule finalise_init_finalise_init_full[unfolded conc_fun_RETURN,
         THEN order_trans])
-      by (use 1 2 learned 4 T in \<open>auto simp: from_init_state_def convert_state_def\<close>)
+      by (use 1 2 learned 4 T in \<open>auto 4 3 simp: from_init_state_def convert_state_def\<close>)
   qed
   have isasat_fast: \<open>isasat_fast Td\<close>
    if
