@@ -1567,7 +1567,7 @@ proof -
     have H: \<open>add_mset C (cocc_content (get_occs S)) \<subseteq># mset (get_vdom S)\<close>
       using occs notin_all_occurrences_notin_cocc[OF assms(3), of C] unfolding valid_occs_def apply -
       by (subst distinct_subseteq_iff[symmetric])
-       (use push C in \<open>auto simp: push_to_occs_list2_pre_def\<close>)
+        (use push C basic_trans_rules(31) set_mset_cocc_content_set in \<open>fastforce simp: push_to_occs_list2_pre_def\<close>)+
     have \<open>nat_of_lit L < length (get_occs S)\<close>
       using pre that(2) assms(3) unfolding occ_list_append_pre_def by (cases L) (auto simp: occurrence_list_ref_def map_fun_rel_def
         dest!: bspec[of _ _ L])
@@ -1642,7 +1642,7 @@ proof -
     have H: \<open>add_mset C (cocc_content (get_occs S)) \<subseteq># mset (get_vdom S)\<close>
       using occs notin_all_occurrences_notin_cocc[OF assms(3), of C] unfolding valid_occs_def apply -
       by (subst distinct_subseteq_iff[symmetric])
-       (use push C in \<open>auto simp: push_to_occs_list2_pre_def\<close>)
+        (use basic_trans_rules(31) set_mset_cocc_content_set push C in \<open>fastforce simp: push_to_occs_list2_pre_def\<close>)+
     have \<open>nat_of_lit L < length (get_occs S)\<close>
       using pre that(2) assms(3) unfolding occ_list_append_pre_def by (cases L) (auto simp: occurrence_list_ref_def map_fun_rel_def
         dest!: bspec[of _ _ L])

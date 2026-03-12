@@ -17,18 +17,6 @@ export_code PAC_checker_l_impl PAC_update_impl PAC_empty_impl the_error is_cfail
 
 text \<open>Here is how to compile it:\<close>
 
-lemma
-  [code_abbrev del]: \<open>uint32_of_char x = uint32_of_int (int_of_char x)\<close>
-  sorry
-
-lemma [code del]: \<open>hashcode s = hashcode_literal' s\<close>
-  unfolding hashcode_literal_def hashcode_list_def
-  apply (auto simp: unsafe_asciis_of_literal_def hashcode_list_def
-     String.asciis_of_literal_def hashcode_literal_def hashcode_literal'_def)
-  done
-code_printing
-  constant uint32_of_char \<rightharpoonup>
-    (SML) "!(Word32.fromInt /o (nononoChar.ord))"
 (*
 seen broken Isabelle2025-2, without changing the code.
 compile_generated_files _
