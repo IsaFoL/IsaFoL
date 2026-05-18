@@ -1149,7 +1149,8 @@ lemma DPLL_tot_correct:
       (([], map remdups N, [], None)))) = S" and
     S: "(M', N', U', E) = toS S"
   shows "(E \<noteq> Some {#} \<and> satisfiable (set (map mset N)))
-    \<or> (E = Some {#} \<and> unsatisfiable (set (map mset N)))"
+    \<or> (E = Some {#} \<and> unsatisfiable (set (map mset N)))" (is ?A) and
+   \<open>satisfiable (set_mset N') \<longleftrightarrow> satisfiable (set (map mset N))\<close> (is ?B)
 proof -
   let ?N = "map remdups N"
   have inv: "cdcl\<^sub>W_all_struct_inv (toS ([], map remdups N, [], None))"
@@ -1189,7 +1190,9 @@ proof -
       using 3 apply (simp add: comp_def; fail)
      using S[symmetric] N' apply (auto; fail)[1]
    using S[symmetric] N' cons by (fastforce simp: true_annots_true_cls)
-  then show ?thesis by auto
+  then show ?A by auto
+  then show ?B
+    using N' by force
 qed
 
 
