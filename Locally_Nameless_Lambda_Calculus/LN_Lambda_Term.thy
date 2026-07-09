@@ -303,10 +303,113 @@ primrec subterms where
   "subterms (App t\<^sub>1 t\<^sub>2) = add_mset (App t\<^sub>1 t\<^sub>2) (subterms t\<^sub>1 + subterms t\<^sub>2)" |
   "subterms (Abs \<tau> t) = add_mset (Abs \<tau> t) (subterms t)"
 
+fun strip_comb where
+  "strip_comb xs (App f x) = strip_comb (x # xs) f" |
+  "strip_comb xs f = (f, xs)"
+
+abbreviation strip_comb' where
+  "strip_comb' \<equiv> strip_comb []"
+
+lemma "size (fst (strip_comb ts t)) \<le> size t"
+proof (induction t arbitrary: ts)
+  case (App t1 t2)
+  have "size (fst (strip_comb (t2 # ts) t1)) \<le> Suc (size t1 + size t2)"
+    using App.IH(1)[of "t2 # ts"] by presburger
+  then show ?case
+    by simp
+qed simp_all
+
+lemma snd_strip_comb_lt:
+  assumes "x \<in> set (snd (strip_comb ts t))"
+  shows "size x < size t \<or> x \<in> set ts"
+  using assms
+proof (induction t arbitrary: ts)
+  case (App t1 t2)
+  then show ?case
+    by fastforce
+qed simp_all
+
+lemma snd_strip_comb_lt':
+  assumes "strip_comb ts t = (f, xs)"
+  assumes "x \<in> set xs"
+  shows "size x < size t \<or> x \<in> set ts"
+  using assms
+proof (induction t arbitrary: ts)
+  case (App t1 t2)
+  then show ?case
+    by fastforce
+qed simp_all
+
+lemma snd_strip_comb'_lt:
+  assumes "x \<in> set (snd (strip_comb' t))"
+  shows "size x < size t"
+  using assms snd_strip_comb_lt[of x "[]" t]
+  by simp
+
+lemma FOO:
+  "(f, xs) = strip_comb [t\<^sub>2] t\<^sub>1 \<Longrightarrow> (i, x) \<in> set (zip [0..<length xs] xs) \<Longrightarrow>
+    size x < Suc (size t\<^sub>1 + size t\<^sub>2)"
+proof (induction t\<^sub>1 arbitrary: f xs)
+  case (App t\<^sub>11 t\<^sub>12)
+  have "x \<in> set xs"
+    by (meson App.prems(2) in_set_zipE)
+  have "size x < size (App t\<^sub>11 t\<^sub>12) \<or> x \<in> set [t\<^sub>2]"
+    using App.prems(1)
+    using snd_strip_comb_lt'[OF _ \<open>x \<in> set xs\<close>, of "[t\<^sub>2]" "App t\<^sub>11 t\<^sub>12" f]
+    by metis
+  then show ?case
+    by auto
+qed simp_all
+
+function positions where
+  "positions (Const c \<tau>s ts) = {[]}" |
+  "positions (Free x) = {[]}" |
+  "positions (Bound n) = {[]}" |
+  "positions (App t\<^sub>1 t\<^sub>2) =
+    (let (f, xs) = strip_comb' (App t\<^sub>1 t\<^sub>2) in
+     insert [] (\<Union> (set (map2 (\<lambda>i x. Cons (Suc i) ` positions x) (upt (0 :: nat) (length xs)) xs))))" |
+  "positions (Abs \<tau> t) = insert [] {1 # p | p. p \<in> positions t}"
+  by pat_completeness auto
+termination by (lexicographic_order simp add: FOO)
+
+function positions' where
+  "positions' (Const c \<tau>s ts) = {[]}" |
+  "positions' (Free x) = {[]}" |
+  "positions' (Bound n) = {[]}" |
+  "positions' (App t\<^sub>1 t\<^sub>2) =
+    (let (f, xs) = strip_comb' (App t\<^sub>1 t\<^sub>2) in
+     insert [] {Suc i # p | i p. i < length xs \<and> p \<in> positions (xs ! i)})" |
+  "positions' (Abs \<tau> t) = insert [] {1 # p | p. p \<in> positions t}"
+  by pat_completeness auto
+termination
+  term positions_dom
+  term positions_rel
+  find_theorems "positions_rel"
+proof (relation "measure size")
+  show "wf (measure size)"
+    by simp
+  show "\<And>t\<^sub>1 t\<^sub>2 x xa y xb xc xd.
+    x = strip_comb' (App t\<^sub>1 t\<^sub>2) \<Longrightarrow> (xa, y) = x \<Longrightarrow> (y ! xc, App t\<^sub>1 t\<^sub>2) \<in> measure size"
+    unfolding in_measure
+    apply (rule snd_strip_comb'_lt)
+    
+    
+    
+
+text \<open>Creating a context from a term by adding a hole at a specific position.\<close>
+fun replace_at :: "nat list \<Rightarrow> _ \<Rightarrow> _" where
+    "replace_at [] t u = u" |
+    "replace_at (i # ps) (Fun f ts) =
+    More f (take i ts) (ctxt_of_pos_term ps (ts!i)) (drop (Suc i) ts)"
+
+abbreviation (input) "replace_at t p s \<equiv> (ctxt_of_pos_term p t)\<langle>s\<rangle>"
+
 fun beta_reduce where
   "beta_reduce (App (Abs \<tau> t\<^sub>1) t\<^sub>2) = subst_bound 0 t\<^sub>2 t\<^sub>1" |
-  "beta_reduce (App t\<^sub>1 t\<^sub>2) = (App (beta_reduce t\<^sub>1) t\<^sub>2)" |
   "beta_reduce t = t"
+
+inductive is_\<beta>normal where
+  "is_\<beta>normal"
 
 primrec is_hnf_App where                                  
   "is_hnf_App (Const _ _ _) \<longleftrightarrow> True" |
