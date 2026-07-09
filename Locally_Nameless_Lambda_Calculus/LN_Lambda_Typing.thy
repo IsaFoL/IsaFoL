@@ -94,8 +94,9 @@ global_interpretation subst_prety: substitution where
   comp_subst = comp_subst_prety and
   id_subst = PretyVar and
   subst = subst_prety and
+  is_ground = "\<lambda>x. type_vars_prety x = {}" and
   apply_subst = "\<lambda>x \<sigma>. \<sigma> x" and
-  subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and
+  (* subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and *)
   vars = type_vars_prety
 proof unfold_locales
   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
@@ -110,7 +111,8 @@ next
   assume "type_vars_prety \<tau> = {}"
   then show "\<forall>\<sigma>. subst_prety \<tau> \<sigma> = \<tau>"
     by (induction \<tau>) (simp_all add: list.map_ident_strong)
-next
+qed simp_all
+(* next
   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
   assume "\<And>x. x \<in> type_vars_prety \<tau> \<Longrightarrow> \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
   then show "subst_prety \<tau> \<sigma>\<^sub>1 = subst_prety \<tau> \<sigma>\<^sub>2"
@@ -123,7 +125,7 @@ next
   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and x y :: '\<V>\<^sub>t\<^sub>y
   show "x \<noteq> y \<Longrightarrow> (\<sigma>(y := \<tau>)) x = \<sigma> x"
     by simp
-qed
+qed *)
 
 find_theorems "subst_prety"
                                                             
@@ -240,6 +242,9 @@ lemma type_vars_TyCtr[simp]:
   "length \<tau>s = arity \<kappa> \<Longrightarrow> type_vars (TyCtr \<kappa> \<tau>s) = (\<Union>\<tau> \<in> set \<tau>s. type_vars \<tau>)"
   by (simp add: Abs_ty_inverse TyCtr_def type_vars_def wf_prety_PretyCtr)
 
+lemma "finite (type_vars \<tau>)"
+  by (induction \<tau>) simp_all
+
 
 subsection \<open>Common Types\<close>
 
@@ -344,8 +349,9 @@ global_interpretation subst_ty: substitution where
   comp_subst = comp_subst_ty and
   id_subst = TyVar and
   subst = subst_ty and
+  is_ground = "\<lambda>x. type_vars x = {}" and
   apply_subst = "\<lambda>x \<sigma>. \<sigma> x" and
-  subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and
+  (* subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and *)
   vars = type_vars
 proof unfold_locales
   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
@@ -360,8 +366,8 @@ next
   assume "type_vars \<tau> = {}"
   then show "\<forall>\<sigma>. \<tau> \<cdot>\<^sub>t\<^sub>y \<sigma> = \<tau>"
     by (induction \<tau>) (simp_all add: list.map_ident_strong)
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
+qed simp_all
+(*   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
   assume "\<And>x. x \<in> type_vars \<tau> \<Longrightarrow> \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
   then show "subst_ty \<tau> \<sigma>\<^sub>1 = subst_ty \<tau> \<sigma>\<^sub>2"
     by (induction \<tau>) auto
@@ -373,7 +379,7 @@ next
   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty" and x y :: '\<V>\<^sub>t\<^sub>y
   show "x \<noteq> y \<Longrightarrow> (\<sigma>(y := \<tau>)) x = \<sigma> x"
     by simp
-qed
+qed *)
 
 section \<open>Type System\<close>
 

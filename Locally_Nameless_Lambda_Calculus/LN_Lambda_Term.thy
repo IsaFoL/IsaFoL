@@ -388,21 +388,15 @@ termination
 proof (relation "measure size")
   show "wf (measure size)"
     by simp
-  show "\<And>t\<^sub>1 t\<^sub>2 x xa y xb xc xd.
-    x = strip_comb' (App t\<^sub>1 t\<^sub>2) \<Longrightarrow> (xa, y) = x \<Longrightarrow> (y ! xc, App t\<^sub>1 t\<^sub>2) \<in> measure size"
-    unfolding in_measure
-    apply (rule snd_strip_comb'_lt)
-    
-    
-    
+qed 
 
-text \<open>Creating a context from a term by adding a hole at a specific position.\<close>
+(* text \<open>Creating a context from a term by adding a hole at a specific position.\<close>
 fun replace_at :: "nat list \<Rightarrow> _ \<Rightarrow> _" where
     "replace_at [] t u = u" |
     "replace_at (i # ps) (Fun f ts) =
     More f (take i ts) (ctxt_of_pos_term ps (ts!i)) (drop (Suc i) ts)"
 
-abbreviation (input) "replace_at t p s \<equiv> (ctxt_of_pos_term p t)\<langle>s\<rangle>"
+abbreviation (input) "replace_at t p s \<equiv> (ctxt_of_pos_term p t)\<langle>s\<rangle>" *)
 
 fun beta_reduce where
   "beta_reduce (App (Abs \<tau> t\<^sub>1) t\<^sub>2) = subst_bound 0 t\<^sub>2 t\<^sub>1" |
@@ -449,7 +443,7 @@ lemma "is_hnf (Abs \<tau>\<^sub>1 (Abs \<tau>\<^sub>2 (App (App (Const c\<^sub>1
 
 end
  
-lemma "is_hnf t \<Longrightarrow> beta_reduce t = t"
+(* lemma "is_hnf t \<Longrightarrow> beta_reduce t = t"
 proof (induction t)
   case (App t\<^sub>1 t\<^sub>2)
   have "\<not> is_Abs t\<^sub>1"
@@ -465,6 +459,6 @@ proof (induction t)
         preterm.exhaust_sel)
   ultimately show ?case
     by metis
-qed simp_all
+qed simp_all *)
 
 end
