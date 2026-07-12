@@ -480,6 +480,9 @@ next
   then show ?case ..
 qed
 
+text \<open>The following interpretation has the side effect of registering the partial order so the
+"order" method can use it.\<close>
+
 global_interpretation is_subterm_of: order is_subterm_of is_proper_subterm_of
 proof unfold_locales
   show "\<And>x y. is_subterm_of x y \<Longrightarrow> is_subterm_of y x \<Longrightarrow> x = y"
@@ -497,13 +500,14 @@ qed
 
 hide_fact is_subterm_of.refl is_subterm_of_antisym is_subterm_of_trans
 
-thm is_subterm_of.order_antisym
-thm is_subterm_of.order_trans
-thm is_subterm_of.order_refl
+text \<open>Prefer the standard names @{thm is_subterm_of.order_antisym is_subterm_of.order_trans
+  is_subterm_of.order_refl}.\<close>
 
 lemma wfp_is_proper_subterm_of: "wfp is_proper_subterm_of"
 proof (rule wfp_if_convertible_to_wfp)
-  show "\<And>x y. is_proper_subterm_of x y \<Longrightarrow> size x < size y"
+  fix x y
+  assume "is_proper_subterm_of x y"
+  then show "size x < size y"
     unfolding is_proper_subterm_of_def
     by (smt (verit, del_insts) add.commute add_Suc_right is_subterm_of.simps le_antisym
         less_add_Suc2 nat_arith.rule0 preterm.size(10,6,9) size_le_size_if_subterm
