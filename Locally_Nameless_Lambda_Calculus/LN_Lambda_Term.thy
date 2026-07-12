@@ -373,112 +373,53 @@ inductive is_subterm_of :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('
 definition is_proper_subterm_of :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
   "is_proper_subterm_of s t \<longleftrightarrow> is_subterm_of s t \<and> s \<noteq> t"
 
-
-lemma size_le_size_if_subterm: "is_subterm_of t\<^sub>1 t\<^sub>2 \<Longrightarrow> size t\<^sub>1 \<le> size t\<^sub>2"
-proof (induction t\<^sub>1 t\<^sub>2 rule: is_subterm_of.induct)
+lemma is_subterm_of_trans:
+  assumes "is_subterm_of t\<^sub>1 t\<^sub>2" and "is_subterm_of t\<^sub>2 t\<^sub>3"
+  shows "is_subterm_of t\<^sub>1 t\<^sub>3"
+  using assms(2,1)
+proof (induction t\<^sub>2 t\<^sub>3 arbitrary: t\<^sub>1 rule: is_subterm_of.induct)
   case (refl t)
-  then show ?case ..
+  then show ?case by assumption
 next
   case (Const ts s c \<tau>s)
   then show ?case
-    using size_list_estimation' by fastforce
+    by (metis is_subterm_of.Const)
 next
   case (Abs s t \<tau>)
+  then show ?case
+    by (metis is_subterm_of.Abs)
+next
+  case (App s t\<^sub>1' t\<^sub>2')
+  then show ?case
+    by (metis is_subterm_of.App)
+qed
+
+lemma size_lt_or_eq_if_is_subterm_of:
+  "is_subterm_of s t \<Longrightarrow> s = t \<or> size s < size t"
+proof (induction s t rule: is_subterm_of.induct)
+  case (refl t)
+  then show ?case by simp
+next
+  case (Const ts s c \<tau>s)
+  then obtain t where "t \<in> set ts" and "size s \<le> size t"
+    by fastforce
+  hence "size s \<le> size_list size ts"
+    using size_list_estimation' by fast
   then show ?case
     by simp
 next
-  case (App s t\<^sub>1 t\<^sub>2)
-  then show ?case
-    by auto
-qed
-  
-
-lemma is_subterm_of_trans: "is_subterm_of t\<^sub>1 t\<^sub>2 \<Longrightarrow> is_subterm_of t\<^sub>2 t\<^sub>3 \<Longrightarrow> is_subterm_of t\<^sub>1 t\<^sub>3"
-proof (induction t\<^sub>1 t\<^sub>2 rule: is_subterm_of.induct)
-  case (refl t)
-  then show ?case
-    by assumption
-next
-  case (Const ts s c \<tau>s)
-  then obtain t where
-    "t \<in> set ts" and "is_subterm_of s t" and "is_subterm_of t t\<^sub>3 \<Longrightarrow> is_subterm_of s t\<^sub>3"
-    by metis
-
-  moreover have "is_subterm_of t t\<^sub>3"
-    using \<open>is_subterm_of (Const c \<tau>s ts) t\<^sub>3\<close> \<open>t \<in> set ts\<close>
-    by (induction "Const c \<tau>s ts" t\<^sub>3 arbitrary: c \<tau>s ts rule: is_subterm_of.induct)
-      (auto intro: is_subterm_of.intros)
-
-  ultimately show ?case
-    by satx
-next
-  case (Abs s t \<tau>)
-
-  moreover have "is_subterm_of t t\<^sub>3"
-    using \<open>is_subterm_of (Abs \<tau> t) t\<^sub>3\<close>
-    by (induction "Abs \<tau> t" t\<^sub>3 arbitrary: \<tau> t rule: is_subterm_of.induct)
-      (auto intro: is_subterm_of.intros)
-
-  ultimately show ?case
-    by satx
+  case (Abs s \<tau> t)
+  then show ?case by auto
 next
   case (App s t\<^sub>1 t\<^sub>2)
-
-  moreover have "is_subterm_of t\<^sub>1 t\<^sub>3" "is_subterm_of t\<^sub>2 t\<^sub>3"
-    unfolding atomize_conj
-    using \<open>is_subterm_of (App t\<^sub>1 t\<^sub>2) t\<^sub>3\<close>
-    by (induction "App t\<^sub>1 t\<^sub>2" t\<^sub>3 arbitrary: t\<^sub>1 t\<^sub>2 rule: is_subterm_of.induct)
-      (auto intro: is_subterm_of.intros)
-
-  ultimately show ?case
-    by satx
+  then show ?case by auto
 qed
 
 lemma is_subterm_of_antisym:
   fixes t\<^sub>1 t\<^sub>2 :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   shows "is_subterm_of t\<^sub>1 t\<^sub>2 \<Longrightarrow> is_subterm_of t\<^sub>2 t\<^sub>1 \<Longrightarrow> t\<^sub>1 = t\<^sub>2"
-proof (induction t\<^sub>1 t\<^sub>2 rule: is_subterm_of.induct)
-  case (refl t)
-  show ?case ..
-next
-  case (Const ts s c \<tau>s)
-
-  have "size (Const c \<tau>s ts) \<le> size s"
-    using size_le_size_if_subterm[OF \<open>is_subterm_of (Const c \<tau>s ts) s\<close>] .
-
-  moreover have "size s < size (Const c \<tau>s ts)"
-    using Const.IH
-    by (metis Const.prems add_Suc_right is_subterm_of_trans less_add_Suc2 nat_arith.rule0
-        preterm.size(6) size_list_estimation' size_le_size_if_subterm verit_comp_simplify1(3))
-
-  ultimately have False
-    by linarith
-  then show ?case ..
-next
-  case (Abs s t \<tau>)
-
-  have "size (Abs \<tau> t) \<le> size s"
-    using size_le_size_if_subterm[OF \<open>is_subterm_of (Abs \<tau> t) s\<close>] .
-
-  moreover have "size s < size (Abs \<tau> t)"
-    by (simp add: Abs.hyps le_imp_less_Suc size_le_size_if_subterm)
-
-  ultimately have False
-    by linarith
-  then show ?case ..
-next
-  case (App s t\<^sub>1 t\<^sub>2)
-
-  have "size (App t\<^sub>1 t\<^sub>2) \<le> size s"
-    using size_le_size_if_subterm[OF \<open>is_subterm_of (App t\<^sub>1 t\<^sub>2) s\<close>] .
-
-  moreover have "size s < size (App t\<^sub>1 t\<^sub>2)"
-    using App.IH size_le_size_if_subterm by fastforce
-
-  ultimately have False
-    by linarith
-  then show ?case ..
-qed
+  using size_lt_or_eq_if_is_subterm_of[of t\<^sub>1 t\<^sub>2] size_lt_or_eq_if_is_subterm_of[of t\<^sub>2 t\<^sub>1]
+  by auto
 
 text \<open>The following interpretation has the side effect of registering the partial order so the
 "order" method can use it.\<close>
@@ -504,17 +445,12 @@ text \<open>Prefer the standard names @{thm is_subterm_of.order_antisym is_subte
   is_subterm_of.order_refl}.\<close>
 
 lemma wfp_is_proper_subterm_of: "wfp is_proper_subterm_of"
-proof (rule wfp_if_convertible_to_wfp)
-  fix x y
+proof (rule wfp_if_convertible_to_nat)
+  fix x y :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assume "is_proper_subterm_of x y"
-  then show "size x < size y"
-    unfolding is_proper_subterm_of_def
-    by (smt (verit, del_insts) add.commute add_Suc_right is_subterm_of.simps le_antisym
-        less_add_Suc2 nat_arith.rule0 preterm.size(10,6,9) size_le_size_if_subterm
-        size_list_estimation' verit_comp_simplify1(3))
-next
-  show "wfp ((<) :: nat \<Rightarrow> nat \<Rightarrow> bool)"
-    by simp
+  thus "size x < size y"
+    using size_lt_or_eq_if_is_subterm_of
+    by (auto simp: is_proper_subterm_of_def)
 qed
 
 lemma is_subterm_of_fst_strip_comb: "is_subterm_of (fst (strip_comb xs t)) t"
@@ -539,10 +475,10 @@ inductive is_orange_subterm_at where
     and "i < length us"
     and "is_Const f \<or> is_Bound f"
     and "is_orange_subterm_at v (us ! i) p" |
-  Abs: "is_orange_subterm_at v (Abs \<tau> t) (1 # p)"
+  Abs: "is_orange_subterm_at v (Abs \<tau> t) (0 # p)"
 if "is_orange_subterm_at v t p"
 
-text \<open>Contrary to Definition 2.1 of the paper, our positions count starting at zero.\<close>
+text \<open>Contrary to Definition 2.2 of the paper, our positions count starting at zero.\<close>
 
 lemma subterm_if_orange_subterm:
   assumes "is_orange_subterm_at s t p"
