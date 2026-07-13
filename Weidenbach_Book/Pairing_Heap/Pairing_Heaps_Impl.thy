@@ -1357,5 +1357,94 @@ lemma mop_hp_read_score_imp_mop_hp_read_score:
   apply (refine_vcg mop_hp_read_score_imp_spec)
   using assms by (auto simp: pairing_heaps_rel_def map_fun_rel_def dest!: multi_member_split)
 
+definition mop_imp_needs_rescaling  :: \<open>('a,'b)pairing_heaps_imp \<Rightarrow> 'c \<Rightarrow> bool nres\<close> where
+  \<open>mop_imp_needs_rescaling = (\<lambda>_ _. SPEC (\<lambda>_. True))\<close>
+
+definition mop_imp_decreases_weights_only :: \<open>'b :: {ord,divide,zero} \<Rightarrow> ('a,'b)pairing_heaps_imp \<Rightarrow> (('a,'b)pairing_heaps_imp) nres\<close> where
+ \<open>mop_imp_decreases_weights_only a = (\<lambda>(prevs', nxts', children', parents', scores', h'). do {
+     let l = length scores';
+     ASSERT (a > 0);
+     (_, i, scores') \<leftarrow> WHILE\<^sub>T\<^bsup>(\<lambda>(finished, i, xs).
+           (\<not>finished \<longrightarrow> i < l \<and> xs = take i (map (\<lambda>x. x div a) scores') @ drop i scores') \<and> 
+           (finished \<longrightarrow> (i = l - 1 \<or> l = 0) \<and> xs = (map (\<lambda>x. x div a) scores'))
+            )\<^esup>
+       (\<lambda>(finished, i, xs). \<not>finished)
+       (\<lambda>(finished, i, xs). do { ASSERT (\<not>finished); ASSERT (l > 0); let finished = (i = l - 1) in RETURN (finished, if finished then i else Suc i, xs[i := xs ! i div a])})
+       (l = 0, 0, scores');
+     RETURN (prevs', nxts', children', parents', scores', h')
+  })\<close>
+
+definition mop_imp_decreases_weights :: \<open>'b :: {ord,divide,zero} \<Rightarrow> ('a,'b)pairing_heaps_imp \<Rightarrow> (('a,'b)pairing_heaps_imp) nres\<close> where
+ \<open>mop_imp_decreases_weights a = (\<lambda>y. do {
+   rescaling \<leftarrow> mop_imp_needs_rescaling y a;
+   if \<not>rescaling then RETURN y
+   else mop_imp_decreases_weights_only a y
+  })\<close>
+
+definition mop_hp_needs_rescaling :: \<open>(nat multiset \<times> (nat,'c) hp_fun \<times> nat option)  \<Rightarrow> bool nres\<close> where
+  \<open>mop_hp_needs_rescaling = (\<lambda>(\<V>, (prevs, nxts, childs, parents, scores), h). SPEC (\<lambda>_. True))\<close>
+
+definition mop_hp_decreases_weights_only :: \<open>'c :: {zero,ord,divide} \<Rightarrow> (nat multiset \<times> (nat,'c) hp_fun \<times> nat option) \<Rightarrow> ((nat multiset \<times> (nat,'c) hp_fun \<times> nat option)) nres\<close> where
+  \<open>mop_hp_decreases_weights_only a = (\<lambda>(\<V>, (prevs, nxts, childs, parents, scores), h). do {
+      ASSERT (0  < a); 
+      RETURN ((\<V>, (prevs, nxts, childs, parents,  \<lambda>x. map_option (\<lambda>x. x div a) (scores x)), h))
+  })\<close>
+
+
+definition mop_hp_decreases_weights :: \<open>'c :: {zero,ord,divide} \<Rightarrow> (nat multiset \<times> (nat,'c) hp_fun \<times> nat option) \<Rightarrow> ((nat multiset \<times> (nat,'c) hp_fun \<times> nat option)) nres\<close> where
+  \<open>mop_hp_decreases_weights a = (\<lambda>(\<V>, (prevs, nxts, childs, parents, scores), h). do {
+    rescaling \<leftarrow> mop_hp_needs_rescaling ((\<V>, (prevs, nxts, childs, parents, scores), h));
+    if \<not>rescaling then RETURN ((\<V>, (prevs, nxts, childs, parents, scores), h)) 
+    else mop_hp_decreases_weights_only a ((\<V>, (prevs, nxts, childs, parents, scores), h)) 
+  })\<close>
+
+
+lemma take_last_update_identical_div: \<open>length x1l > 0 \<Longrightarrow> take (length x1l - Suc 0) (map (\<lambda>x. x div a') x1l) @ [x1l ! (length x1l - Suc 0) div a'] = map (\<lambda>x. x div a') x1l\<close>
+  by (metis (no_types, lifting) Suc_pred diff_Suc_less less_or_eq_imp_le list.simps(8) map_append map_eq_Cons_conv take_Suc_conv_app_nth take_all take_map)
+
+
+lemma mop_imp_decreases_weights_only_mop_hp_decreases_weights_only:
+  assumes \<open>(xs, ys) \<in> \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<close> and \<open>(a,a')\<in>nat_rel\<close>
+  shows \<open>mop_imp_decreases_weights_only a xs \<le> \<Down>(\<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel) (mop_hp_decreases_weights_only a' ys)\<close>
+  supply [simp] = take_last_update_identical_div
+  using assms
+  unfolding mop_imp_decreases_weights_def mop_imp_decreases_weights_only_def Let_def mop_hp_needs_rescaling_def split mop_hp_decreases_weights_only_def
+   mop_imp_needs_rescaling_def
+  apply (refine_vcg WHILEIT_rule[where R = \<open>measure (\<lambda>(finished, i, _ :: nat list). ((if finished then 0 else 1) + length (fst (snd (snd (snd (snd (xs))))))) - i)\<close>])
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by auto
+  subgoal by (auto simp: pairing_heaps_rel_def map_fun_rel_def map_option_case comp_def eq_commute[of \<open>_ ! _\<close>]
+        take_Suc_conv_app_nth nth_append list_update_append simp flip: Cons_nth_drop_Suc)
+  subgoal by auto
+  subgoal by (auto simp: pairing_heaps_rel_def map_fun_rel_def map_option_case comp_def eq_commute[of \<open>_ ! _\<close>]
+        take_Suc_conv_app_nth nth_append list_update_append simp flip: Cons_nth_drop_Suc)
+  subgoal by auto
+  subgoal by (auto simp: pairing_heaps_rel_def map_fun_rel_def map_option_case comp_def eq_commute[of \<open>_ ! _\<close>]
+        take_Suc_conv_app_nth nth_append list_update_append simp flip: Cons_nth_drop_Suc)
+  done
+
+
+lemma mop_imp_decreases_weights_mop_hp_decreases_weights:
+  assumes \<open>(xs, ys) \<in> \<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel\<close> and \<open>(a,a')\<in>nat_rel\<close>
+  shows \<open>mop_imp_decreases_weights a xs \<le> \<Down>(\<langle>\<langle>nat_rel\<rangle>option_rel,\<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel) (mop_hp_decreases_weights a' ys)\<close>
+  supply [simp] = take_last_update_identical_div
+  using assms
+  unfolding mop_imp_decreases_weights_def mop_hp_decreases_weights_def Let_def mop_hp_needs_rescaling_def split
+   mop_imp_needs_rescaling_def
+  apply (cases xs, cases ys, cases \<open>fst (snd ys)\<close>, hypsubst)
+  unfolding prod.case fst_conv snd_conv
+  apply hypsubst
+  unfolding prod.case fst_conv snd_conv
+  apply (refine_vcg mop_imp_decreases_weights_only_mop_hp_decreases_weights_only)
+  subgoal by auto
+  done
+
 end
 end

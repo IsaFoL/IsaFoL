@@ -3,6 +3,7 @@ theory IsaSAT_Initialisation_LLVM
     IsaSAT_Initialisation IsaSAT_Setup_LLVM IsaSAT_Mark_LLVM
     IsaSAT_Initialisation_State_LLVM
 begin
+
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 
 definition polarity_st_heur_init :: \<open>twl_st_wl_heur_init \<Rightarrow> _\<close> where

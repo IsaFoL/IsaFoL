@@ -2768,6 +2768,60 @@ proof -
     done
 qed
 
+
+end
+
+definition (in hmstruct_with_prio) mop_hm_change_all_weights :: \<open>_ \<Rightarrow>_ \<Rightarrow> _\<close> where
+\<open>mop_hm_change_all_weights = (\<lambda>old (\<A>, \<B>, w). do {
+  no_rescaling \<leftarrow> SPEC (\<lambda>_. True);
+  if no_rescaling then RETURN ((\<A>, \<B>, w))
+  else do {
+     w' \<leftarrow> RES UNIV; 
+    RETURN ((\<A>, \<B>, w'))
+  }})\<close>
+
+
+fun hp_rescale_weight where
+  \<open>hp_rescale_weight a (Hp m s xs) = (Hp m (s div a) (map (hp_rescale_weight a) xs))\<close>
+
+lemma mset_nodes_hp_rescale_weight[simp]: \<open> mset_nodes (hp_rescale_weight a y) = mset_nodes y\<close>
+  by (induction y rule: hp_rescale_weight.induct) 
+   (auto simp: comp_def cong: list.map_cong)
+
+lemma set_hp_hp_rescale_weight[simp]: \<open>set_hp (hp_rescale_weight a h) = (\<lambda>x. x div a) ` set_hp h\<close>
+  by (induction h rule: hp_rescale_weight.induct) auto
+
+locale pairing_heap_assms2 = pairing_heap_assms lt le +
+  hmstruct_with_prio lt le +
+  hmstruct_with_prio lt le
+  for lt :: \<open>'a \<Rightarrow> 'a :: {times,zero,divide} \<Rightarrow> bool\<close> and 
+    le :: \<open>'a \<Rightarrow> 'a \<Rightarrow> bool\<close> +
+  assumes ordered: 
+    \<open>\<And>a b c :: 'a. lt a 0 \<Longrightarrow> le c b \<Longrightarrow> le (c div a) (b div a)\<close>
+begin
+
+
+definition mop_hm_decreases_weights where
+  \<open>mop_hm_decreases_weights a = (\<lambda>(\<B>, xs). do {
+   needs_rescaling \<leftarrow> SPEC (\<lambda>_. True);
+   if needs_rescaling then RETURN (\<B>, xs)
+   else do {ASSERT (lt a 0); RETURN (\<B>, map_option (hp_rescale_weight a) xs)}})\<close>
+
+lemma invar_hp_rescale_weight:
+  shows \<open>invar (Some xs) \<Longrightarrow> lt a 0 \<Longrightarrow> invar (Some (hp_rescale_weight a xs))\<close>
+  by (induction xs)
+    (auto simp: invar_def intro!: ordered)
+
+
+lemma mop_hm_decreases_weights_mop_prio_change_weights:
+  assumes \<open>(x, m) \<in> hmrel\<close> \<open>(w,w')\<in>Id\<close> \<open>lt a 0\<close>
+  shows \<open>mop_hm_decreases_weights a x \<le> \<Down> (hmrel) (mop_hm_change_all_weights old m)\<close>
+  using assms
+  unfolding mop_hm_decreases_weights_def mop_hm_change_all_weights_def
+  by refine_rcg
+    (auto simp: hmrel_def RES_RETURN_RES RETURN_RES_refine_iff
+      intro: invar_hp_rescale_weight  map_option_case split: option.splits)
+
 end
 
 interpretation ACIDS: hmstruct_with_prio where
@@ -2778,6 +2832,13 @@ interpretation ACIDS: hmstruct_with_prio where
   subgoal by auto
   subgoal by (auto simp: transp_def)
   subgoal by (auto simp: totalp_on_def)
+  done
+
+interpretation ACIDS: pairing_heap_assms2 where
+  le = \<open>(\<ge>) :: nat \<Rightarrow> nat \<Rightarrow> bool\<close> and
+  lt = \<open>(>)\<close>
+  apply unfold_locales
+  subgoal using div_le_mono by auto
   done
 
 end

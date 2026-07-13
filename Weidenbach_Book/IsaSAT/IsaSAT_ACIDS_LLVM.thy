@@ -21,6 +21,37 @@ sepref_def mop_prio_insert_unchanged_impl
   unfolding ACIDS.mop_prio_insert_unchanged_def
   by sepref
 
+definition mop_imp_decreases_weights_rescaling_only :: \<open>'b :: {ord,divide,zero} \<Rightarrow> ('a,'b)pairing_heaps_imp \<Rightarrow> (('a,'b)pairing_heaps_imp) nres\<close> where
+ \<open>mop_imp_decreases_weights_rescaling_only a = (\<lambda>(prevs', nxts', children', parents', scores', h'). do {
+   do {
+     let l = length scores';
+     ASSERT (a > 0);
+     (_, i, scores') \<leftarrow> WHILE\<^sub>T\<^bsup>(\<lambda>(finished, i, xs).
+           (\<not>finished \<longrightarrow> i < l \<and> xs = take i (map (\<lambda>x. x div a) scores') @ drop i scores') \<and> 
+           (finished \<longrightarrow> (i = l - 1 \<or> l = 0) \<and> xs = (map (\<lambda>x. x div a) scores'))
+            )\<^esup>
+       (\<lambda>(finished, i, xs). \<not>finished)
+       (\<lambda>(finished, i, xs). do { ASSERT (\<not>finished); ASSERT (l > 0); let finished = (i = l - 1) in RETURN (finished, if finished then i else Suc i, xs[i := xs ! i div a])})
+       (l = 0, 0, scores');
+     RETURN (prevs', nxts', children', parents', scores', h')
+  }
+  })\<close>
+
+sepref_def mop_imp_decreases_weights_rescaling_only_code
+  is \<open>uncurry mop_imp_decreases_weights_rescaling_only\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a (hp_assn)\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
+  unfolding mop_imp_decreases_weights_rescaling_only_def hp_assn_def
+  apply (annot_snat_const \<open>TYPE(64)\<close>)
+  by sepref
+
+lemmas [sepref_fr_rules] = mop_imp_needs_rescaling_code.refine[FCOMP mop_imp_needs_rescaling_mop_hp_needs_rescaling]
+
+sepref_def mop_imp_decrease_weights_code
+  is \<open>uncurry mop_imp_decreases_weights\<close>
+  :: \<open>uint64_nat_assn\<^sup>k *\<^sub>a (hp_assn)\<^sup>d \<rightarrow>\<^sub>a hp_assn\<close>
+  unfolding mop_imp_decreases_weights_def
+  by sepref
+
 sepref_def acids_tl_impl
   is \<open>uncurry acids_tl\<close>
   :: \<open>atom_assn\<^sup>k *\<^sub>a acids_assn2\<^sup>d \<rightarrow>\<^sub>a acids_assn2\<close>
@@ -42,11 +73,119 @@ sepref_def mop_prio_insert_maybe_impl
   unfolding ACIDS.mop_prio_insert_maybe_def PR_CONST_def
   by sepref
 
+definition mop_imp_change_all_weights_with_max where
+  \<open>mop_imp_change_all_weights_with_max = (\<lambda>old (xs, m). do {
+    rescaling \<leftarrow> Pairing_Heaps_Impl.mop_imp_needs_rescaling xs old;
+    if \<not>rescaling then RETURN (xs, m)
+    else do {
+     xs \<leftarrow> mop_imp_decreases_weights_only old xs;
+     RETURN (xs, m div old)
+    }
+  })\<close>
+
+lemma mop_imp_decreases_weights_only_spec:
+  \<open>((old, xsm), old', ysm')
+    \<in> nat_rel \<times>\<^sub>f
+       (\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel O
+        acids_encoded_hmrel \<times>\<^sub>f
+        nat_rel) \<Longrightarrow>
+    0 < old' \<Longrightarrow>
+    x2 = (x1b, x2a) \<Longrightarrow>
+    x1 = (x1a, x2) \<Longrightarrow>
+    ysm' = (x1, x2b) \<Longrightarrow>
+    xsm = (x1c, x2c) \<Longrightarrow>
+    (\<forall>x\<in>#fst (snd x1). (snd (snd (fst ysm'))) x \<le> x2c) \<Longrightarrow>
+    mop_imp_decreases_weights_only old x1c
+    \<le> \<Down> {(a,b). (a,b) \<in> (\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel O
+        acids_encoded_hmrel) \<and>
+       (snd (snd b)) = (\<lambda>x. (\<lambda>x. x div old) (snd (snd (fst ysm')) x)) \<and>
+       ((\<forall>x\<in>#fst (snd b). (snd (snd b)) x \<le> x2c div old')) \<and>
+       fst (b) = fst (x1) \<and>
+       fst (snd b) = fst (snd x1)}
+        (Refine_Basic.SPEC
+          (\<lambda>uu::nat multiset \<times> nat multiset \<times> (nat \<Rightarrow> nat).
+              \<exists>(w'::nat \<Rightarrow> nat) (\<A>'::nat multiset) \<B>'::nat multiset.
+                 uu = (\<A>', \<B>', w') \<and> x1a = \<A>' \<and> x1b = \<B>'))\<close>
+  apply auto
+  subgoal for a aa ab ac ad b ae af ag ah ai ba bb
+  apply (rule order_trans)
+   apply (rule mop_imp_decreases_weights_only_mop_hp_decreases_weights_only[of _ \<open>(ae, (af, ag, ah, ai, ba), bb)\<close> ])
+      apply (auto simp: mop_hp_decreases_weights_only_def conc_fun_RETURN conc_fun_RES
+        intro: ACIDS.ordered)
+    apply (rule_tac b = \<open>(ae,
+        (af, ag, ah, ai, \<lambda>x. map_option (\<lambda>x. x div old') (ba x)), bb)\<close> in relcompI)
+    apply (auto simp: acids_encoded_hmrel_def)
+    apply (rule_tac b = \<open>(aja, map_option (hp_rescale_weight old') bca)\<close> in relcompI)
+     apply (auto simp: encoded_hp_prop_list_conc_def encoded_hp_prop_def ACIDS.hmrel_def
+        intro!: ACIDS.invar_hp_rescale_weight intro: div_le_mono
+        split: option.splits)
+    by (metis hp_node_None_notin2 option.map_sel score_hp_rescale_weights_hp_node)
+  done
+
+lemma (in hmstruct_with_prio) mop_hm_change_all_weights_with_max_alt_def:
+\<open>mop_hm_change_all_weights_with_max = (\<lambda>old ((\<A>, \<B>, w), m). do {
+  ASSERT (\<forall>x\<in>#\<B>. w x \<le> m);
+  rescaling \<leftarrow> SPEC (\<lambda>_. True);
+  if \<not>rescaling then RETURN ((\<A>, \<B>, w), m)
+  else do {
+     (\<A>, \<B>, w') \<leftarrow> RES {(\<A>', \<B>', w')|w' \<A>' \<B>'. \<A> = \<A>' \<and> \<B> = \<B>'}; 
+     m \<leftarrow> SPEC (\<lambda>m. (\<forall>x\<in>#\<B>. w' x \<le> m) \<and> m \<ge> 0);
+    RETURN ((\<A>, \<B>, w'), m)
+  }})\<close>
+  unfolding mop_hm_change_all_weights_with_max_def RES_RES_RETURN_RES RES_RETURN_RES RES_RES3_RETURN_RES
+  by (force intro!: ext bind_cong[OF refl])
+
+
+lemma mop_imp_change_all_weights_with_max_mop_hm_change_all_weights_with_max:
+  assumes \<open>((old, xsm), (old', ysm')) \<in> nat_rel \<times>\<^sub>f (\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel O  acids_encoded_hmrel  \<times>\<^sub>f nat_rel)\<close> and
+   \<open>old' > 0\<close>
+  shows \<open>mop_imp_change_all_weights_with_max old (xsm) \<le> 
+    \<Down>((\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel O  acids_encoded_hmrel) \<times>\<^sub>f nat_rel)
+      (ACIDS.mop_hm_change_all_weights_with_max old' (ysm'))\<close>
+  using assms
+  unfolding mop_imp_change_all_weights_with_max_def ACIDS.mop_hm_change_all_weights_with_max_alt_def
+    Pairing_Heaps_Impl.mop_imp_needs_rescaling_def
+  apply (refine_vcg mop_imp_decreases_weights_only_mop_hp_decreases_weights_only
+      mop_imp_decreases_weights_only_spec)
+  subgoal by auto
+  subgoal by auto
+  apply assumption+
+  subgoal by auto
+  subgoal for x1 x1a x2 x1b x2a x2b x1c x2c no_rescaling no_rescalinga
+    by (auto simp: conc_fun_RETURN conc_fun_RES RES_RETURN_RES Image_def)
+  done
+
+lemma mop_imp_change_all_weights_with_max_mop_hm_change_all_weights_with_max2:               
+  shows \<open>(uncurry mop_imp_change_all_weights_with_max, uncurry ACIDS.mop_hm_change_all_weights_with_max) \<in>
+   [\<lambda>(b,_). b > 0]\<^sub>f nat_rel \<times>\<^sub>f (\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel O acids_encoded_hmrel \<times>\<^sub>f nat_rel) \<rightarrow>
+    \<langle>\<langle>\<langle>nat_rel\<rangle>option_rel, \<langle>nat_rel\<rangle>option_rel\<rangle>pairing_heaps_rel O acids_encoded_hmrel \<times>\<^sub>f nat_rel\<rangle>nres_rel\<close>
+  unfolding uncurry_def
+  apply (intro frefI nres_relI, (subst case_prod_beta)+)
+  subgoal for a b
+    by (rule order_trans, rule mop_imp_change_all_weights_with_max_mop_hm_change_all_weights_with_max[of \<open>fst a\<close> \<open>snd a\<close> \<open>fst b\<close> \<open>snd b\<close>])
+      auto
+  done
+
+sepref_def mop_imp_change_all_weights_with_max_code
+  is \<open>uncurry mop_imp_change_all_weights_with_max\<close>
+  :: \<open>[\<lambda>(a, _). a > 0]\<^sub>a uint64_nat_assn\<^sup>k *\<^sub>a (hp_assn \<times>\<^sub>a uint64_nat_assn)\<^sup>d \<rightarrow> hp_assn \<times>\<^sub>a uint64_nat_assn\<close>
+  unfolding mop_imp_change_all_weights_with_max_def
+  by sepref
+
+sepref_register ACIDS.mop_hm_change_all_weights_with_max
+
+lemmas [sepref_fr_rules] =
+   mop_imp_change_all_weights_with_max_code.refine[FCOMP mop_imp_change_all_weights_with_max_mop_hm_change_all_weights_with_max2,
+    unfolded hr_comp_assoc[symmetric] acids_assn_def[symmetric]]
+
+lemma pow2_40: \<open>(2::nat) ^ 40 = 1099511627776\<close>
+  by auto
+
 sepref_def acids_push_literal_impl
   is \<open>uncurry acids_push_literal\<close>
   :: \<open>atom_assn\<^sup>k *\<^sub>a acids_assn2\<^sup>d \<rightarrow>\<^sub>a acids_assn2\<close>
-  unfolding acids_push_literal_def acids_assn2_def
-    min_def
+  unfolding acids_push_literal_def acids_assn2_def max_def
+    min_def pow2_40
   apply (annot_unat_const \<open>TYPE(64)\<close>)
   by sepref
 
@@ -62,6 +201,7 @@ sepref_def bottom_acids0_impl
   unfolding bottom_acids0_def
   apply (rewrite at \<open>(_, _, _, _, replicate 0 \<hole> , _)\<close>
     unat_const_fold[where 'a=64])
+  apply (rewrite in \<open>(_, _, _, _, \<hole>, _)\<close> larray_fold_custom_replicate)
   unfolding hp_assn_def atom.fold_option array_fold_custom_replicate
     al_fold_custom_empty[where 'l=64]
   apply (annot_snat_const \<open>TYPE(64)\<close>)

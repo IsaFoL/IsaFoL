@@ -91,6 +91,12 @@ begin
       RETURN (v, bw)
       })"
 
+    definition mop_prio_change_all_weights where
+      "mop_prio_change_all_weights \<equiv>  (\<lambda>(\<A>, b, w). doN {w \<leftarrow> RES UNIV; RETURN (\<A>, b,w)})"
+
+    definition mop_prio_change_all_weights' where
+      "mop_prio_change_all_weights' _ \<equiv>  mop_prio_change_all_weights"
+
 sublocale pairing_heap
   by unfold_locales (rule hm_le hm_trans hm_transt hm_totalt)+
 

@@ -6,7 +6,7 @@ begin
 hide_const (open) NEMonad.RETURN  NEMonad.ASSERT
 
 type_synonym bump_heuristics_init_assn = \<open>
-  ((32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 64 word ptr \<times> 32 word) \<times> 64 word,
+  ((32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> 32 word ptr \<times> (64 word \<times> 64 word ptr) \<times> 32 word) \<times> 64 word,
   (64 word \<times> 32 word \<times> 32 word) ptr \<times> 64 word \<times> 32 word \<times> 32 word \<times> 32 word,
   1 word, (64 word \<times> 64 word \<times> 32 word ptr) \<times> 1 word ptr) tuple4\<close>
 
