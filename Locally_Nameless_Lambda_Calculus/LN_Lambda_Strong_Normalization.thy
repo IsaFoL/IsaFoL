@@ -285,37 +285,205 @@ proof (rule accpI)
   then show "SN u" ..
 qed
 
+text \<open>A free variable is neutral, locally closed, and normal (no \<open>\<beta>\<close>-reduct), so \<open>CR3\<close>
+  applies with a vacuous reduct hypothesis.\<close>
+
 lemma Red_Free: "Red_ty \<tau> (Free x)"
-proof (rule Red_ty.cases[of "(\<tau>, Free x)"])
-  fix \<tau>\<^sub>1 \<tau>\<^sub>2 t
-  assume "(\<tau>, Free x) = (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2, t)"
-  then have "\<tau> = TyFun \<tau>\<^sub>1 \<tau>\<^sub>2"
-    by simp
-
-  moreover have "\<forall>u. locally_closed u \<longrightarrow> Red_ty \<tau>\<^sub>1 u \<longrightarrow> Red_ty \<tau>\<^sub>2 (App (Free x) u)"
-    sorry
-
-  ultimately show "Red_ty \<tau> (Free x)"
-    using SN_Free by force
+proof (rule CR3)
+  show "neutral (Free x)"
+    by (simp add: neutral_def)
 next
-  fix \<tau>' t
-  assume "\<not> is_TyFun \<tau>'" and "(\<tau>, Free x) = (\<tau>', t)"
-  then have "\<not> is_TyFun \<tau>"
-    by simp
-
-  then show "Red_ty \<tau> (Free x)"
-    using SN_Free by simp
+  show "locally_closed (Free x)"
+    by (rule locally_closed.Free)
+next
+  show "\<And>t'. beta_reduce (Free x) t' \<Longrightarrow> Red_ty \<tau> t'"
+    by (auto elim: beta_reduce.cases)
 qed
 
 
 section \<open>Reducibility of abstractions and constants\<close>
 
+text \<open>\<open>\<beta>\<close>-reduction is preserved by instantiating a bound variable with a locally closed term. This
+  is the substitution/commutation lemma for the non-shifting \<^const>\<open>subst_bound\<close>; like
+  \<open>locally_closed_beta_reduce\<close> it rests on the still-open \<^const>\<open>subst_bound\<close> substitution lemma, so
+  we park it.\<close>
+
+lemma beta_reduce_subst_bound:
+  "locally_closed u \<Longrightarrow> beta_reduce t t' \<Longrightarrow>
+    beta_reduce (subst_bound n u t) (subst_bound n u t')"
+  sorry
+
+text \<open>Strong normalization is inherited by an abstraction from its body.\<close>
+
+lemma SN_Abs: "SN t \<Longrightarrow> SN (Abs \<tau> t)"
+proof (induction t rule: accp_induct_rule)
+  case (1 t)
+  show ?case
+  proof (rule accpI)
+    fix v assume "beta_reduce\<inverse>\<inverse> v (Abs \<tau> t)"
+    then have "beta_reduce (Abs \<tau> t) v"
+      by simp
+    then obtain t' where "v = Abs \<tau> t'" and "beta_reduce t t'"
+      by (auto elim: beta_reduce.cases)
+    then show "SN v"
+      using "1.IH" by (metis conversepI)
+  qed
+qed
+
+text \<open>Inverting a \<open>\<beta>\<close>-step out of a redex \<open>(\<lambda>. t) u\<close>: either the redex is contracted, or the step is
+  taken inside the body or the argument.\<close>
+
+lemma beta_reduce_AbsD:
+  assumes "beta_reduce (Abs \<tau> t) v"
+  obtains t' where "v = Abs \<tau> t'" and "beta_reduce t t'"
+  using assms by (auto elim: beta_reduce.cases)
+
+lemma beta_reduce_AppD:
+  assumes "beta_reduce (App a b) v"
+  obtains (redex) \<tau> s where "a = Abs \<tau> s" and "v = subst_bound 0 b s"
+    | (left) a' where "v = App a' b" and "beta_reduce a a'"
+    | (right) b' where "v = App a b'" and "beta_reduce b b'"
+  using assms by (auto elim: beta_reduce.cases)
+
+lemma beta_reduce_App_AbsD:
+  assumes "beta_reduce (App (Abs \<tau>\<^sub>1 t) u) v"
+  shows "v = subst_bound 0 u t
+    \<or> (\<exists>t'. v = App (Abs \<tau>\<^sub>1 t') u \<and> beta_reduce t t')
+    \<or> (\<exists>u'. v = App (Abs \<tau>\<^sub>1 t) u' \<and> beta_reduce u u')"
+  using assms
+proof (cases rule: beta_reduce_AppD)
+  case (redex \<tau> s)
+  then show ?thesis by auto
+next
+  case (left a')
+  from \<open>beta_reduce (Abs \<tau>\<^sub>1 t) a'\<close> obtain t'
+    where "a' = Abs \<tau>\<^sub>1 t'" and "beta_reduce t t'"
+    by (elim beta_reduce_AbsD)
+  then show ?thesis
+    using \<open>v = App a' u\<close> by blast
+next
+  case (right b')
+  then show ?thesis by blast
+qed
+
+text \<open>Core of the abstraction lemma: \<open>(\<lambda>. t) u\<close> is reducible whenever \<open>t\<close> and \<open>u\<close> are strongly
+  normalizing, \<open>u\<close> is reducible, and every reducible instance of the body is reducible. Since the
+  redex is neutral (an application), we invoke \<open>CR3\<close> and discharge its reducts by a nested
+  induction on \<open>SN t\<close> (for reductions in the body) and \<open>SN u\<close> (for reductions in the argument).\<close>
+
+lemma Red_Abs_aux:
+  assumes "SN t" and "SN u"
+    and "body t" and "locally_closed u" and "Red_ty \<tau>\<^sub>1 u"
+    and "\<And>v. locally_closed v \<Longrightarrow> Red_ty \<tau>\<^sub>1 v \<Longrightarrow> Red_ty \<tau>\<^sub>2 (subst_bound 0 v t)"
+  shows "Red_ty \<tau>\<^sub>2 (App (Abs \<tau>\<^sub>1 t) u)"
+  using assms
+proof (induction t arbitrary: u rule: accp_induct_rule)
+  case (1 t)
+  note outer_IH = "1.IH"
+  note body_t = "1.prems"(2) and hyp_t = "1.prems"(5)
+  from "1.prems"(1) show ?case
+    using "1.prems"(3,4)
+  proof (induction u rule: accp_induct_rule)
+    case (1 u)
+    note inner_IH = "1.IH"
+    note lc_u = "1.prems"(1) and red_u = "1.prems"(2)
+    show ?case
+    proof (rule CR3)
+      show "neutral (App (Abs \<tau>\<^sub>1 t) u)"
+        by (simp add: neutral_def)
+    next
+      show "locally_closed (App (Abs \<tau>\<^sub>1 t) u)"
+        using body_t lc_u
+        by (simp add: locally_closed_App_iff locall_closed_Abs_iff_body)
+    next
+      fix w assume "beta_reduce (App (Abs \<tau>\<^sub>1 t) u) w"
+      from beta_reduce_App_AbsD[OF this]
+      consider (contract) "w = subst_bound 0 u t"
+        | (body) t' where "w = App (Abs \<tau>\<^sub>1 t') u" and "beta_reduce t t'"
+        | (arg) u' where "w = App (Abs \<tau>\<^sub>1 t) u'" and "beta_reduce u u'"
+        by blast
+      then show "Red_ty \<tau>\<^sub>2 w"
+      proof cases
+        case contract
+        then show ?thesis
+          using hyp_t[OF lc_u red_u] by simp
+      next
+        case (body t')
+        have SN_u: "SN u"
+          using red_u by (rule CR1)
+        have body_t': "body t'"
+        proof -
+          have "beta_reduce (Abs \<tau>\<^sub>1 t) (Abs \<tau>\<^sub>1 t')"
+            using \<open>beta_reduce t t'\<close> by (rule beta_reduce.Abs)
+          then have "locally_closed (Abs \<tau>\<^sub>1 t')"
+            using body_t locall_closed_Abs_iff_body locally_closed_beta_reduce by metis
+          then show ?thesis
+            by (simp add: locall_closed_Abs_iff_body)
+        qed
+        have hyp_t': "Red_ty \<tau>\<^sub>2 (subst_bound 0 v t')"
+          if "locally_closed v" and "Red_ty \<tau>\<^sub>1 v" for v
+        proof -
+          have "Red_ty \<tau>\<^sub>2 (subst_bound 0 v t)"
+            by (rule hyp_t[OF that])
+          moreover have "beta_reduce (subst_bound 0 v t) (subst_bound 0 v t')"
+            using that(1) \<open>beta_reduce t t'\<close> by (rule beta_reduce_subst_bound)
+          ultimately show ?thesis
+            by (rule CR2)
+        qed
+        have "beta_reduce\<inverse>\<inverse> t' t"
+          using \<open>beta_reduce t t'\<close> by (rule conversepI)
+        then have "Red_ty \<tau>\<^sub>2 (App (Abs \<tau>\<^sub>1 t') u)"
+          by (rule outer_IH[OF _ SN_u body_t' lc_u red_u hyp_t'])
+        then show ?thesis
+          by (simp add: \<open>w = App (Abs \<tau>\<^sub>1 t') u\<close>)
+      next
+        case (arg u')
+        have "locally_closed u'"
+          using \<open>beta_reduce u u'\<close> lc_u by (rule locally_closed_beta_reduce)
+        moreover have "Red_ty \<tau>\<^sub>1 u'"
+          using red_u \<open>beta_reduce u u'\<close> by (rule CR2)
+        moreover have "beta_reduce\<inverse>\<inverse> u' u"
+          using \<open>beta_reduce u u'\<close> by (rule conversepI)
+        ultimately have "Red_ty \<tau>\<^sub>2 (App (Abs \<tau>\<^sub>1 t) u')"
+          using inner_IH by blast
+        then show ?thesis
+          by (simp add: \<open>w = App (Abs \<tau>\<^sub>1 t) u'\<close>)
+      qed
+    qed
+  qed
+qed
+
 lemma Red_Abs:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "locally_closed (Abs \<tau>\<^sub>1 t)"
-  assumes "\<And>u. locally_closed u \<Longrightarrow> Red_ty \<tau>\<^sub>1 u \<Longrightarrow> Red_ty \<tau>\<^sub>2 (subst_bound 0 u t)"
+  assumes hyp: "\<And>u. locally_closed u \<Longrightarrow> Red_ty \<tau>\<^sub>1 u \<Longrightarrow> Red_ty \<tau>\<^sub>2 (subst_bound 0 u t)"
   shows "Red_ty (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) (Abs \<tau>\<^sub>1 t)"
-  sorry
+proof -
+  have body_t: "body t"
+    using assms(2) by (simp add: locall_closed_Abs_iff_body)
+  have SN_t: "SN t"
+  proof -
+    have "SN (subst_bound 0 (Free undefined) t)"
+      by (rule CR1[OF hyp[OF locally_closed.Free Red_Free]])
+    then show "SN t"
+      by (rule SN_subst_bound_FreeD)
+  qed
+  have "SN (Abs \<tau>\<^sub>1 t)"
+    using SN_t by (rule SN_Abs)
+  moreover have "Red_ty \<tau>\<^sub>2 (App (Abs \<tau>\<^sub>1 t) u)"
+    if "locally_closed u" and "Red_ty \<tau>\<^sub>1 u" for u
+  proof (rule Red_Abs_aux)
+    show "SN t" by (rule SN_t)
+    show "SN u" using that(2) by (rule CR1)
+    show "body t" by (rule body_t)
+    show "locally_closed u" by (rule that(1))
+    show "Red_ty \<tau>\<^sub>1 u" by (rule that(2))
+    show "\<And>v. locally_closed v \<Longrightarrow> Red_ty \<tau>\<^sub>1 v \<Longrightarrow> Red_ty \<tau>\<^sub>2 (subst_bound 0 v t)"
+      by (rule hyp)
+  qed
+  ultimately show ?thesis
+    by simp
+qed
 
 lemma Red_Const:
   assumes "locally_closed (Const c \<tau>s ts)"
