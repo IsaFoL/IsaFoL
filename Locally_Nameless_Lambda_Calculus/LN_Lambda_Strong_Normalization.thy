@@ -485,11 +485,128 @@ proof -
     by simp
 qed
 
+text \<open>Inverting a \<open>\<beta>\<close>-step out of a constant: exactly one parameter is reduced.\<close>
+
+lemma beta_reduce_ConstD:
+  assumes "beta_reduce (Const c \<tau>s ts) v"
+  obtains i t' where "i < length ts" and "beta_reduce (ts ! i) t'"
+    and "v = Const c \<tau>s (ts[i := t'])"
+  using assms by (auto elim: beta_reduce.cases)
+
+text \<open>A constant is strongly normalizing once all its parameters are (converse of \<open>SN_ConstD\<close>). The
+  key \<open>cons\<close> step is a double induction: on the head (reductions in it) and on the constant built
+  from the tail (reductions in the remaining parameters).\<close>
+
+lemma SN_Const_cons:
+  assumes "SN a" and "SN (Const c \<tau>s bs)"
+  shows "SN (Const c \<tau>s (a # bs))"
+  using assms
+proof (induction a arbitrary: bs rule: accp_induct_rule)
+  case (1 a)
+  note IH_a = "1.IH"
+  from "1.prems" show ?case
+  proof (induction "Const c \<tau>s bs" arbitrary: bs rule: accp_induct_rule)
+    case 1
+    note SN_bs = "1.hyps"(1) and IH_bs = "1.hyps"(2)
+    show ?case
+    proof (rule accpI)
+      fix v assume "beta_reduce\<inverse>\<inverse> v (Const c \<tau>s (a # bs))"
+      then have "beta_reduce (Const c \<tau>s (a # bs)) v"
+        by simp
+      then obtain i t' where "i < length (a # bs)" and "beta_reduce ((a # bs) ! i) t'"
+        and v_eq: "v = Const c \<tau>s ((a # bs)[i := t'])"
+        by (elim beta_reduce_ConstD)
+      then show "SN v"
+      proof (cases i)
+        case 0
+        then have "beta_reduce a t'" and "v = Const c \<tau>s (t' # bs)"
+          using \<open>beta_reduce ((a # bs) ! i) t'\<close> v_eq by simp_all
+        then show ?thesis
+          using IH_a SN_bs by (metis conversepI)
+      next
+        case (Suc j)
+        then have "j < length bs" and "beta_reduce (bs ! j) t'"
+          using \<open>i < length (a # bs)\<close> \<open>beta_reduce ((a # bs) ! i) t'\<close> by simp_all
+        then have "beta_reduce (Const c \<tau>s bs) (Const c \<tau>s (bs[j := t']))"
+          by (rule beta_reduce.Const)
+        moreover have "v = Const c \<tau>s (a # bs[j := t'])"
+          using Suc v_eq by simp
+        ultimately show ?thesis
+          using IH_bs by (metis conversepI)
+      qed
+    qed
+  qed
+qed
+
+lemma SN_Const:
+  "(\<And>t. t \<in> set ts \<Longrightarrow> SN t) \<Longrightarrow> SN (Const c \<tau>s ts)"
+proof (induction ts)
+  case Nil
+  show ?case
+  proof (rule accpI)
+    fix v assume "beta_reduce\<inverse>\<inverse> v (Const c \<tau>s [])"
+    then show "SN v"
+      by (auto elim: beta_reduce.cases)
+  qed
+next
+  case (Cons a bs)
+  show ?case
+  proof (rule SN_Const_cons)
+    show "SN a"
+      using Cons.prems by fastforce
+    show "SN (Const c \<tau>s bs)"
+    proof (rule Cons.IH)
+      fix t assume "t \<in> set bs"
+      then show "SN t"
+        using Cons.prems by fastforce
+    qed
+  qed
+qed
+
+text \<open>Core of the constant lemma: a strongly normalizing, locally closed constant is reducible at any
+  type. Since \<open>Const\<close> is neutral we invoke \<^text>\<open>CR3\<close>; each reduct reduces one parameter, so it is again
+  a constant that is strongly normalizing and (by \<open>locally_closed_beta_reduce\<close>) locally closed, hence
+  reducible by the induction hypothesis.\<close>
+
+lemma Red_Const_aux:
+  assumes "SN (Const c \<tau>s ts)" and "locally_closed (Const c \<tau>s ts)"
+  shows "Red_ty \<tau> (Const c \<tau>s ts)"
+  using assms
+proof (induction "Const c \<tau>s ts" arbitrary: ts rule: accp_induct_rule)
+  case 1
+  note IH = "1.hyps"(2)
+  show ?case
+  proof (rule CR3)
+    show "neutral (Const c \<tau>s ts)"
+      by (simp add: neutral_def)
+  next
+    show "locally_closed (Const c \<tau>s ts)"
+      using "1.prems" .
+  next
+    fix v assume bv: "beta_reduce (Const c \<tau>s ts) v"
+    then obtain i t' where "i < length ts" and "beta_reduce (ts ! i) t'"
+      and v_eq: "v = Const c \<tau>s (ts[i := t'])"
+      by (elim beta_reduce_ConstD)
+    have "locally_closed v"
+      using bv "1.prems" by (rule locally_closed_beta_reduce)
+    moreover have "beta_reduce\<inverse>\<inverse> v (Const c \<tau>s ts)"
+      using bv by (rule conversepI)
+    ultimately show "Red_ty \<tau> v"
+      unfolding v_eq using IH by blast
+  qed
+qed
+
 lemma Red_Const:
   assumes "locally_closed (Const c \<tau>s ts)"
   assumes "\<forall>t \<in> set ts. SN t"
   shows "Red_ty \<tau> (Const c \<tau>s ts)"
-  sorry
+proof (rule Red_Const_aux)
+  show "SN (Const c \<tau>s ts)"
+    using assms(2) by (auto intro: SN_Const)
+next
+  show "locally_closed (Const c \<tau>s ts)"
+    by (rule assms(1))
+qed
 
 
 section \<open>Parallel substitution of free variables\<close>
