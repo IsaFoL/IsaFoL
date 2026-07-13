@@ -162,8 +162,8 @@ definition acids_push_literal_pre where
 definition (in hmstruct_with_prio) mop_hm_change_all_weights_with_max :: \<open>_ \<Rightarrow>_ \<Rightarrow> _\<close> where
 \<open>mop_hm_change_all_weights_with_max = (\<lambda>old ((\<A>, \<B>, w), m). do {
   ASSERT ((\<forall>x\<in>#\<B>. w x \<le> m));
-  no_rescaling \<leftarrow> SPEC (\<lambda>_. True);
-  if no_rescaling then RETURN ((\<A>, \<B>, w), m)
+  rescaling \<leftarrow> SPEC (\<lambda>_. True);
+  if ~rescaling then RETURN ((\<A>, \<B>, w), m)
   else do {
      w' \<leftarrow> RES UNIV; 
      m \<leftarrow> SPEC (\<lambda>m. (\<forall>x\<in>#\<B>. w' x \<le> m) \<and> m \<ge> 0);

@@ -1376,8 +1376,8 @@ definition mop_imp_decreases_weights_only :: \<open>'b :: {ord,divide,zero} \<Ri
 
 definition mop_imp_decreases_weights :: \<open>'b :: {ord,divide,zero} \<Rightarrow> ('a,'b)pairing_heaps_imp \<Rightarrow> (('a,'b)pairing_heaps_imp) nres\<close> where
  \<open>mop_imp_decreases_weights a = (\<lambda>y. do {
-   no_rescaling \<leftarrow> mop_imp_needs_rescaling y a;
-   if no_rescaling then RETURN y
+   rescaling \<leftarrow> mop_imp_needs_rescaling y a;
+   if \<not>rescaling then RETURN y
    else mop_imp_decreases_weights_only a y
   })\<close>
 

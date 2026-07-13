@@ -75,8 +75,8 @@ sepref_def mop_prio_insert_maybe_impl
 
 definition mop_imp_change_all_weights_with_max where
   \<open>mop_imp_change_all_weights_with_max = (\<lambda>old (xs, m). do {
-    no_rescaling \<leftarrow> Pairing_Heaps_Impl.mop_imp_needs_rescaling xs old;
-    if no_rescaling then RETURN (xs, m)
+    rescaling \<leftarrow> Pairing_Heaps_Impl.mop_imp_needs_rescaling xs old;
+    if \<not>rescaling then RETURN (xs, m)
     else do {
      xs \<leftarrow> mop_imp_decreases_weights_only old xs;
      RETURN (xs, m div old)
@@ -125,8 +125,8 @@ lemma mop_imp_decreases_weights_only_spec:
 lemma (in hmstruct_with_prio) mop_hm_change_all_weights_with_max_alt_def:
 \<open>mop_hm_change_all_weights_with_max = (\<lambda>old ((\<A>, \<B>, w), m). do {
   ASSERT (\<forall>x\<in>#\<B>. w x \<le> m);
-  no_rescaling \<leftarrow> SPEC (\<lambda>_. True);
-  if no_rescaling then RETURN ((\<A>, \<B>, w), m)
+  rescaling \<leftarrow> SPEC (\<lambda>_. True);
+  if \<not>rescaling then RETURN ((\<A>, \<B>, w), m)
   else do {
      (\<A>, \<B>, w') \<leftarrow> RES {(\<A>', \<B>', w')|w' \<A>' \<B>'. \<A> = \<A>' \<and> \<B> = \<B>'}; 
      m \<leftarrow> SPEC (\<lambda>m. (\<forall>x\<in>#\<B>. w' x \<le> m) \<and> m \<ge> 0);
