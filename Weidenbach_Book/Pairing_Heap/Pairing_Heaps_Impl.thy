@@ -1393,8 +1393,8 @@ definition mop_hp_decreases_weights_only :: \<open>'c :: {zero,ord,divide} \<Rig
 
 definition mop_hp_decreases_weights :: \<open>'c :: {zero,ord,divide} \<Rightarrow> (nat multiset \<times> (nat,'c) hp_fun \<times> nat option) \<Rightarrow> ((nat multiset \<times> (nat,'c) hp_fun \<times> nat option)) nres\<close> where
   \<open>mop_hp_decreases_weights a = (\<lambda>(\<V>, (prevs, nxts, childs, parents, scores), h). do {
-    no_rescaling \<leftarrow> mop_hp_needs_rescaling ((\<V>, (prevs, nxts, childs, parents, scores), h));
-    if no_rescaling then RETURN ((\<V>, (prevs, nxts, childs, parents, scores), h)) 
+    rescaling \<leftarrow> mop_hp_needs_rescaling ((\<V>, (prevs, nxts, childs, parents, scores), h));
+    if \<not>rescaling then RETURN ((\<V>, (prevs, nxts, childs, parents, scores), h)) 
     else mop_hp_decreases_weights_only a ((\<V>, (prevs, nxts, childs, parents, scores), h)) 
   })\<close>
 
