@@ -90,30 +90,7 @@ text \<open>A term is \<^emph>\<open>neutral\<close> when it is not an abstracti
 definition neutral :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
   "neutral t \<longleftrightarrow> \<not> is_Abs t"
 
-text \<open>Reducibility \<open>Red \<tau> t\<close> is defined by recursion on the type \<open>\<tau>\<close>. We recurse on the underlying
-  \<^type>\<open>prety\<close> and lift the result to \<^type>\<open>ty\<close>. At a function type a term is reducible iff it is
-  strongly normalizing and sends reducible, locally closed arguments to reducible results; at any
-  other type reducibility is just strong normalization.\<close>
-
-fun Red_prety ::
-  "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) prety \<Rightarrow>
-    (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
-  "Red_prety (PretyCtr \<kappa> [\<tau>\<^sub>1, \<tau>\<^sub>2]) t =
-    (if \<kappa> = fun_tyctr then
-       SN t \<and> (\<forall>u. locally_closed u \<longrightarrow> Red_prety \<tau>\<^sub>1 u \<longrightarrow> Red_prety \<tau>\<^sub>2 (App t u))
-     else SN t)" |
-  "Red_prety _ t = SN t"
-
-definition Red ::
-  "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty \<Rightarrow> (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
-  "Red \<tau> t \<longleftrightarrow> Red_prety (Rep_ty \<tau>) t"
-
-
-lemma Red_TyFun:
-  "Red (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) t \<longleftrightarrow>
-     SN t \<and> (\<forall>u. locally_closed u \<longrightarrow> Red \<tau>\<^sub>1 u \<longrightarrow> Red \<tau>\<^sub>2 (App t u))"
-  unfolding Red_def TyCtr_def
-  by (simp add: Abs_ty_inverse wf_prety_PretyCtr_fun_tyctr)
+text \<open>The following two lemmas expose the size of a type constructor application\<close>
 
 lemma size_ty_TyCtr:
   assumes "length \<tau>s = arity \<kappa>"
@@ -134,6 +111,10 @@ qed
 lemma size_ty_TyFun: "size_ty f\<^sub>1 f\<^sub>2 (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) = f\<^sub>2 fun_tyctr + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>1  + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>2 + 3"
   using size_ty_TyCtr[of "[\<tau>\<^sub>1, \<tau>\<^sub>2]" fun_tyctr, simplified]
   by presburger
+
+text \<open>Reducibility \<open>Red_ty \<tau> t\<close> is defined by recursion on the type \<open>\<tau>\<close>. At a function type a term
+  is reducible iff it is strongly normalizing and sends reducible, locally closed arguments to
+  reducible results; at any other type reducibility is just strong normalization.\<close>
 
 function Red_ty ::
   "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty \<Rightarrow> (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
@@ -168,97 +149,163 @@ next
     by simp
 qed
 
-lemma "Red = Red_ty"
-proof (intro ext)
-  fix \<tau> t
-  show "Red \<tau> t = Red_ty \<tau> t"
-  proof (induction \<tau> t rule: Red_ty.induct)
-    case (1 \<tau>\<^sub>1 \<tau>\<^sub>2 t)
-    then show ?case
-      by (simp add: Red_TyFun)
-  next
-    case (2 \<tau> t)
-    then show ?case
-    proof (induction \<tau>)
-      case (TyVar x)
-      then show ?case
-        by (simp add: Red_def TyVar_def Abs_ty_inverse wf_prety.PretyVar)
-    next
-      case (TyCtr \<kappa> \<tau>s)
-      have "\<kappa> \<noteq> fun_tyctr"
-        using TyCtr.prems TyCtr.hyps
-        by (metis (no_types, lifting) arity\<^sub>_tyctr_simps(2) length_0_conv length_Suc_conv numerals(2))
-
-      then have "Red (TyCtr \<kappa> \<tau>s) t = SN t"
-        using wf_prety_PretyCtr[OF \<open>length \<tau>s = arity \<kappa>\<close>]
-        by (cases "(PretyCtr \<kappa> (map Rep_ty \<tau>s), t)" rule: Red_prety.cases)
-          (simp_all add: Red_def TyCtr_def Abs_ty_inverse[simplified])
-      also have "SN t = Red_ty (TyCtr \<kappa> \<tau>s) t"
-        using TyCtr.prems by simp
-      finally show ?case .
-    qed
-  qed
-qed
-
 section \<open>Reducibility candidate properties (CR1--CR3)\<close>
 
-lemma CR1: "Red \<tau> t \<Longrightarrow> SN t"
-proof -
-  assume a1: "Red \<tau> t"
-  have "\<forall>t. All ((\<lambda>p. SN p \<or> \<not> Red t p)::(('a, 'b) ty, 'c, 'd) preterm \<Rightarrow> _)"
-    by (smt (verit) Red_def Red_prety.elims(2))
-  then show ?thesis
-    using a1 by blast
-qed
+lemma CR1: "Red_ty \<tau> t \<Longrightarrow> SN t"
+  by (cases "is_TyFun \<tau>") auto
 
 lemma CR2:
-  assumes "Red \<tau> t" and "beta_reduce t t'"
-  shows "Red \<tau> t'"
-proof -
-  have "Red_prety p a \<Longrightarrow> beta_reduce a b \<Longrightarrow> Red_prety p b" for p a b
-  proof (induction p a arbitrary: b rule: Red_prety.induct)
-    case (1 \<kappa> \<tau>\<^sub>1 \<tau>\<^sub>2 a)
-    show ?case
-    proof (cases "\<kappa> = fun_tyctr")
-      case True
-      have "SN a"
-        using "1.prems"(1) True by simp
-      then have "SN b"
-        using "1.prems"(2) SN_step by blast
-      moreover have "Red_prety \<tau>\<^sub>2 (App b u)"
-        if u: "locally_closed u" "Red_prety \<tau>\<^sub>1 u" for u
-      proof -
-        have "Red_prety \<tau>\<^sub>2 (App a u)"
-          using "1.prems"(1) True u by simp
-        moreover have "beta_reduce (App a u) (App b u)"
-          using "1.prems"(2) by (rule beta_reduce.App_left)
-        ultimately show ?thesis
-          using "1.IH"(2)[OF True u(1) u(2)] by blast
-      qed
-      ultimately show ?thesis
-        using True by simp
-    next
-      case False
-      have "SN a"
-        using "1.prems"(1) False by simp
-      then have "SN b"
-        using "1.prems"(2) SN_step by blast
-      then show ?thesis
-        using False by simp
-    qed
-  qed (auto intro: SN_step)
-  then show ?thesis
-    using assms unfolding Red_def by blast
+  assumes "Red_ty \<tau> t" and "beta_reduce t t'"
+  shows "Red_ty \<tau> t'"
+  using assms
+proof (induction \<tau> t arbitrary: t' rule: Red_ty.induct)
+  case (1 \<tau>\<^sub>1 \<tau>\<^sub>2 t)
+  have "SN t'"
+    using "1.prems" SN_step by (metis Red_ty.simps(1))
+  moreover have "Red_ty \<tau>\<^sub>2 (App t' u)"
+    if u: "locally_closed u" "Red_ty \<tau>\<^sub>1 u" for u
+  proof -
+    have "Red_ty \<tau>\<^sub>2 (App t u)"
+      using "1.prems"(1) u by simp
+    moreover have "beta_reduce (App t u) (App t' u)"
+      using "1.prems"(2) by (rule beta_reduce.App_left)
+    ultimately show ?thesis
+      using "1.IH"(2)[OF u(1) u(2)] by blast
+  qed
+  ultimately show ?case
+    by simp
+next
+  case (2 \<tau> t)
+  then show ?case
+    using SN_step by (metis Red_ty.simps(2))
 qed
 
-lemma CR3:
-  "neutral t \<Longrightarrow> locally_closed t \<Longrightarrow> (\<And>t'. beta_reduce t t' \<Longrightarrow> Red \<tau> t') \<Longrightarrow> Red \<tau> t"
+text \<open>Local closure is preserved by \<open>\<beta>\<close>-reduction. Reducing under a binder relies on a
+  substitution lemma for the non-shifting \<^const>\<open>subst_bound\<close>; that auxiliary is still open (this
+  is the same ingredient missing for \<open>SN_subst_bound_FreeD\<close>), so we park it here.\<close>
+
+lemma locally_closed_beta_reduce:
+  "beta_reduce t t' \<Longrightarrow> locally_closed t \<Longrightarrow> locally_closed t'"
   sorry
+
+text \<open>Inverting a \<open>\<beta>\<close>-step out of an application with a \<^emph>\<open>neutral\<close> head: since the head is not an
+  abstraction, no redex is created at the root, so the step happens in one of the two immediate
+  subterms.\<close>
+
+lemma beta_reduce_App_neutralD:
+  assumes "beta_reduce (App t u) v" and "neutral t"
+  shows "(\<exists>t'. v = App t' u \<and> beta_reduce t t') \<or> (\<exists>u'. v = App t u' \<and> beta_reduce u u')"
+  using assms by (auto simp: neutral_def elim: beta_reduce.cases)
+
+lemma CR3:
+  assumes "neutral t" and "locally_closed t" and "\<And>t'. beta_reduce t t' \<Longrightarrow> Red_ty \<tau> t'"
+  shows "Red_ty \<tau> t"
+  using assms
+proof (induction \<tau> t rule: Red_ty.induct)
+  case (1 \<tau>\<^sub>1 \<tau>\<^sub>2 t)
+  note neutral_t = "1.prems"(1) and lc_t = "1.prems"(2) and reds_t = "1.prems"(3)
+  note IH2 = "1.IH"(2)
+  have SN_t: "SN t"
+  proof (rule accpI)
+    fix y assume "beta_reduce\<inverse>\<inverse> y t"
+    then have "beta_reduce t y" by simp
+    then have "Red_ty (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) y" by (rule reds_t)
+    then show "SN y" by (rule CR1)
+  qed
+  have red_App: "Red_ty \<tau>\<^sub>2 (App t u)" if "locally_closed u" and "Red_ty \<tau>\<^sub>1 u" for u
+  proof -
+    have "SN u" using \<open>Red_ty \<tau>\<^sub>1 u\<close> by (rule CR1)
+    then show ?thesis using \<open>locally_closed u\<close> \<open>Red_ty \<tau>\<^sub>1 u\<close>
+    proof (induction u rule: accp_induct_rule)
+      case (1 w)
+      note IH_w = "1.IH"
+      note lc_w = "1.prems"(1) and red_w = "1.prems"(2)
+      show ?case
+      proof (rule IH2[OF lc_w red_w])
+        show "neutral (App t w)"
+          by (simp add: neutral_def)
+      next
+        show "locally_closed (App t w)"
+          using lc_t lc_w by (rule locally_closed.App)
+      next
+        fix v assume "beta_reduce (App t w) v"
+        from beta_reduce_App_neutralD[OF this neutral_t] show "Red_ty \<tau>\<^sub>2 v"
+        proof
+          assume "\<exists>t'. v = App t' w \<and> beta_reduce t t'"
+          then obtain t' where v: "v = App t' w" and "beta_reduce t t'"
+            by blast
+          have "Red_ty (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) t'"
+            by (rule reds_t[OF \<open>beta_reduce t t'\<close>])
+          then have "Red_ty \<tau>\<^sub>2 (App t' w)"
+            using lc_w red_w by simp
+          then show "Red_ty \<tau>\<^sub>2 v"
+            by (simp add: v)
+        next
+          assume "\<exists>u'. v = App t u' \<and> beta_reduce w u'"
+          then obtain w' where v: "v = App t w'" and "beta_reduce w w'"
+            by blast
+          have "locally_closed w'"
+            by (rule locally_closed_beta_reduce[OF \<open>beta_reduce w w'\<close> lc_w])
+          moreover have "Red_ty \<tau>\<^sub>1 w'"
+            by (rule CR2[OF red_w \<open>beta_reduce w w'\<close>])
+          moreover have "beta_reduce\<inverse>\<inverse> w' w"
+            using \<open>beta_reduce w w'\<close> by (rule conversepI)
+          ultimately have "Red_ty \<tau>\<^sub>2 (App t w')"
+            using IH_w by blast
+          then show "Red_ty \<tau>\<^sub>2 v"
+            by (simp add: v)
+        qed
+      qed
+    qed
+  qed
+  show ?case
+    using SN_t red_App by auto
+next
+  case (2 \<tau> t)
+  have "SN t"
+  proof (rule accpI)
+    fix y assume "beta_reduce\<inverse>\<inverse> y t"
+    then have "beta_reduce t y" by simp
+    then have "Red_ty \<tau> y" by (rule "2.prems"(3))
+    then show "SN y" by (rule CR1)
+  qed
+  then show ?case
+    using "2.hyps" by simp
+qed
 
 text \<open>In particular, free variables are reducible at every type (they are neutral and normal).\<close>
 
-lemma Red_Free: "Red \<tau> (Free x)"
-  sorry
+lemma SN_Free: "SN (Free x)"
+proof (rule accpI)
+  fix u
+  assume "beta_reduce\<inverse>\<inverse> u (Free x)"
+  then have False
+    unfolding conversep_iff
+    using beta_reduce.cases by fastforce
+  then show "SN u" ..
+qed
+
+lemma Red_Free: "Red_ty \<tau> (Free x)"
+proof (rule Red_ty.cases[of "(\<tau>, Free x)"])
+  fix \<tau>\<^sub>1 \<tau>\<^sub>2 t
+  assume "(\<tau>, Free x) = (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2, t)"
+  then have "\<tau> = TyFun \<tau>\<^sub>1 \<tau>\<^sub>2"
+    by simp
+
+  moreover have "\<forall>u. locally_closed u \<longrightarrow> Red_ty \<tau>\<^sub>1 u \<longrightarrow> Red_ty \<tau>\<^sub>2 (App (Free x) u)"
+    sorry
+
+  ultimately show "Red_ty \<tau> (Free x)"
+    using SN_Free by force
+next
+  fix \<tau>' t
+  assume "\<not> is_TyFun \<tau>'" and "(\<tau>, Free x) = (\<tau>', t)"
+  then have "\<not> is_TyFun \<tau>"
+    by simp
+
+  then show "Red_ty \<tau> (Free x)"
+    using SN_Free by simp
+qed
 
 
 section \<open>Reducibility of abstractions and constants\<close>
@@ -266,14 +313,14 @@ section \<open>Reducibility of abstractions and constants\<close>
 lemma Red_Abs:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "locally_closed (Abs \<tau>\<^sub>1 t)"
-  assumes "\<And>u. locally_closed u \<Longrightarrow> Red \<tau>\<^sub>1 u \<Longrightarrow> Red \<tau>\<^sub>2 (subst_bound 0 u t)"
-  shows "Red (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) (Abs \<tau>\<^sub>1 t)"
+  assumes "\<And>u. locally_closed u \<Longrightarrow> Red_ty \<tau>\<^sub>1 u \<Longrightarrow> Red_ty \<tau>\<^sub>2 (subst_bound 0 u t)"
+  shows "Red_ty (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) (Abs \<tau>\<^sub>1 t)"
   sorry
 
 lemma Red_Const:
   assumes "locally_closed (Const c \<tau>s ts)"
   assumes "\<forall>t \<in> set ts. SN t"
-  shows "Red \<tau> (Const c \<tau>s ts)"
+  shows "Red_ty \<tau> (Const c \<tau>s ts)"
   sorry
 
 
@@ -321,8 +368,8 @@ lemma fundamental:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "has_type \<C> \<F> t \<tau>"
   assumes "\<And>x. locally_closed (\<theta> x)"
-  assumes "\<And>x. Red (\<F> x) (\<theta> x)"
-  shows "Red \<tau> (msubst \<theta> t)"
+  assumes "\<And>x. Red_ty (\<F> x) (\<theta> x)"
+  shows "Red_ty \<tau> (msubst \<theta> t)"
   sorry
 
 lemma SN_if_has_type:
@@ -330,12 +377,12 @@ lemma SN_if_has_type:
   assumes ht: "has_type \<C> \<F> t \<tau>"
   shows "SN t"
 proof -
-  have "Red \<tau> (msubst Free t)"
+  have "Red_ty \<tau> (msubst Free t)"
   proof (rule fundamental[OF inf_vars ht])
     show "\<And>x. locally_closed (Free x)"
       by (rule locally_closed.Free)
   next
-    show "\<And>x. Red (\<F> x) (Free x)"
+    show "\<And>x. Red_ty (\<F> x) (Free x)"
       by (rule Red_Free)
   qed
   then show "SN t"
