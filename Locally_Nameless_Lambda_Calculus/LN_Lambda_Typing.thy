@@ -246,6 +246,12 @@ lemma "finite (type_vars \<tau>)"
   by (induction \<tau>) simp_all
 
 
+subsection \<open>Size\<close>
+
+lift_definition size_ty :: "('\<V>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty \<Rightarrow> nat"
+  is size_prety .
+
+
 subsection \<open>Common Types\<close>
 
 lemma wf_prety_PretyCtr_bool_tyctr[intro]: "wf_prety (PretyCtr bool_tyctr [])"
@@ -261,10 +267,13 @@ proof (intro wf_prety.PretyCtr[rule_format])
     using Rep_ty by auto
 qed simp_all
 
-definition TyFun ::
+abbreviation TyFun ::
   "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty \<Rightarrow>
     ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty" where
-  "TyFun \<tau>\<^sub>1 \<tau>\<^sub>2 \<equiv> Abs_ty (PretyCtr fun_tyctr [Rep_ty \<tau>\<^sub>1, Rep_ty \<tau>\<^sub>2])"
+  "TyFun \<tau>\<^sub>1 \<tau>\<^sub>2 \<equiv> TyCtr fun_tyctr [\<tau>\<^sub>1, \<tau>\<^sub>2]"
+
+abbreviation is_TyFun where
+  "is_TyFun \<tau> \<equiv> \<exists>\<tau>\<^sub>1 \<tau>\<^sub>2. \<tau> = TyFun \<tau>\<^sub>1 \<tau>\<^sub>2"
 
 
 subsection \<open>Substitutions\<close>
