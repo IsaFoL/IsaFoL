@@ -201,7 +201,7 @@ lemma beta_reduce_App_neutralD:
   using assms by (auto simp: neutral_def elim: beta_reduce.cases)
 
 lemma CR3:
-  fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "neutral t" and "locally_closed t" and "\<And>t'. beta_reduce t t' \<Longrightarrow> Red_ty \<tau> t'"
   shows "Red_ty \<tau> t"
@@ -370,7 +370,7 @@ text \<open>Core of the abstraction lemma: \<open>(\<lambda>. t) u\<close> is re
   induction on \<open>SN t\<close> (for reductions in the body) and \<open>SN u\<close> (for reductions in the argument).\<close>
 
 lemma Red_Abs_aux:
-  fixes t u :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
+  fixes t u :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "SN t" and "SN u"
     and "body t" and "locally_closed u" and "Red_ty \<tau>\<^sub>1 u"
@@ -577,7 +577,7 @@ text \<open>Core of the constant lemma: a strongly normalizing, locally closed c
   a constant that is strongly normalizing and locally closed, hence reducible by the induction hypothesis.\<close>
 
 lemma Red_Const_aux:
-  fixes ts :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm list"
+  fixes ts :: "(_, _, '\<V>) preterm list"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "SN (Const c \<tau>s ts)" and "locally_closed (Const c \<tau>s ts)"
   shows "Red_ty \<tau> (Const c \<tau>s ts)"
@@ -607,7 +607,7 @@ proof (induction "Const c \<tau>s ts" arbitrary: ts rule: accp_induct_rule)
 qed
 
 lemma Red_Const:
-  fixes ts :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm list"
+  fixes ts :: "(_, _, '\<V>) preterm list"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "locally_closed (Const c \<tau>s ts)"
   assumes "\<forall>t \<in> set ts. SN t"
@@ -649,6 +649,7 @@ text \<open>Opening a fresh variable and then substituting it equals substitutin
   (the key commutation lemma for the abstraction case of the fundamental theorem).\<close>
 
 lemma msubst_subst_bound_Free:
+  fixes t :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "x \<notin> free_vars t"
   assumes "\<And>y. locally_closed (\<theta> y)"
@@ -662,6 +663,7 @@ text \<open>Every well-typed term is reducible under any reducible, locally clos
   free variables.\<close>
 
 lemma fundamental:
+  fixes t :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "has_type \<C> \<F> t \<tau>"
   assumes "\<And>x. locally_closed (\<theta> x)"
@@ -670,7 +672,7 @@ lemma fundamental:
   sorry
 
 lemma SN_if_has_type:
-  fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes ht: "has_type \<C> \<F> t \<tau>"
   shows "SN t"
