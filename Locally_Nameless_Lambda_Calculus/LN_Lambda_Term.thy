@@ -126,6 +126,62 @@ primrec subst_free
 lemma size_subst_bound_Free[simp]: "size (subst_bound n (Free x) t) = size t"
   by (induction t arbitrary: n) simp_all
 
+text \<open>Over a finite variable type, some finite set contains every variable, which makes the
+  cofinite premise of the \<open>Abs\<close> rule of \<^const>\<open>locally_closed\<close> vacuously true: every abstraction
+  is locally closed, every preterm is a \<^const>\<open>body\<close>, and \<^const>\<open>subst_bound\<close> preserves local
+  closure unconditionally.\<close>
+
+lemma ex_fset_UNIV:
+  assumes fin_vars: "finite (UNIV :: '\<V> set)"
+  shows "\<exists>\<X> :: '\<V> fset. \<forall>x. x |\<in>| \<X>"
+  by (metis fin_vars finite_list fset_of_list_elem UNIV_I)
+
+lemma locally_closed_Abs_if_finite_vars:
+  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes fin_vars: "finite (UNIV :: '\<V> set)"
+  shows "locally_closed (Abs \<tau> t)"
+proof -
+  obtain \<X> :: "'\<V> fset" where "\<forall>x. x |\<in>| \<X>"
+    using ex_fset_UNIV[OF fin_vars] by blast
+  then show ?thesis
+    by (auto intro: locally_closed.Abs[where \<X> = \<X>])
+qed
+
+lemma body_if_finite_vars:
+  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes fin_vars: "finite (UNIV :: '\<V> set)"
+  shows "body t"
+  unfolding body_def
+  using ex_fset_UNIV[OF fin_vars] by blast
+
+lemma locally_closed_subst_bound_if_finite_vars:
+  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes fin_vars: "finite (UNIV :: '\<V> set)" and "locally_closed t"
+  shows "locally_closed (subst_bound n u t)"
+  using \<open>locally_closed t\<close>
+proof (induction t arbitrary: n rule: preterm.induct)
+  case (Const c \<tau>s ts)
+  then show ?case
+    by simp
+next
+  case (Free x)
+  then show ?case
+    by simp
+next
+  case (Bound k)
+  then show ?case
+    by (auto elim: locally_closed.cases)
+next
+  case (App t\<^sub>1 t\<^sub>2)
+  then show ?case
+    by (simp add: locally_closed_App_iff)
+next
+  case (Abs \<tau> t)
+  then show ?case
+    by (simp add: locally_closed_Abs_if_finite_vars[OF fin_vars])
+qed
+
+
 text \<open>Over an infinite variable type, \<^const>\<open>locally_closed\<close> and \<^const>\<open>body\<close> coincide with
   \<^const>\<open>locally_closed_at\<close> at levels \<open>0\<close> and \<open>1\<close>. (Infinitely many variables are needed to rule out the
   spurious models of the cofinite \<^const>\<open>locally_closed\<close> over finite variable types.)\<close>
@@ -303,53 +359,81 @@ qed
 
 lemma locally_closed_subst_free:
   fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
-  assumes
-    inf_vars: "infinite (UNIV :: '\<V> set)" and
-    "locally_closed t" and "locally_closed u"
+  assumes "locally_closed t" and "locally_closed u"
   shows "locally_closed (subst_free x u t)"
-  using \<open>locally_closed t\<close>
-proof (induction t rule: locally_closed.induct)
-  case (Const c \<tau>s ts)
-  show ?case
-    unfolding subst_free.simps
-  proof (rule locally_closed.Const)
-    show "list_all locally_closed ts"
-      using list.pred_mono_strong local.Const by auto
+proof (cases "infinite (UNIV :: '\<V> set)")
+  case inf_vars: True
+  show ?thesis
+    using \<open>locally_closed t\<close>
+  proof (induction t rule: locally_closed.induct)
+    case (Const c \<tau>s ts)
+    show ?case
+      unfolding subst_free.simps
+    proof (rule locally_closed.Const)
+      show "list_all locally_closed ts"
+        using list.pred_mono_strong local.Const by auto
+    qed
+  next
+    case (Free f)
+    then show ?case
+      using \<open>locally_closed u\<close>
+      by (simp add: locally_closed.Free)
+  next
+    case (App t\<^sub>1 t\<^sub>2)
+    then show ?case
+      by (simp add: locally_closed.App)
+  next
+    case (Abs \<X> t)
+    show ?case
+      unfolding subst_free.simps
+    proof (rule locally_closed.Abs)
+      fix y :: '\<V>
+      assume "y |\<notin>| finsert x \<X>"
+      hence "x \<noteq> y" and "y |\<notin>| \<X>"
+        by auto
+      show "locally_closed (subst_bound 0 (Free y) (subst_free x u t))"
+        unfolding subst_free_commutes_with_subst_bound_Free[OF inf_vars \<open>x \<noteq> y\<close> \<open>locally_closed u\<close>,
+            symmetric]
+        using Abs.IH[OF \<open>y |\<notin>| \<X>\<close>] .
+    qed
   qed
 next
-  case (Free f)
-  then show ?case
-    using \<open>locally_closed u\<close>
-    by (simp add: locally_closed.Free)
-next
-  case (App t\<^sub>1 t\<^sub>2)
-  then show ?case
-    by (simp add: locally_closed.App)
-next   
-  case (Abs \<X> t)
-  show ?case
-    unfolding subst_free.simps
-  proof (rule locally_closed.Abs)
-    fix y :: '\<V>
-    assume "y |\<notin>| finsert x \<X>"
-    hence "x \<noteq> y" and "y |\<notin>| \<X>"
-      by auto
-    show "locally_closed (subst_bound 0 (Free y) (subst_free x u t))"
-      unfolding subst_free_commutes_with_subst_bound_Free[OF inf_vars \<open>x \<noteq> y\<close> \<open>locally_closed u\<close>,
-          symmetric]
-      using Abs.IH[OF \<open>y |\<notin>| \<X>\<close>] .
+  case False
+  then have fin_vars: "finite (UNIV :: '\<V> set)"
+    by simp
+  show ?thesis
+    using \<open>locally_closed t\<close>
+  proof (induction t rule: preterm.induct)
+    case (Const c \<tau>s ts)
+    then show ?case
+      by simp
+  next
+    case (Free y)
+    then show ?case
+      using \<open>locally_closed u\<close>
+      by (simp add: locally_closed.Free)
+  next
+    case (Bound k)
+    then show ?case
+      by (auto elim: locally_closed.cases)
+  next
+    case (App t\<^sub>1 t\<^sub>2)
+    then show ?case
+      by (simp add: locally_closed_App_iff)
+  next
+    case (Abs \<tau> t)
+    then show ?case
+      by (simp add: locally_closed_Abs_if_finite_vars[OF fin_vars])
   qed
 qed
 
 lemma body_subst_free:
   fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
-  assumes
-    inf_vars: "infinite (UNIV :: '\<V> set)" and
-    "body t" and "locally_closed u"
+  assumes "body t" and "locally_closed u"
   shows "body (subst_free x u t)"
 proof -
   have "locally_closed (subst_free x u (Abs \<tau> t))" for \<tau>
-  proof (intro locally_closed_subst_free[OF inf_vars])
+  proof (intro locally_closed_subst_free)
     show "locally_closed (Abs \<tau> t)"
       using \<open>body t\<close> by (simp add: locall_closed_Abs_iff_body)
   next
@@ -363,28 +447,37 @@ qed
 
 lemma body_Abs_if_body:
   fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  shows "body t \<Longrightarrow> body (Abs \<tau> t)"
-proof (induction t)
-  case (Const x1 x2a x3a)
-  then show ?case
-    by (simp add: body_def locall_closed_Abs_iff_body)
+  assumes "body t"
+  shows "body (Abs \<tau> t)"
+proof (cases "infinite (UNIV :: '\<V> set)")
+  case inf_vars: True
+  show ?thesis
+    using assms
+  proof (induction t)
+    case (Const x1 x2a x3a)
+    then show ?case
+      by (simp add: body_def locall_closed_Abs_iff_body)
+  next
+    case (Free x)
+    then show ?case
+      by (simp add: body_iff_locally_closed_at inf_vars)
+  next
+    case (Bound x)
+    then show ?case
+      by (simp add: body_iff_locally_closed_at inf_vars)
+  next
+    case (App t1 t2)
+    then show ?case
+      by (simp add: body_iff_locally_closed_at inf_vars)
+  next
+    case (Abs x1 t)
+    then show ?case
+      by (metis body_def locall_closed_Abs_iff_body subst_bound_ident_if_locally_closed[OF inf_vars])
+  qed
 next
-  case (Free x)
-  then show ?case
-    by (simp add: body_iff_locally_closed_at inf_vars)
-next
-  case (Bound x)
-  then show ?case
-    by (simp add: body_iff_locally_closed_at inf_vars)
-next
-  case (App t1 t2)
-  then show ?case
-    by (simp add: body_iff_locally_closed_at inf_vars)
-next
-  case (Abs x1 t)
-  then show ?case
-    by (metis body_def locall_closed_Abs_iff_body subst_bound_ident_if_locally_closed[OF inf_vars])
+  case False
+  then show ?thesis
+    by (simp add: body_if_finite_vars)
 qed
 
 lemma locally_closed_subst_bound:
@@ -405,7 +498,7 @@ proof -
     using subst_free_subst_bound_Free_eq_subst_bound by metis
 
   moreover have "locally_closed (subst_free x u (subst_bound 0 (Free x) t))"
-  proof (rule locally_closed_subst_free[OF inf_vars])
+  proof (rule locally_closed_subst_free)
     show "locally_closed (subst_bound 0 (Free x) t)"
       using lc_substb_0_t[OF \<open>x \<notin> fset \<X>\<close>] .
   next

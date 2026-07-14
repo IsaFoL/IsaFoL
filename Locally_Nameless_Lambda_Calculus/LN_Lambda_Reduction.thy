@@ -109,18 +109,17 @@ proof (induction arbitrary: x u rule: beta_reduce.induct)
   case beta
   then show ?case
     by (auto intro: beta_reduce.beta
-      simp: subst_open[OF inf_vars] body_subst_free[OF inf_vars]
-        locally_closed_subst_free[OF inf_vars])
+      simp: subst_open[OF inf_vars] body_subst_free locally_closed_subst_free)
 next
   case App_left
   then show ?case
     by (auto intro: beta_reduce.App_left
-      simp: locally_closed_subst_free[OF inf_vars])
+      simp: locally_closed_subst_free)
 next
   case App_right
   then show ?case
     by (auto intro: beta_reduce.App_right
-      simp: locally_closed_subst_free[OF inf_vars])
+      simp: locally_closed_subst_free)
 next
   case (Abs \<X> t t' \<tau>)
   show ?case

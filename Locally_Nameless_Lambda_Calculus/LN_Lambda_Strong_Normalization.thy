@@ -45,6 +45,111 @@ proof -
   qed
 qed
 
+lemma not_SN_if_beta_reduce_self:
+  assumes loop: "beta_reduce t t"
+  shows "\<not> SN t"
+proof
+  assume "SN t"
+  then have "\<not> beta_reduce t t"
+  proof (induction t rule: accp_induct_rule)
+    case (1 s)
+    then show ?case
+      by (metis conversepI)
+  qed
+  with loop show False
+    by contradiction
+qed
+
+
+section \<open>Degenerate behaviour over a finite variable type\<close>
+
+text \<open>Over a finite variable type, some finite set contains every variable (see \<open>ex_fset_UNIV\<close>),
+  which makes the cofinite premise of the \<open>Abs\<close> rule of \<^const>\<open>beta_reduce\<close> vacuously true: any
+  two abstractions (with the same type annotation) are related by \<^const>\<open>beta_reduce\<close>.
+  Consequently, every locally closed preterm that admits a reduction also reduces to itself---and
+  is therefore not strongly normalizing---and likewise below \<^const>\<open>subst_bound\<close>.\<close>
+
+lemma beta_reduce_Abs_Abs_if_finite_vars:
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes fin_vars: "finite (UNIV :: '\<V> set)"
+  shows "beta_reduce (Abs \<tau> t) (Abs \<tau> t')"
+proof -
+  obtain \<X> :: "'\<V> fset" where "\<forall>x. x |\<in>| \<X>"
+    using ex_fset_UNIV[OF fin_vars] by blast
+  then show ?thesis
+    by (auto intro: beta_reduce.Abs[where \<X> = \<X>])
+qed
+
+lemma beta_reduce_self_if_finite_vars:
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes fin_vars: "finite (UNIV :: '\<V> set)"
+  assumes "beta_reduce t t'" and "locally_closed t"
+  shows "beta_reduce t t"
+  using assms(2,3)
+proof (induction rule: beta_reduce.induct)
+  case (beta t u \<tau>)
+  then show ?case
+    by (auto intro: beta_reduce.App_left beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars])
+next
+  case (App_left t t' u)
+  then show ?case
+    by (auto intro: beta_reduce.App_left simp: locally_closed_App_iff)
+next
+  case (App_right t u u')
+  then show ?case
+    by (auto intro: beta_reduce.App_right simp: locally_closed_App_iff)
+next
+  case (Abs \<X> t t' \<tau>)
+  show ?case
+    by (rule beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars])
+next
+  case (Const ts i t' c \<tau>s)
+  then have "beta_reduce (ts ! i) (ts ! i)"
+    by simp
+  then show ?case
+    using Const.hyps by (metis beta_reduce.Const list_update_id)
+qed
+
+lemma beta_reduce_subst_bound_self_if_finite_vars:
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes fin_vars: "finite (UNIV :: '\<V> set)"
+  assumes "beta_reduce t t'"
+  shows "beta_reduce (subst_bound n u t) (subst_bound n u t)"
+  using assms(2)
+proof (induction arbitrary: n rule: beta_reduce.induct)
+  case (beta s v \<tau>)
+  then show ?case
+    unfolding subst_bound.simps
+    by (auto intro: beta_reduce.App_left beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars]
+        locally_closed_subst_bound_if_finite_vars[OF fin_vars])
+next
+  case (App_left s s' v)
+  then show ?case
+    unfolding subst_bound.simps
+    by (auto intro: beta_reduce.App_left locally_closed_subst_bound_if_finite_vars[OF fin_vars])
+next
+  case (App_right s v v')
+  then show ?case
+    unfolding subst_bound.simps
+    by (auto intro: beta_reduce.App_right locally_closed_subst_bound_if_finite_vars[OF fin_vars])
+next
+  case (Abs \<X> s s' \<tau>)
+  show ?case
+    unfolding subst_bound.simps
+    by (rule beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars])
+next
+  case (Const ts i t' c \<tau>s)
+  have "beta_reduce (ts ! i) (ts ! i)"
+    using Const.hyps
+    by (auto intro: beta_reduce_self_if_finite_vars[OF fin_vars])
+  then have "beta_reduce (Const c \<tau>s ts) (Const c \<tau>s ts)"
+    using Const.hyps by (metis beta_reduce.Const list_update_id)
+  then show ?case
+    by simp
+qed
+
+
+
 lemma SN_App_leftD:
   fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes "SN (App t u)" and "locally_closed u"
@@ -136,33 +241,22 @@ proof (cases "infinite (UNIV :: '\<V> set)")
   qed
 next
   case False
-  have finite_vars: "finite (UNIV :: '\<V> set)"
-    using False by simp
-  let ?\<X> = "the_inv fset (UNIV :: '\<V> set)"
-  have fset_\<X>: "fset ?\<X> = UNIV"
-    by (rule fset_to_fset[OF finite_vars])
-  have loop: "beta_reduce (Abs \<tau> t) (Abs \<tau> t)"
-    by (rule beta_reduce.Abs[where \<X> = ?\<X>]) (simp add: fset_\<X>)
-  have False
-    using assms
-  proof (induction "Abs \<tau> t" rule: accp_induct_rule)
-    case 1
-    then show ?case
-      unfolding conversep_iff
-      using loop by satx
-  qed
-  then show ?thesis
-    by blast
+  then have fin_vars: "finite (UNIV :: '\<V> set)"
+    by simp
+  have "\<not> SN (Abs \<tau> t)"
+    by (rule not_SN_if_beta_reduce_self[OF beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars]])
+  with assms show ?thesis
+    by contradiction
 qed
 
 lemma SN_ConstD:
   fixes ts :: "('\<tau>, '\<Sigma>, '\<V>) preterm list"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "locally_closed (Const c \<tau>s ts)"
   assumes "SN (Const c \<tau>s ts)"
   assumes "t \<in> set ts"
   shows "SN t"
-proof -
+proof (cases "infinite (UNIV :: '\<V> set)")
+  case inf_vars: True
   have constD:
     "SN (Const c \<tau>s ts) \<Longrightarrow> locally_closed (Const c \<tau>s ts) \<Longrightarrow> t \<in> set ts \<Longrightarrow> SN t"
     for c :: '\<Sigma> and \<tau>s :: "'\<tau> list"
@@ -198,31 +292,79 @@ proof -
   qed
   show ?thesis
     using assms by (auto intro: constD)
+next
+  case False
+  then have fin_vars: "finite (UNIV :: '\<V> set)"
+    by simp
+  have lc_t: "locally_closed t"
+    using assms(1,3) by simp
+  show ?thesis
+  proof (cases "\<exists>t'. beta_reduce t t'")
+    case True
+    then obtain t' where "beta_reduce t t'" ..
+    then have loop_t: "beta_reduce t t"
+      by (rule beta_reduce_self_if_finite_vars[OF fin_vars _ lc_t])
+    obtain i where "i < length ts" and "ts ! i = t"
+      using assms(3) by (meson in_set_conv_nth)
+    then have "beta_reduce (Const c \<tau>s ts) (Const c \<tau>s ts)"
+      using assms(1) loop_t
+      by (metis beta_reduce.Const list_update_id locally_closed_Const_iff)
+    then have "\<not> SN (Const c \<tau>s ts)"
+      by (rule not_SN_if_beta_reduce_self)
+    with assms(2) show ?thesis
+      by contradiction
+  next
+    case False
+    then show ?thesis
+      by (auto intro: SN_I)
+  qed
 qed
 
 lemma SN_subst_bound_FreeD:
   fixes t :: "(_, _, '\<V>) preterm"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "SN (subst_bound n (Free x) t)"
   shows "SN t"
-  using assms(2)
-proof (induction "subst_bound n (Free x) t" arbitrary: n x t rule: accp_induct_rule)
-  case 1
-  note IH = "1.hyps"(2)
-  show ?case
-  proof (rule accpI)
-    fix t'
-    assume conv: "beta_reduce\<inverse>\<inverse> t' t"
-    then have red: "beta_reduce t t'"
-      by simp
-    have opened_red:
-      "beta_reduce (subst_bound n (Free x) t) (subst_bound n (Free x) t')"
-      by (rule beta_reduce_subst_bound_subst_bound[OF inf_vars red locally_closed.Free])
-    have conv_opened:
-      "beta_reduce\<inverse>\<inverse> (subst_bound n (Free x) t') (subst_bound n (Free x) t)"
-      using opened_red by (rule conversepI)
-    show "SN t'"
-      using IH conv_opened by blast
+proof (cases "infinite (UNIV :: '\<V> set)")
+  case inf_vars: True
+  show ?thesis
+    using assms
+  proof (induction "subst_bound n (Free x) t" arbitrary: n x t rule: accp_induct_rule)
+    case 1
+    note IH = "1.hyps"(2)
+    show ?case
+    proof (rule accpI)
+      fix t'
+      assume conv: "beta_reduce\<inverse>\<inverse> t' t"
+      then have red: "beta_reduce t t'"
+        by simp
+      have opened_red:
+        "beta_reduce (subst_bound n (Free x) t) (subst_bound n (Free x) t')"
+        by (rule beta_reduce_subst_bound_subst_bound[OF inf_vars red locally_closed.Free])
+      have conv_opened:
+        "beta_reduce\<inverse>\<inverse> (subst_bound n (Free x) t') (subst_bound n (Free x) t)"
+        using opened_red by (rule conversepI)
+      show "SN t'"
+        using IH conv_opened by blast
+    qed
+  qed
+next
+  case False
+  then have fin_vars: "finite (UNIV :: '\<V> set)"
+    by simp
+  show ?thesis
+  proof (cases "\<exists>t'. beta_reduce t t'")
+    case True
+    then obtain t' where "beta_reduce t t'" ..
+    then have "beta_reduce (subst_bound n (Free x) t) (subst_bound n (Free x) t)"
+      by (rule beta_reduce_subst_bound_self_if_finite_vars[OF fin_vars])
+    then have "\<not> SN (subst_bound n (Free x) t)"
+      by (rule not_SN_if_beta_reduce_self)
+    with assms show ?thesis
+      by contradiction
+  next
+    case False
+    then show ?thesis
+      by (auto intro: SN_I)
   qed
 qed
 text \<open>Bridge to the goal: if every element of a set is strongly normalizing, then the reversed
@@ -332,12 +474,81 @@ lemma beta_reduce_App_neutralD:
   shows "(\<exists>t'. v = App t' u \<and> beta_reduce t t') \<or> (\<exists>u'. v = App t u' \<and> beta_reduce u u')"
   using assms by (auto simp: neutral_def elim: beta_reduce.cases)
 
+text \<open>Over a finite variable type, a locally closed, strongly normalizing preterm is \<open>\<beta>\<close>-normal
+  (otherwise it would reduce to itself), and \<open>\<beta>\<close>-normal preterms are reducible at every type: an
+  application of a \<open>\<beta>\<close>-normal preterm to a locally closed, reducible argument is itself \<open>\<beta>\<close>-normal
+  because the head cannot be an abstraction (abstractions are never \<open>\<beta>\<close>-normal over a finite
+  variable type) and the argument is \<open>\<beta>\<close>-normal as well.\<close>
+
+lemma beta_normal_if_SN_if_finite_vars:
+  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes fin_vars: "finite (UNIV :: '\<V> set)"
+  assumes "locally_closed t" and "SN t"
+  shows "beta_normal t"
+  unfolding beta_normal_def
+  using beta_reduce_self_if_finite_vars[OF fin_vars _ assms(2)]
+    not_SN_if_beta_reduce_self assms(3)
+  by metis
+
+lemma Red_ty_if_beta_normal_if_finite_vars:
+  fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
+  assumes fin_vars: "finite (UNIV :: '\<V> set)"
+  assumes "beta_normal t"
+  shows "Red_ty \<tau> t"
+  using assms(2)
+proof (induction \<tau> t rule: Red_ty.induct)
+  case (1 \<tau>\<^sub>1 \<tau>\<^sub>2 t)
+  have SN_t: "SN t"
+    using "1.prems" unfolding beta_normal_def
+    by (auto intro: SN_I)
+  moreover have "Red_ty \<tau>\<^sub>2 (App t u)" if lc_u: "locally_closed u" and red_u: "Red_ty \<tau>\<^sub>1 u" for u
+  proof (rule "1.IH"(2)[OF lc_u red_u])
+    have "beta_normal u"
+      by (rule beta_normal_if_SN_if_finite_vars[OF fin_vars lc_u CR1[OF red_u]])
+    moreover have "\<not> is_Abs t"
+      using "1.prems" beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars]
+      unfolding beta_normal_def
+      by (metis preterm.collapse(5))
+    ultimately show "beta_normal (App t u)"
+      using "1.prems"
+      unfolding beta_normal_def
+      by (auto elim: beta_reduce.cases)
+  qed
+  ultimately show ?case
+    by simp
+next
+  case (2 \<tau> t)
+  then show ?case
+    unfolding beta_normal_def
+    by (auto intro: SN_I "2.hyps"[THEN Red_ty.simps(2)[THEN iffD2]])
+qed
+
 lemma CR3:
   fixes t :: "(_, _, '\<V>) preterm"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "neutral t" and "locally_closed t" and "\<And>t'. beta_reduce t t' \<Longrightarrow> Red_ty \<tau> t'"
   shows "Red_ty \<tau> t"
-  using assms(2-)
+proof (cases "infinite (UNIV :: '\<V> set)")
+  case False
+  then have fin_vars: "finite (UNIV :: '\<V> set)"
+    by simp
+  show ?thesis
+  proof (cases "\<exists>t'. beta_reduce t t'")
+    case True
+    then obtain t' where "beta_reduce t t'" ..
+    then have "beta_reduce t t"
+      by (rule beta_reduce_self_if_finite_vars[OF fin_vars _ assms(2)])
+    then show ?thesis
+      by (rule assms(3))
+  next
+    case False
+    then show ?thesis
+      by (intro Red_ty_if_beta_normal_if_finite_vars[OF fin_vars])
+        (simp add: beta_normal_def)
+  qed
+next
+  case inf_vars: True
+  show ?thesis
+  using assms
 proof (induction \<tau> t rule: Red_ty.induct)
   case (1 \<tau>\<^sub>1 \<tau>\<^sub>2 t)
   note neutral_t = "1.prems"(1) and lc_t = "1.prems"(2) and reds_t = "1.prems"(3)
@@ -413,6 +624,7 @@ next
   then show ?case
     using "2.hyps" by simp
 qed
+qed
 
 text \<open>In particular, free variables are reducible at every type (they are neutral and normal).\<close>
 
@@ -422,11 +634,8 @@ lemma SN_Free: "SN (Free x)"
 text \<open>A free variable is neutral, locally closed, and normal (no \<open>\<beta>\<close>-reduct), so \<open>CR3\<close>
   applies with a vacuous reduct hypothesis.\<close>
 
-lemma Red_Free:
-  fixes x :: '\<V>
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  shows "Red_ty \<tau> (Free x)"
-proof (rule CR3[OF inf_vars])
+lemma Red_Free: "Red_ty \<tau> (Free x)"
+proof (rule CR3)
   show "neutral (Free x)"
     by (simp add: neutral_def)
 next
@@ -589,7 +798,7 @@ proof (induction "subst_bound 0 (Free undefined) t" arbitrary: t u rule: accp_in
     note inner_IH = "1.IH"
     note lc_u = "1.prems"(1) and red_u = "1.prems"(2)
     show ?case
-    proof (rule CR3[OF inf_vars])
+    proof (rule CR3)
       show "neutral (App (Abs \<tau>\<^sub>1 t) u)"
         by (simp add: neutral_def)
     next
@@ -691,7 +900,7 @@ proof -
   have body_t: "body t"
     using assms(2) by (simp add: locall_closed_Abs_iff_body)
   have SN_open: "SN (subst_bound 0 (Free undefined) t)"
-    by (rule CR1[OF hyp[OF locally_closed.Free Red_Free[OF inf_vars]]])
+    by (rule CR1[OF hyp[OF locally_closed.Free Red_Free]])
   have "SN (Abs \<tau>\<^sub>1 t)"
     using SN_open by (rule SN_Abs[OF inf_vars])
   moreover have "Red_ty \<tau>\<^sub>2 (App (Abs \<tau>\<^sub>1 t) u)"
@@ -803,41 +1012,51 @@ text \<open>Core of the constant lemma: a strongly normalizing, locally closed c
 
 lemma Red_Const_aux:
   fixes ts :: "(_, _, '\<V>) preterm list"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "SN (Const c \<tau>s ts)" and "locally_closed (Const c \<tau>s ts)"
   shows "Red_ty \<tau> (Const c \<tau>s ts)"
-  using assms(2-)
-proof (induction "Const c \<tau>s ts" arbitrary: ts rule: accp_induct_rule)
-  case 1
-  note IH = "1.hyps"(2)
-  show ?case
-  proof (rule CR3[OF inf_vars])
-    show "neutral (Const c \<tau>s ts)"
-      by (simp add: neutral_def)
-  next
-    show "locally_closed (Const c \<tau>s ts)"
-      using "1.prems" .
-  next
-    fix v assume bv: "beta_reduce (Const c \<tau>s ts) v"
-    then obtain i t' where "i < length ts" and "beta_reduce (ts ! i) t'"
-      and v_eq: "v = Const c \<tau>s (ts[i := t'])"
-      by (elim beta_reduce_ConstD)
-    have "locally_closed v"
-      by (rule locally_closed_if_beta_reduce[OF inf_vars bv])
-    moreover have "beta_reduce\<inverse>\<inverse> v (Const c \<tau>s ts)"
-      using bv by (rule conversepI)
-    ultimately show "Red_ty \<tau> v"
-      unfolding v_eq using IH by blast
+proof (cases "infinite (UNIV :: '\<V> set)")
+  case inf_vars: True
+  show ?thesis
+    using assms
+  proof (induction "Const c \<tau>s ts" arbitrary: ts rule: accp_induct_rule)
+    case 1
+    note IH = "1.hyps"(2)
+    show ?case
+    proof (rule CR3)
+      show "neutral (Const c \<tau>s ts)"
+        by (simp add: neutral_def)
+    next
+      show "locally_closed (Const c \<tau>s ts)"
+        using "1.prems" .
+    next
+      fix v assume bv: "beta_reduce (Const c \<tau>s ts) v"
+      then obtain i t' where "i < length ts" and "beta_reduce (ts ! i) t'"
+        and v_eq: "v = Const c \<tau>s (ts[i := t'])"
+        by (elim beta_reduce_ConstD)
+      have "locally_closed v"
+        by (rule locally_closed_if_beta_reduce[OF inf_vars bv])
+      moreover have "beta_reduce\<inverse>\<inverse> v (Const c \<tau>s ts)"
+        using bv by (rule conversepI)
+      ultimately show "Red_ty \<tau> v"
+        unfolding v_eq using IH by blast
+    qed
   qed
+next
+  case False
+  then have fin_vars: "finite (UNIV :: '\<V> set)"
+    by simp
+  have "beta_normal (Const c \<tau>s ts)"
+    by (rule beta_normal_if_SN_if_finite_vars[OF fin_vars assms(2,1)])
+  then show ?thesis
+    by (rule Red_ty_if_beta_normal_if_finite_vars[OF fin_vars])
 qed
 
 lemma Red_Const:
   fixes ts :: "(_, _, '\<V>) preterm list"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "locally_closed (Const c \<tau>s ts)"
   assumes "\<forall>t \<in> set ts. SN t"
   shows "Red_ty \<tau> (Const c \<tau>s ts)"
-proof (rule Red_Const_aux[OF inf_vars])
+proof (rule Red_Const_aux)
   show "SN (Const c \<tau>s ts)"
     using assms by (auto intro: SN_Const)
 next
@@ -1002,7 +1221,7 @@ proof (induction arbitrary: \<theta> rule: has_type.induct)
     by (induction rule: list_all2_induct) (auto, metis CR1)
   show ?case
     unfolding msubst.simps
-  proof (rule Red_Const[OF inf_vars])
+  proof (rule Red_Const)
     show "locally_closed (Const c \<tau>\<^sub>1s (map (msubst \<theta>) ts))"
       using lc_args by simp
   next
@@ -1071,7 +1290,7 @@ proof -
       by (rule locally_closed.Free)
   next
     show "\<And>x. Red_ty (\<F> x) (Free x)"
-      by (rule Red_Free[OF inf_vars])
+      by (rule Red_Free)
   qed
   show "SN t"
     using CR1[OF red, unfolded msubst_Free] .
@@ -1081,5 +1300,29 @@ proposition strong_normalization_of_typed_terms:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   shows "wfp_on {t :: (_, _, '\<V>) preterm. \<exists>\<C> \<F> \<tau>. has_type \<C> \<F> t \<tau>} beta_reduce\<inverse>\<inverse>"
   by (rule wfp_on_beta_reduce_if_SN) (auto intro: SN_if_has_type[OF inf_vars])
+
+text \<open>The assumption of infinitely many variables is not an artifact of the proof: over a finite
+  variable type the cofinite premise of the \<open>Abs\<close> rule of \<^const>\<open>has_type\<close> is vacuously true, so
+  every abstraction is well typed---including abstractions that reduce to themselves and are
+  therefore not strongly normalizing. Hence \<open>SN_if_has_type\<close> and
+  \<open>strong_normalization_of_typed_terms\<close> would be false without the assumption, and likewise for
+  \<open>Red_Abs\<close>, \<open>Red_Abs_aux\<close>, \<open>SN_Abs\<close>, and \<open>fundamental\<close>, whose conclusions all require some
+  abstraction to be strongly normalizing (or reducible, which implies strong normalization).\<close>
+
+lemma ex_has_type_and_not_SN_if_finite_vars:
+  assumes fin_vars: "finite (UNIV :: '\<V> set)"
+  shows "\<exists>t :: (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm.
+    (\<exists>\<C> \<F> \<tau>. has_type \<C> \<F> t \<tau>) \<and> \<not> SN t"
+proof -
+  obtain \<X> :: "'\<V> fset" where "\<forall>x. x |\<in>| \<X>"
+    using ex_fset_UNIV[OF fin_vars] by blast
+  then have "has_type \<C> \<F> (Abs \<bool> (Bound 0)) (TyFun \<bool> \<bool>)"
+    for \<C> :: "'\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty" and \<F> :: "'\<V> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
+    by (auto intro: has_type.Abs[where \<X> = \<X>])
+  moreover have "\<not> SN (Abs \<bool> (Bound 0) :: (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm)"
+    by (rule not_SN_if_beta_reduce_self[OF beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars]])
+  ultimately show ?thesis
+    by blast
+qed
 
 end

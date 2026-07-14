@@ -495,11 +495,10 @@ next
 qed
 
 lemma has_type_subst_free:
-  fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) preterm"
-  assumes inf_vars: "infinite (UNIV :: '\<V>\<^sub>t\<^sub>y set)"
+  fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
   assumes "has_type \<C> \<F> t \<tau>\<^sub>1" and "\<F> x = \<tau>\<^sub>2" and "has_type \<C> \<F> u \<tau>\<^sub>2"
   shows "has_type \<C> \<F> (subst_free x u t) \<tau>\<^sub>1"
-  using assms(2-4)
+  using assms
 proof (induction \<F> t \<tau>\<^sub>1 rule: has_type.induct)
   case (Const \<F> c \<tau>\<^sub>1s ts \<tau>\<^sub>3 \<alpha>s \<tau>\<^sub>2s)
   then show ?case
@@ -515,34 +514,47 @@ next
 next
   case (Abs \<F> t \<tau>\<^sub>1 \<tau>\<^sub>3 \<X>)
   show ?case
-    unfolding subst_free.simps
-  proof (rule has_type.Abs)
-    fix y
-    assume y_in: "y |\<notin>| finsert x (free_vars_fset t |\<union>| free_vars_fset u |\<union>| \<X>)"
+  proof (cases "infinite (UNIV :: '\<V> set)")
+    case inf_vars: True
+    show ?thesis
+      unfolding subst_free.simps
+    proof (rule has_type.Abs)
+      fix y
+      assume y_in: "y |\<notin>| finsert x (free_vars_fset t |\<union>| free_vars_fset u |\<union>| \<X>)"
 
-    then have "x \<noteq> y"
-      by blast
+      then have "x \<noteq> y"
+        by blast
 
-    moreover have "locally_closed u"
-      using Abs.prems by auto
+      moreover have "locally_closed u"
+        using Abs.prems by auto
 
-    moreover have "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (subst_free x u (subst_bound 0 (Free y) t)) \<tau>\<^sub>3"
-    proof (rule Abs.IH)
-      show "y |\<notin>| \<X>"
-        using y_in by simp
-    next
-      show "(\<F>(y := \<tau>\<^sub>1)) x = \<tau>\<^sub>2"
-        using Abs.prems \<open>x \<noteq> y\<close> by simp
-    next
-      have "y \<notin> free_vars u"
-      by (metis y_in free_vars_fset_rep_eq[of u] funion_finsert_left[of x] funionCI[of y])
+      moreover have "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (subst_free x u (subst_bound 0 (Free y) t)) \<tau>\<^sub>3"
+      proof (rule Abs.IH)
+        show "y |\<notin>| \<X>"
+          using y_in by simp
+      next
+        show "(\<F>(y := \<tau>\<^sub>1)) x = \<tau>\<^sub>2"
+          using Abs.prems \<open>x \<noteq> y\<close> by simp
+      next
+        have "y \<notin> free_vars u"
+        by (metis y_in free_vars_fset_rep_eq[of u] funion_finsert_left[of x] funionCI[of y])
 
-      then show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) u \<tau>\<^sub>2"
-        using Abs.prems has_type_weaken_funenv by metis
+        then show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) u \<tau>\<^sub>2"
+          using Abs.prems has_type_weaken_funenv by metis
+      qed
+
+      ultimately show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (subst_bound 0 (Free y) (subst_free x u t)) \<tau>\<^sub>3"
+        using subst_free_commutes_with_subst_bound_Free[OF inf_vars] by metis
     qed
-
-    ultimately show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (subst_bound 0 (Free y) (subst_free x u t)) \<tau>\<^sub>3"
-      using subst_free_commutes_with_subst_bound_Free[OF inf_vars] by metis
+  next
+    case False
+    then have fin_vars: "finite (UNIV :: '\<V> set)"
+      by simp
+    obtain \<Y> :: "'\<V> fset" where "\<forall>y. y |\<in>| \<Y>"
+      using ex_fset_UNIV[OF fin_vars] by blast
+    then show ?thesis
+      unfolding subst_free.simps
+      by (auto intro: has_type.Abs[where \<X> = \<Y>])
   qed
 qed
 
