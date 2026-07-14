@@ -25,13 +25,10 @@ inductive beta_reduce :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<
   Const: "beta_reduce (Const c \<tau>s ts) (Const c \<tau>s (ts[i := t']))"
     if "\<forall>t \<in> set ts. locally_closed t" and "i < length ts" and "beta_reduce (ts ! i) t'"
 
-text \<open>Full reduction is the reflexive-transitive closure. A preterm is in normal form when no
-  further \<open>\<beta>\<close>-step is possible; reducing a preterm fully means following \<open>beta_reduces\<close>
-  until a \<open>beta_normal\<close> preterm is reached (if one exists---see the note on strong
+text \<open>Full reduction is the reflexive-transitive closure \<open>beta_reduce\<^sup>*\<^sup>*\<close>. A preterm is in
+  normal form when no further \<open>\<beta>\<close>-step is possible; reducing a preterm fully means following this
+  closure until a \<open>beta_normal\<close> preterm is reached (if one exists---see the note on strong
   normalization below).\<close>
-
-abbreviation beta_reduces :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
-  "beta_reduces \<equiv> beta_reduce\<^sup>*\<^sup>*"
 
 definition beta_normal :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
   "beta_normal t \<longleftrightarrow> (\<nexists>u. beta_reduce t u)"
