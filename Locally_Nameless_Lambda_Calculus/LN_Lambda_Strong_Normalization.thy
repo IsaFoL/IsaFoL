@@ -866,37 +866,21 @@ lemma msubst_cong:
   "(\<And>z. z \<in> free_vars t \<Longrightarrow> \<theta> z = \<theta>' z) \<Longrightarrow> msubst \<theta> t = msubst \<theta>' t"
   by (induction t) (auto cong: map_cong)
 
-text \<open>Parallel substitution preserves local closure at every binder depth when each image is
-  closed at depth zero.\<close>
+text \<open>Opening a fresh variable and then substituting it equals substituting into the opened body
+  (the key commutation lemma for the abstraction case of the fundamental theorem).\<close>
 
-lemma locally_closed_at_msubst:
-  assumes lc_\<theta>: "\<And>x. locally_closed_at 0 (\<theta> x)"
-  assumes lc_t: "locally_closed_at k t"
-  shows "locally_closed_at k (msubst \<theta> t)"
-  using lc_t
-proof (induction rule: locally_closed_at.induct)
-  case (Bound n k)
-  then show ?case
-    by simp
-next
-  case (Const ts c \<tau>s)
-  then show ?case
-    by (auto simp: list.pred_set)
-next
-  case (Free k x)
-  show ?case
-    unfolding msubst.simps
-    by (rule locally_closed_at_mono[OF lc_\<theta>[of x]]) simp
-next
-  case (App k t u)
-  then show ?case
-    by simp
-next
-  case (Abs k t \<tau>)
-  then show ?case
-    by simp
-qed
+lemma msubst_subst_bound_Free:
+  fixes t :: "(_, _, '\<V>) preterm"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  assumes "x \<notin> free_vars t"
+  assumes "\<And>y. locally_closed (\<theta> y)"
+  shows "msubst (\<theta>(x := u)) (subst_bound n (Free x) t) = subst_bound n u (msubst \<theta> t)"
+  using assms(2,3)
+  by (induction t arbitrary: n)
+    (auto intro!: msubst_cong cong: map_cong
+      simp: subst_bound_ident_if_locally_closed[OF inf_vars])
 
+text \<open>Parallel substitution of free variables preserves local closure.\<close>
 
 lemma locally_closed_msubst:
   fixes t :: "(_, _, '\<V>) preterm"
@@ -905,16 +889,59 @@ lemma locally_closed_msubst:
   shows "locally_closed (msubst \<theta> t)"
 proof (cases "infinite (UNIV :: '\<V> set)")
   case True
-  have \<theta>_lc_at: "locally_closed_at 0 (\<theta> x)" for x
-    using lc_\<theta>[of x]
-    by (rule locally_closed_iff_locally_closed_at[OF True, THEN iffD1])
-  have t_lc_at: "locally_closed_at 0 t"
-    using lc_t
-    by (rule locally_closed_iff_locally_closed_at[OF True, THEN iffD1])
-  have "locally_closed_at 0 (msubst \<theta> t)"
-    by (rule locally_closed_at_msubst[OF \<theta>_lc_at t_lc_at])
-  then show ?thesis
-    by (rule locally_closed_iff_locally_closed_at[OF True, THEN iffD2])
+  show ?thesis
+    using lc_t lc_\<theta>
+  proof (induction arbitrary: \<theta> rule: locally_closed.induct)
+    case (Const c \<tau>s ts)
+    show ?case
+      unfolding msubst.simps
+    proof (rule locally_closed.Const)
+      show "list_all locally_closed (map (msubst \<theta>) ts)"
+        using Const.IH Const.prems
+        by (auto simp: list.pred_set)
+    qed
+  next
+    case (Free x)
+    then show ?case
+      by simp
+  next
+    case (App t u)
+    then show ?case
+      by (auto intro: locally_closed.App)
+  next
+    case (Abs \<X> t \<tau>)
+    show ?case
+      unfolding msubst.simps
+    proof (rule locally_closed.Abs[
+          where \<X> = "free_vars_fset t |\<union>| \<X>"])
+      fix x
+      assume fresh: "x |\<notin>| free_vars_fset t |\<union>| \<X>"
+      have fresh_\<X>: "x |\<notin>| \<X>"
+        using fresh by simp
+      have x_notin_t: "x \<notin> free_vars t"
+        using fresh by (simp add: free_vars_fset_rep_eq)
+      have lc_update: "\<And>y. locally_closed ((\<theta>(x := Free x)) y)"
+      proof -
+        fix y
+        show "locally_closed ((\<theta>(x := Free x)) y)"
+        proof (cases "y = x")
+          case True
+          then show ?thesis
+            by (simp add: locally_closed.Free)
+        next
+          case False
+          then show ?thesis
+            using Abs.prems by simp
+        qed
+      qed
+      have "locally_closed
+          (msubst (\<theta>(x := Free x)) (subst_bound 0 (Free x) t))"
+        by (rule Abs.IH[OF fresh_\<X> lc_update])
+      then show "locally_closed (subst_bound 0 (Free x) (msubst \<theta> t))"
+        by (simp add: msubst_subst_bound_Free[
+              OF True x_notin_t Abs.prems])
+    qed
+  qed
 next
   case False
   have finite_vars: "finite (UNIV :: '\<V> set)"
@@ -949,19 +976,6 @@ next
   qed
 qed
 
-text \<open>Opening a fresh variable and then substituting it equals substituting into the opened body
-  (the key commutation lemma for the abstraction case of the fundamental theorem).\<close>
-
-lemma msubst_subst_bound_Free:
-  fixes t :: "(_, _, '\<V>) preterm"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes "x \<notin> free_vars t"
-  assumes "\<And>y. locally_closed (\<theta> y)"
-  shows "msubst (\<theta>(x := u)) (subst_bound n (Free x) t) = subst_bound n u (msubst \<theta> t)"
-  using assms(2,3)
-  by (induction t arbitrary: n)
-    (auto intro!: msubst_cong cong: map_cong
-      simp: subst_bound_ident_if_locally_closed[OF inf_vars])
 
 
 section \<open>Fundamental theorem and strong normalization\<close>
