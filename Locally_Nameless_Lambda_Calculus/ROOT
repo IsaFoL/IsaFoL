@@ -8,6 +8,7 @@ session Locally_Nameless_Lambda_Calculus = HOL +
     LN_Lambda_Reduction
     LN_Lambda_Strong_Normalization
     LN_Lambda_Typing
+    LN_Lambda_Confluence
     First_Order_to_Higher_Order_Terms
   document_files
     "root.tex"

@@ -270,7 +270,7 @@ qed
 
 subsection \<open>Local confluence\<close>
 
-theorem local_confluence_beta_reduce:
+proposition local_confluence_beta_reduce:
   fixes t u\<^sub>1 u\<^sub>2 :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "beta_reduce t u\<^sub>1" and "beta_reduce t u\<^sub>2"
