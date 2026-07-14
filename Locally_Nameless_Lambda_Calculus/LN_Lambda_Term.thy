@@ -19,6 +19,32 @@ datatype (type_symbols: '\<tau>, const_symbols: '\<Sigma>, free_vars: '\<V>) pre
 lemma finite_vars_term: "finite (free_vars t)"
   by (induction t) simp_all
 
+
+text \<open>Infinitely many variables suffice to choose one name fresh for a finite set of names
+  and every term in a finite set.\<close>
+
+lemma fresh_for_fset_and_terms:
+  fixes \<T> :: "('\<tau>, '\<Sigma>, '\<V>) preterm fset"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  obtains x where "x |\<notin>| \<X>" and "\<And>t. t |\<in>| \<T> \<Longrightarrow> x \<notin> free_vars t"
+proof -
+  let ?A = "fset \<X> \<union> (\<Union>t\<in>fset \<T>. free_vars t)"
+  have finite_A: "finite ?A"
+    by (auto intro: finite_vars_term)
+  from ex_new_if_finite[OF inf_vars finite_A]
+  obtain x where x_notin: "x \<notin> ?A" ..
+  show thesis
+  proof (rule that[of x])
+    show "x |\<notin>| \<X>"
+      using x_notin by simp
+  next
+    fix t
+    assume "t |\<in>| \<T>"
+    with x_notin show "x \<notin> free_vars t"
+      by auto
+  qed
+qed
+
 declare fset_of_list.rep_eq[termination_simp]
 
 fun free_vars_fset :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> '\<V> fset" where

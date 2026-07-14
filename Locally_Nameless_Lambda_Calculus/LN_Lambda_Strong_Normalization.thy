@@ -649,53 +649,6 @@ qed
 
 section \<open>Reducibility of abstractions and constants\<close>
 
-text \<open>Infinitely many variables suffice to choose one name fresh for a finite set of names
-  and every term in a finite set.\<close>
-
-lemma fresh_for_fset_and_terms:
-  fixes \<T> :: "('\<tau>, '\<Sigma>, '\<V>) preterm fset"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  obtains x where "x |\<notin>| \<X>" and "\<And>t. t |\<in>| \<T> \<Longrightarrow> x \<notin> free_vars t"
-proof -
-  let ?A = "fset \<X> \<union> (\<Union>t\<in>fset \<T>. free_vars t)"
-  have finite_A: "finite ?A"
-    by (auto intro: finite_vars_term)
-  from ex_new_if_finite[OF inf_vars finite_A]
-  obtain x where x_notin: "x \<notin> ?A" ..
-  show thesis
-  proof (rule that[of x])
-    show "x |\<notin>| \<X>"
-      using x_notin by simp
-  next
-    fix t
-    assume "t |\<in>| \<T>"
-    with x_notin show "x \<notin> free_vars t"
-      by auto
-  qed
-qed
-
-
-text \<open>A reduction between openings by a fresh free variable can be transported to an opening
-  by any locally closed term.\<close>
-
-lemma beta_reduce_subst_bound_from_fresh:
-  fixes t t' v :: "(_, _, '\<V>) preterm"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes fresh: "x \<notin> free_vars t" "x \<notin> free_vars t'"
-  assumes opened_red:
-    "beta_reduce (subst_bound n (Free x) t) (subst_bound n (Free x) t')"
-  assumes "locally_closed v"
-  shows "beta_reduce (subst_bound n v t) (subst_bound n v t')"
-proof -
-  have "beta_reduce
-      (subst_free x v (subst_bound n (Free x) t))
-      (subst_free x v (subst_bound n (Free x) t'))"
-    by (rule beta_reduce_subst_free[OF inf_vars opened_red assms(5)])
-  then show ?thesis
-    by (simp add: subst_free_subst_bound_Free_eq_subst_bound fresh)
-qed
-
-
 text \<open>Strong normalization of a free-variable opening is inherited by an abstraction.\<close>
 
 lemma SN_Abs:
@@ -741,38 +694,6 @@ proof (induction "subst_bound 0 (Free x) t" arbitrary: t rule: accp_induct_rule)
   qed
 qed
 
-text \<open>Inverting a \<open>\<beta>\<close>-step out of a redex \<open>(\<lambda>. t) u\<close>: either the redex is contracted, or the step is
-  taken inside the body or the argument.\<close>
-
-lemma beta_reduce_AppD:
-  assumes "beta_reduce (App a b) v"
-  obtains (redex) \<tau> s where "a = Abs \<tau> s" and "v = subst_bound 0 b s"
-    | (left) a' where "v = App a' b" and "beta_reduce a a'"
-    | (right) b' where "v = App a b'" and "beta_reduce b b'"
-  using assms by (auto elim: beta_reduce.cases)
-
-lemma beta_reduce_App_AbsD:
-  assumes "beta_reduce (App (Abs \<tau>\<^sub>1 t) u) v"
-  shows "v = subst_bound 0 u t
-    \<or> (\<exists>t'. v = App (Abs \<tau>\<^sub>1 t') u \<and> (\<exists>\<X>. \<forall>x. x |\<notin>| \<X> \<longrightarrow> beta_reduce (subst_bound 0 (Free x) t) (subst_bound 0 (Free x) t')))
-    \<or> (\<exists>u'. v = App (Abs \<tau>\<^sub>1 t) u' \<and> beta_reduce u u')"
-  using assms
-proof (cases rule: beta_reduce_AppD)
-  case (redex \<tau> s)
-  then show ?thesis by auto
-next
-  case (left a')
-  from \<open>beta_reduce (Abs \<tau>\<^sub>1 t) a'\<close> obtain \<X> t'
-    where "a' = Abs \<tau>\<^sub>1 t'" and
-      "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (subst_bound 0 (Free x) t) (subst_bound 0 (Free x) t')"
-    by (auto elim!: beta_reduce.cases)
-  then show ?thesis
-    using \<open>v = App a' u\<close>
-    by blast
-next
-  case (right b')
-  then show ?thesis by blast
-qed
 
 text \<open>Core of the abstraction lemma: \<open>(\<lambda>. t) u\<close> is reducible whenever \<open>t\<close> and \<open>u\<close> are strongly
   normalizing, \<open>u\<close> is reducible, and every reducible instance of the body is reducible. Since the
@@ -917,14 +838,6 @@ proof -
   ultimately show ?thesis
     by simp
 qed
-
-text \<open>Inverting a \<open>\<beta>\<close>-step out of a constant: exactly one parameter is reduced.\<close>
-
-lemma beta_reduce_ConstD:
-  assumes "beta_reduce (Const c \<tau>s ts) v"
-  obtains i t' where "i < length ts" and "beta_reduce (ts ! i) t'"
-    and "v = Const c \<tau>s (ts[i := t'])"
-  using assms by (auto elim: beta_reduce.cases)
 
 text \<open>A constant is strongly normalizing once all its parameters are (converse of \<open>SN_ConstD\<close>). The
   key \<open>cons\<close> step is a double induction: on the head (reductions in it) and on the constant built
