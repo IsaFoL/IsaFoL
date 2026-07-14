@@ -109,6 +109,12 @@ lemma locally_closed_at_Suc_if_subst_bound_Free:
   "locally_closed_at k (subst_bound k (Free x) t) \<Longrightarrow> locally_closed_at (Suc k) t"
   by (induction t arbitrary: k) (auto split: if_splits)
 
+lemma locally_closed_at_mono:
+  assumes "locally_closed_at k t" and "k \<le> l"
+  shows "locally_closed_at l t"
+  using assms
+  by (induction arbitrary: l rule: locally_closed_at.induct) (auto simp: list.pred_set)
+
 primrec subst_free
   :: "'\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
   "subst_free x u (Const c \<tau>s ts) = Const c \<tau>s ts"|
