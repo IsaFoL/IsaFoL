@@ -98,6 +98,53 @@ next
     by (simp add: beta_reduce.Const)
 qed
 
+lemma beta_reduce_subst_free:
+  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  assumes red: "beta_reduce t t'"
+  assumes lc_u: "locally_closed u"
+  shows "beta_reduce (subst_free x u t) (subst_free x u t')"
+  using red lc_u
+proof (induction arbitrary: x u rule: beta_reduce.induct)
+  case beta
+  then show ?case
+    by (auto intro: beta_reduce.beta
+      simp: subst_open[OF inf_vars] body_subst_free[OF inf_vars]
+        locally_closed_subst_free[OF inf_vars])
+next
+  case App_left
+  then show ?case
+    by (auto intro: beta_reduce.App_left
+      simp: locally_closed_subst_free[OF inf_vars])
+next
+  case App_right
+  then show ?case
+    by (auto intro: beta_reduce.App_right
+      simp: locally_closed_subst_free[OF inf_vars])
+next
+  case (Abs \<X> t t' \<tau>)
+  show ?case
+    unfolding subst_free.simps
+  proof (rule beta_reduce.Abs[where \<X> = "finsert x \<X>"])
+    fix y
+    assume y_fresh: "y |\<notin>| finsert x \<X>"
+    have x_ne_y: "x \<noteq> y" and y_fresh_\<X>: "y |\<notin>| \<X>"
+      using y_fresh by auto
+    have red_subst:
+      "beta_reduce (subst_free x u (subst_bound 0 (Free y) t))
+        (subst_free x u (subst_bound 0 (Free y) t'))"
+      by (rule Abs.IH[OF y_fresh_\<X> Abs.prems])
+    show "beta_reduce (subst_bound 0 (Free y) (subst_free x u t))
+        (subst_bound 0 (Free y) (subst_free x u t'))"
+      using red_subst
+      by (simp add: subst_free_commutes_with_subst_bound_Free[OF inf_vars x_ne_y Abs.prems])
+  qed
+next
+  case Const
+  then show ?case
+    by (auto intro: beta_reduce.Const)
+qed
+
 
 section \<open>\<^const>\<open>beta_reduce\<close> is NOT strongly normalizing\<close>
 
