@@ -68,8 +68,38 @@ next
     by (metis in_set_conv_nth length_list_update nth_list_update)
 qed
 
+lemma beta_reduce_subst_bound_subst_bound:
+  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  assumes "beta_reduce t t'" and "locally_closed u"
+  shows "beta_reduce (subst_bound n u t) (subst_bound n u t')"
+  using assms(2)
+proof (induction arbitrary: n rule: beta_reduce.induct)
+  case (beta t u \<tau>)
+  then show ?case
+    by (metis beta_reduce.beta inf_vars locally_closed_if_beta_reduce(1,2)
+        subst_bound_ident_if_locally_closed)
+next
+  case (App_left t t' u)
+  then show ?case
+    by (simp add: beta_reduce.App_left inf_vars subst_bound_ident_if_locally_closed)
+next
+  case (App_right t u u')
+  then show ?case
+    by (simp add: beta_reduce.App_right inf_vars subst_bound_ident_if_locally_closed)
+next
+  case (Abs \<X> t t' \<tau>)
+  then show ?case
+    by (metis beta_reduce.Abs inf_vars locally_closed_if_beta_reduce(1,2)
+        subst_bound_ident_if_locally_closed)
+next
+  case (Const ts i t' c \<tau>s)
+  then show ?case
+    by (simp add: beta_reduce.Const)
+qed
 
-section \<open>\<open>\<beta>\<close>-reduction is NOT strongly normalizing\<close>
+
+section \<open>\<^const>\<open>beta_reduce\<close> is NOT strongly normalizing\<close>
 
 text \<open>A relation is strongly normalizing when it admits no infinite chain, i.e. every reduction
   sequence eventually reaches a normal form.\<close>

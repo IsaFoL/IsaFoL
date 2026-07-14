@@ -246,12 +246,6 @@ lemma "finite (type_vars \<tau>)"
   by (induction \<tau>) simp_all
 
 
-subsection \<open>Size\<close>
-
-lift_definition size_ty :: "('\<V>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty \<Rightarrow> nat"
-  is size_prety .
-
-
 subsection \<open>Common Types\<close>
 
 lemma wf_prety_PretyCtr_bool_tyctr[intro]: "wf_prety (PretyCtr bool_tyctr [])"
@@ -274,6 +268,33 @@ abbreviation TyFun ::
 
 abbreviation is_TyFun where
   "is_TyFun \<tau> \<equiv> \<exists>\<tau>\<^sub>1 \<tau>\<^sub>2. \<tau> = TyFun \<tau>\<^sub>1 \<tau>\<^sub>2"
+
+
+subsection \<open>Size\<close>
+
+lift_definition size_ty :: "('\<V>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty \<Rightarrow> nat"
+  is size_prety .
+
+lemma size_ty_TyCtr:
+  assumes "length \<tau>s = arity \<kappa>"
+  shows "size_ty f\<^sub>1 f\<^sub>2 (TyCtr \<kappa> \<tau>s) = f\<^sub>2 \<kappa> + size_list (size_ty f\<^sub>1 f\<^sub>2) \<tau>s + Suc 0"
+proof -
+  have *: "Rep_ty (Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s))) = (PretyCtr \<kappa> (map Rep_ty \<tau>s))"
+  proof (rule Abs_ty_inverse[simplified])
+    show "wf_prety (PretyCtr \<kappa> (map Rep_ty \<tau>s))"
+      by (simp add: assms wf_prety_PretyCtr)
+  qed
+
+  then show ?thesis
+  unfolding TyCtr_def
+  unfolding size_ty.rep_eq
+  by (simp add: comp_def)
+qed
+
+lemma size_ty_TyFun:
+  "size_ty f\<^sub>1 f\<^sub>2 (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) = f\<^sub>2 fun_tyctr + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>1  + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>2 + 3"
+  using size_ty_TyCtr[of "[\<tau>\<^sub>1, \<tau>\<^sub>2]" fun_tyctr, simplified]
+  by presburger
 
 
 subsection \<open>Substitutions\<close>

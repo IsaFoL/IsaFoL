@@ -28,7 +28,6 @@ proof (induction "App t u" arbitrary: t u rule: accp_induct_rule)
   case 1
   then show ?case
     unfolding conversep_iff
-    sledgehammer
     sorry
 qed
 
@@ -58,104 +57,6 @@ proof (induction "Const c \<tau>s ts" arbitrary: c \<tau>s ts t rule: accp_induc
     ultimately show "SN t'"
       using IH by (metis conversep_iff)
   qed
-qed
-
-lemma subst_bound_subst_bound:
-  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes "locally_closed s" and "locally_closed u" and "n\<^sub>u \<noteq> n\<^sub>s"
-  shows "subst_bound n\<^sub>u u (subst_bound n\<^sub>s s t) = subst_bound n\<^sub>s s (subst_bound n\<^sub>u u t)"
-  using assms
-proof (induction t arbitrary: n\<^sub>u u n\<^sub>s s)
-  case (Const \<kappa> \<tau>s ts)
-  then show ?case
-    using subst_bound_ident_if_locally_closed[OF inf_vars]
-    by simp
-next
-  case (Free x)
-  then show ?case
-    by simp
-next
-  case (Bound x)
-  then show ?case
-    using \<open>n\<^sub>u \<noteq> n\<^sub>s\<close>
-    by (simp_all add: subst_bound_ident_if_locally_closed)
-next
-  case (App t1 t2)
-  then show ?case
-    by simp
-next
-  case (Abs \<tau> t)
-  then show ?case
-    by simp
-qed
-
-lemma subst_bound_subst_bound_idem[simp]:
-  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes "locally_closed s"
-  shows "subst_bound n u (subst_bound n s t) = subst_bound n s t"
-  using assms
-  using subst_bound_ident_if_locally_closed[OF inf_vars \<open>locally_closed s\<close>]
-  by (induction t arbitrary: n rule: preterm.induct) simp_all
-
-lemma beta_reduce_subst_bound_subst_bound:
-  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
-  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes "beta_reduce t t'" and "locally_closed u"
-  shows "beta_reduce (subst_bound n u t) (subst_bound n u t')"
-  using assms(2)
-proof (induction arbitrary: n rule: beta_reduce.induct)
-  case (beta \<tau> t s)
-  show ?case
-  proof (cases "n = 0")
-    case True
-    then show ?thesis
-      apply simp
-      using subst_bound_subst_bound_idem[OF inf_vars]
-      sorry
-  next
-    case False
-    then show ?thesis
-      apply simp
-      using subst_bound_subst_bound[OF inf_vars]
-      using beta_reduce.beta
-      sorry
-  qed
-qed (auto intro: beta_reduce.intros)
-
-text \<open>\<^bold>\<open>Warning.\<close> The lemma above is \<^emph>\<open>not provable\<close>: its statement is refutable. Substituting a
-  locally closed term into a \<open>\<beta>\<close>-step need not yield a \<open>\<beta>\<close>-step, because the \<open>Abs\<close> congruence rule of
-  \<^const>\<open>beta_reduce\<close> reduces the raw body while \<^const>\<open>subst_bound\<close> does not shift the inserted term.
-  Witness (at substitution level \<open>n = 1\<close>): \<open>t = App (Abs \<tau> (Bound 1)) s\<close>, \<open>t' = Bound 1\<close> (the
-  contractum \<open>subst_bound 0 s (Bound 1)\<close>), and \<open>u = Free a\<close> (locally closed). The premises hold, but
-  \<open>subst_bound 1 (Free a) t = App (Abs \<tau> (Bound 1)) (subst_bound 1 (Free a) s)\<close> and
-  \<open>subst_bound 1 (Free a) t' = Free a\<close>, and such an application never \<open>\<beta>\<close>-reduces to a
-  \<^const>\<open>Free\<close> variable.\<close>
-
-lemma beta_reduce_subst_bound_subst_bound_counterexample:
-  "\<not> (\<forall>(t :: ('\<tau>, '\<Sigma>, '\<V>) preterm) t' u n.
-        beta_reduce t t' \<longrightarrow> locally_closed u \<longrightarrow>
-        beta_reduce (subst_bound n u t) (subst_bound n u t'))"
-proof
-  assume "\<forall>(t :: ('\<tau>, '\<Sigma>, '\<V>) preterm) t' u n.
-        beta_reduce t t' \<longrightarrow> locally_closed u \<longrightarrow>
-        beta_reduce (subst_bound n u t) (subst_bound n u t')"
-  moreover
-  have "beta_reduce (App (Abs \<tau> (Bound (Suc 0))) s) (Bound (Suc 0) :: ('\<tau>, '\<Sigma>, '\<V>) preterm)"
-    using beta_reduce.beta[of \<tau> "Bound (Suc 0)" s] by simp
-  moreover
-  have "locally_closed (Free a :: ('\<tau>, '\<Sigma>, '\<V>) preterm)"
-    by (rule locally_closed.Free)
-  ultimately
-  have "beta_reduce (subst_bound (Suc 0) (Free a) (App (Abs \<tau> (Bound (Suc 0))) s))
-                    (subst_bound (Suc 0) (Free a) (Bound (Suc 0)) :: ('\<tau>, '\<Sigma>, '\<V>) preterm)"
-    by blast
-  then have "beta_reduce (App (Abs \<tau> (Bound (Suc 0))) (subst_bound (Suc 0) (Free a) s))
-                         (Free a :: ('\<tau>, '\<Sigma>, '\<V>) preterm)"
-    by simp
-  then show False
-    by (auto elim: beta_reduce.cases)
 qed
 
 lemma SN_subst_bound_FreeD: "SN (subst_bound 0 (Free x) t) \<Longrightarrow> SN t"
@@ -220,28 +121,6 @@ text \<open>A term is \<^emph>\<open>neutral\<close> when it is not an abstracti
 
 definition neutral :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
   "neutral t \<longleftrightarrow> \<not> is_Abs t"
-
-text \<open>The following two lemmas expose the size of a type constructor application\<close>
-
-lemma size_ty_TyCtr:
-  assumes "length \<tau>s = arity \<kappa>"
-  shows "size_ty f\<^sub>1 f\<^sub>2 (TyCtr \<kappa> \<tau>s) = f\<^sub>2 \<kappa> + size_list (size_ty f\<^sub>1 f\<^sub>2) \<tau>s + Suc 0"
-proof -
-  have *: "Rep_ty (Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s))) = (PretyCtr \<kappa> (map Rep_ty \<tau>s))"
-  proof (rule Abs_ty_inverse[simplified])
-    show "wf_prety (PretyCtr \<kappa> (map Rep_ty \<tau>s))"
-      by (simp add: assms wf_prety_PretyCtr)
-  qed
-
-  then show ?thesis
-  unfolding TyCtr_def
-  unfolding size_ty.rep_eq
-  by (simp add: comp_def)
-qed
-
-lemma size_ty_TyFun: "size_ty f\<^sub>1 f\<^sub>2 (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) = f\<^sub>2 fun_tyctr + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>1  + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>2 + 3"
-  using size_ty_TyCtr[of "[\<tau>\<^sub>1, \<tau>\<^sub>2]" fun_tyctr, simplified]
-  by presburger
 
 text \<open>Reducibility \<open>Red_ty \<tau> t\<close> is defined by recursion on the type \<open>\<tau>\<close>. At a function type a term
   is reducible iff it is strongly normalizing and sends reducible, locally closed arguments to

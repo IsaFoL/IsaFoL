@@ -411,6 +411,54 @@ proof -
     by metis
 qed
 
+lemma subst_bound_distrib:
+  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  assumes "locally_closed s"
+  shows "subst_bound n u (subst_bound n s t) = subst_bound n (subst_bound n u s) t"
+  using assms
+  using subst_bound_ident_if_locally_closed[OF inf_vars \<open>locally_closed s\<close>]
+  by (induction t arbitrary: n rule: preterm.induct) simp_all
+
+lemma subst_bound_subst_bound_idem[simp]:
+  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  assumes "locally_closed s"
+  shows "subst_bound n u (subst_bound n s t) = subst_bound n s t"
+  unfolding subst_bound_distrib[OF assms]
+  unfolding subst_bound_ident_if_locally_closed[OF assms]
+  ..
+
+lemma subst_bound_subst_bound:
+  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  assumes "locally_closed s" and "locally_closed u" and "n\<^sub>u \<noteq> n\<^sub>s"
+  shows "subst_bound n\<^sub>u u (subst_bound n\<^sub>s s t) = subst_bound n\<^sub>s s (subst_bound n\<^sub>u u t)"
+  using assms
+proof (induction t arbitrary: n\<^sub>u u n\<^sub>s s)
+  case (Const \<kappa> \<tau>s ts)
+  then show ?case
+    using subst_bound_ident_if_locally_closed[OF inf_vars]
+    by simp
+next
+  case (Free x)
+  then show ?case
+    by simp
+next
+  case (Bound x)
+  then show ?case
+    using \<open>n\<^sub>u \<noteq> n\<^sub>s\<close>
+    by (simp_all add: subst_bound_ident_if_locally_closed)
+next
+  case (App t1 t2)
+  then show ?case
+    by simp
+next
+  case (Abs \<tau> t)
+  then show ?case
+    by simp
+qed
+
 primrec shift_bound :: "nat \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
   "shift_bound n (Const c \<tau>s ts) = Const c \<tau>s ts" |
   "shift_bound n (Free f) = Free f" |
