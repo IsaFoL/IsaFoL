@@ -10,12 +10,20 @@ text \<open>One-step \<open>\<beta>\<close>-reduction on \<open>\<lambda>\<close
   reduction to take place anywhere inside a term, including inside a constant's parameters.\<close>
 
 inductive beta_reduce :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
-  beta: "beta_reduce (App (Abs \<tau> t) u) (subst_bound 0 u t)" |
-  App_left: "beta_reduce t t' \<Longrightarrow> beta_reduce (App t u) (App t' u)" |
-  App_right: "beta_reduce u u' \<Longrightarrow> beta_reduce (App t u) (App t u')" |
-  Abs: "beta_reduce t t' \<Longrightarrow> beta_reduce (Abs \<tau> t) (Abs \<tau> t')" |
-  Const: "i < length ts \<Longrightarrow> beta_reduce (ts ! i) t' \<Longrightarrow>
-    beta_reduce (Const c \<tau>s ts) (Const c \<tau>s (ts[i := t']))"
+  beta: "beta_reduce (App (Abs \<tau> t) u) (subst_bound 0 u t)"
+    if "body t" and "locally_closed u"|
+
+  App_left: "beta_reduce (App t u) (App t' u)"
+    if "beta_reduce t t'" and "locally_closed u" |
+
+  App_right: "beta_reduce (App t u) (App t u')"
+    if "locally_closed t" "beta_reduce u u'" |
+
+  Abs: "beta_reduce (Abs \<tau> t) (Abs \<tau> t')"
+    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (subst_bound 0 (Free x) t) (subst_bound 0 (Free x) t')" |
+
+  Const: "beta_reduce (Const c \<tau>s ts) (Const c \<tau>s (ts[i := t']))"
+    if "\<forall>t \<in> set ts. locally_closed t" and "i < length ts" and "beta_reduce (ts ! i) t'"
 
 text \<open>Full reduction is the reflexive-transitive closure. A preterm is in normal form when no
   further \<open>\<beta>\<close>-step is possible; reducing a preterm fully means following \<open>beta_reduces\<close>
@@ -27,6 +35,38 @@ abbreviation beta_reduces :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> 
 
 definition beta_normal :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
   "beta_normal t \<longleftrightarrow> (\<nexists>u. beta_reduce t u)"
+
+lemma locally_closed_if_beta_reduce:
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  assumes "beta_reduce t t'"
+  shows "locally_closed t" "locally_closed t'"
+  unfolding atomize_conj
+  using assms(2)
+proof (induction rule: beta_reduce.induct)
+  case (beta t \<tau> u)
+  then show ?case
+    by (simp add: locally_closed_App_iff locall_closed_Abs_iff_body
+        locally_closed_subst_bound[OF inf_vars])
+next
+  case (App_left t t' u)
+  then show ?case
+    by (simp add: locally_closed_App_iff)
+next
+  case (App_right t u u')
+  then show ?case
+    by (simp add: locally_closed_App_iff)
+next
+  case (Abs \<X> t t' \<tau>)
+  then show ?case
+    by (metis body_def locall_closed_Abs_iff_body)
+next
+  case (Const ts i t' c \<tau>s)
+  then show ?case
+    unfolding locally_closed_Const_iff
+    using in_set_conv_nth length_list_update nth_list_update
+    by (metis in_set_conv_nth length_list_update nth_list_update)
+qed
 
 
 section \<open>\<open>\<beta>\<close>-reduction is NOT strongly normalizing\<close>
@@ -53,7 +93,9 @@ lemma beta_reduce_omega_omega:
 proof -
   have step: "beta_reduce (App (omega \<tau>) (omega \<tau>))
       (subst_bound 0 (omega \<tau>) (App (Bound 0) (Bound 0)))"
-    unfolding omega_def by (rule beta_reduce.beta)
+    unfolding omega_def
+    by (metis beta body_App_iff body_def locall_closed_Abs_iff_body locally_closed.Free
+        subst_bound.simps(3))
   have "subst_bound 0 (omega \<tau>) (App (Bound 0) (Bound 0)) = App (omega \<tau>) (omega \<tau>)"
     by simp
   with step show ?thesis
