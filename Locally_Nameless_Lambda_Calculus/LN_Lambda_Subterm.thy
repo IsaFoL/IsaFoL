@@ -204,39 +204,4 @@ next
     by (simp add: is_subterm_of.intros)
 qed
 
-text \<open>Experimental, currently unused, definitions of positions (kept for reference).\<close>
-
-(*
-function positions where
-  "positions (Const c \<tau>s ts) = {[]}" |
-  "positions (Free x) = {[]}" |
-  "positions (Bound n) = {[]}" |
-  "positions (App t\<^sub>1 t\<^sub>2) =
-    (let (f, xs) = strip_comb' (App t\<^sub>1 t\<^sub>2) in
-     insert [] (\<Union> (set (map2 (\<lambda>i x. Cons (Suc i) ` positions x) (upt (0 :: nat) (length xs)) xs))))" |
-  "positions (Abs \<tau> t) = insert [] {1 # p | p. p \<in> positions t}"
-  by pat_completeness auto
-termination by (lexicographic_order simp add: FOO)
-
-function positions' where
-  "positions' (Const c \<tau>s ts) = {[]}" |
-  "positions' (Free x) = {[]}" |
-  "positions' (Bound n) = {[]}" |
-  "positions' (App t\<^sub>1 t\<^sub>2) =
-    (let (f, xs) = strip_comb' (App t\<^sub>1 t\<^sub>2) in
-     insert [] {Suc i # p | i p. i < length xs \<and> p \<in> positions' (xs ! i)})" |
-  "positions' (Abs \<tau> t) = insert [] {1 # p | p. p \<in> positions' t}"
-  by pat_completeness auto
-termination
-proof (relation "measure size")
-  show "wf (measure size)"
-    by simp
-next
-  fix t\<^sub>1 t\<^sub>2 x xa y xb xc xd
-  show "x = strip_comb' (App t\<^sub>1 t\<^sub>2) \<Longrightarrow> (xa, y) = x \<Longrightarrow> (y ! xc, App t\<^sub>1 t\<^sub>2) \<in> measure size"
-    unfolding in_measure
-    sorry
-  oops
-*)
-
 end
