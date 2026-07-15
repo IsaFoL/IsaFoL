@@ -5,7 +5,7 @@ begin
 primrec subterms where
   "subterms (Const c \<tau>s ts) = {#Const c \<tau>s ts#}" |
   "subterms (Free x) = {#Free x#}" |
-  "subterms (Bound n) = {#Bound n#}" |
+  "subterms (Bound n \<tau>) = {#Bound n \<tau>#}" |
   "subterms (App t\<^sub>1 t\<^sub>2) = add_mset (App t\<^sub>1 t\<^sub>2) (subterms t\<^sub>1 + subterms t\<^sub>2)" |
   "subterms (Abs \<tau> t) = add_mset (Abs \<tau> t) (subterms t)"
 

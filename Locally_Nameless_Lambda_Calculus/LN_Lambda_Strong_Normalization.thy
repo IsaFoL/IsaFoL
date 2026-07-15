@@ -67,7 +67,7 @@ text \<open>Over a finite variable type, some finite set contains every variable
   which makes the cofinite premise of the \<open>Abs\<close> rule of \<^const>\<open>beta_reduce\<close> vacuously true: any
   two abstractions (with the same type annotation) are related by \<^const>\<open>beta_reduce\<close>.
   Consequently, every locally closed preterm that admits a reduction also reduces to itself---and
-  is therefore not strongly normalizing---and likewise below \<^const>\<open>subst_bound\<close>.\<close>
+  is therefore not strongly normalizing---and likewise after typed opening.\<close>
 
 lemma beta_reduce_Abs_Abs_if_finite_vars:
   fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
@@ -110,32 +110,32 @@ next
     using Const.hyps by (metis beta_reduce.Const list_update_id)
 qed
 
-lemma beta_reduce_subst_bound_self_if_finite_vars:
-  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+lemma beta_reduce_open_bound_self_if_finite_vars:
+  fixes t t' u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes fin_vars: "finite (UNIV :: '\<V> set)"
   assumes "beta_reduce t t'"
-  shows "beta_reduce (subst_bound n u t) (subst_bound n u t)"
+  shows "beta_reduce (open_bound n \<sigma> u t) (open_bound n \<sigma> u t)"
   using assms(2)
 proof (induction arbitrary: n rule: beta_reduce.induct)
   case (beta s v \<tau>)
   then show ?case
-    unfolding subst_bound.simps
+    unfolding open_bound.simps
     by (auto intro: beta_reduce.App_left beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars]
-        locally_closed_subst_bound_if_finite_vars[OF fin_vars])
+        locally_closed_open_bound_if_finite_vars[OF fin_vars])
 next
   case (App_left s s' v)
   then show ?case
-    unfolding subst_bound.simps
-    by (auto intro: beta_reduce.App_left locally_closed_subst_bound_if_finite_vars[OF fin_vars])
+    unfolding open_bound.simps
+    by (auto intro: beta_reduce.App_left locally_closed_open_bound_if_finite_vars[OF fin_vars])
 next
   case (App_right s v v')
   then show ?case
-    unfolding subst_bound.simps
-    by (auto intro: beta_reduce.App_right locally_closed_subst_bound_if_finite_vars[OF fin_vars])
+    unfolding open_bound.simps
+    by (auto intro: beta_reduce.App_right locally_closed_open_bound_if_finite_vars[OF fin_vars])
 next
   case (Abs \<X> s s' \<tau>)
   show ?case
-    unfolding subst_bound.simps
+    unfolding open_bound.simps
     by (rule beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars])
 next
   case (Const ts i t' c \<tau>s)
@@ -229,9 +229,8 @@ proof (cases "infinite (UNIV :: '\<V> set)")
       have abs_red: "beta_reduce (Abs \<tau> t) (Abs \<tau> t')"
       proof (rule beta_reduce.Abs[where \<X> = "{||}"])
         fix x
-        show "beta_reduce (subst_bound 0 (Free x) t)
-            (subst_bound 0 (Free x) t')"
-          by (rule beta_reduce_subst_bound_subst_bound[OF inf_vars red locally_closed.Free])
+        show "beta_reduce (open_bound 0 \<tau> (Free x) t) (open_bound 0 \<tau> (Free x) t')"
+          by (rule beta_reduce_open_bound[OF inf_vars red])
       qed
       have "beta_reduce\<inverse>\<inverse> (Abs \<tau> t') (Abs \<tau> t)"
         using abs_red by (rule conversepI)
@@ -320,15 +319,15 @@ next
   qed
 qed
 
-lemma SN_subst_bound_FreeD:
+lemma SN_open_bound_FreeD:
   fixes t :: "(_, _, '\<V>) preterm"
-  assumes "SN (subst_bound n (Free x) t)"
+  assumes "SN (open_bound n \<tau> (Free x) t)"
   shows "SN t"
 proof (cases "infinite (UNIV :: '\<V> set)")
   case inf_vars: True
   show ?thesis
     using assms
-  proof (induction "subst_bound n (Free x) t" arbitrary: n x t rule: accp_induct_rule)
+  proof (induction "open_bound n \<tau> (Free x) t" arbitrary: n x t rule: accp_induct_rule)
     case 1
     note IH = "1.hyps"(2)
     show ?case
@@ -338,10 +337,10 @@ proof (cases "infinite (UNIV :: '\<V> set)")
       then have red: "beta_reduce t t'"
         by simp
       have opened_red:
-        "beta_reduce (subst_bound n (Free x) t) (subst_bound n (Free x) t')"
-        by (rule beta_reduce_subst_bound_subst_bound[OF inf_vars red locally_closed.Free])
+        "beta_reduce (open_bound n \<tau> (Free x) t) (open_bound n \<tau> (Free x) t')"
+        by (rule beta_reduce_open_bound[OF inf_vars red])
       have conv_opened:
-        "beta_reduce\<inverse>\<inverse> (subst_bound n (Free x) t') (subst_bound n (Free x) t)"
+        "beta_reduce\<inverse>\<inverse> (open_bound n \<tau> (Free x) t') (open_bound n \<tau> (Free x) t)"
         using opened_red by (rule conversepI)
       show "SN t'"
         using IH conv_opened by blast
@@ -355,9 +354,9 @@ next
   proof (cases "\<exists>t'. beta_reduce t t'")
     case True
     then obtain t' where "beta_reduce t t'" ..
-    then have "beta_reduce (subst_bound n (Free x) t) (subst_bound n (Free x) t)"
-      by (rule beta_reduce_subst_bound_self_if_finite_vars[OF fin_vars])
-    then have "\<not> SN (subst_bound n (Free x) t)"
+    then have "beta_reduce (open_bound n \<tau> (Free x) t) (open_bound n \<tau> (Free x) t)"
+      by (rule beta_reduce_open_bound_self_if_finite_vars[OF fin_vars])
+    then have "\<not> SN (open_bound n \<tau> (Free x) t)"
       by (rule not_SN_if_beta_reduce_self)
     with assms show ?thesis
       by contradiction
@@ -654,10 +653,10 @@ text \<open>Strong normalization of a free-variable opening is inherited by an a
 lemma SN_Abs:
   fixes t :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes "SN (subst_bound 0 (Free x) t)"
+  assumes "SN (open_bound 0 \<tau> (Free x) t)"
   shows "SN (Abs \<tau> t)"
 using assms(2)
-proof (induction "subst_bound 0 (Free x) t" arbitrary: t rule: accp_induct_rule)
+proof (induction "open_bound 0 \<tau> (Free x) t" arbitrary: t rule: accp_induct_rule)
   case 1
   note IH = "1.hyps"(2)
   show ?case
@@ -668,8 +667,8 @@ proof (induction "subst_bound 0 (Free x) t" arbitrary: t rule: accp_induct_rule)
       by simp
     obtain t' \<X> where
       v: "v = Abs \<tau> t'" and
-      opened_red: "\<And>y. y |\<notin>| \<X> \<Longrightarrow> beta_reduce (subst_bound 0 (Free y) t)
-        (subst_bound 0 (Free y) t')"
+      opened_red: "\<And>y. y |\<notin>| \<X> \<Longrightarrow> beta_reduce (open_bound 0 \<tau> (Free y) t)
+        (open_bound 0 \<tau> (Free y) t')"
       using red by (auto elim!: beta_reduce.cases)
     obtain y where
       y_fresh_\<X>: "y |\<notin>| \<X>" and
@@ -680,12 +679,12 @@ proof (induction "subst_bound 0 (Free x) t" arbitrary: t rule: accp_induct_rule)
     have y_notin_t': "y \<notin> free_vars t'"
       by (rule fresh_terms) simp
     have red_x:
-      "beta_reduce (subst_bound 0 (Free x) t) (subst_bound 0 (Free x) t')"
-      by (rule beta_reduce_subst_bound_from_fresh[
+      "beta_reduce (open_bound 0 \<tau> (Free x) t) (open_bound 0 \<tau> (Free x) t')"
+      by (rule beta_reduce_open_bound_from_fresh[
             OF inf_vars y_notin_t y_notin_t'
               opened_red[OF y_fresh_\<X>] locally_closed.Free])
     have conv_x:
-      "beta_reduce\<inverse>\<inverse> (subst_bound 0 (Free x) t') (subst_bound 0 (Free x) t)"
+      "beta_reduce\<inverse>\<inverse> (open_bound 0 \<tau> (Free x) t') (open_bound 0 \<tau> (Free x) t)"
       using red_x by (rule conversepI)
     have "SN (Abs \<tau> t')"
       by (rule IH[OF conv_x])
@@ -703,12 +702,12 @@ text \<open>Core of the abstraction lemma: \<open>(\<lambda>. t) u\<close> is re
 lemma Red_Abs_aux:
   fixes t u :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes "SN (subst_bound 0 (Free undefined) t)" and "SN u"
-    and "body t" and "locally_closed u" and "Red_ty \<tau>\<^sub>1 u"
-    and "\<And>v. locally_closed v \<Longrightarrow> Red_ty \<tau>\<^sub>1 v \<Longrightarrow> Red_ty \<tau>\<^sub>2 (subst_bound 0 v t)"
+  assumes "SN (open_bound 0 \<tau>\<^sub>1 (Free undefined) t)" and "SN u"
+    and "body \<tau>\<^sub>1 t" and "locally_closed u" and "Red_ty \<tau>\<^sub>1 u"
+    and "\<And>v. locally_closed v \<Longrightarrow> Red_ty \<tau>\<^sub>1 v \<Longrightarrow> Red_ty \<tau>\<^sub>2 (open_bound 0 \<tau>\<^sub>1 v t)"
   shows "Red_ty \<tau>\<^sub>2 (App (Abs \<tau>\<^sub>1 t) u)"
   using assms(2-)
-proof (induction "subst_bound 0 (Free undefined) t" arbitrary: t u rule: accp_induct_rule)
+proof (induction "open_bound 0 \<tau>\<^sub>1 (Free undefined) t" arbitrary: t u rule: accp_induct_rule)
   case 1
   note outer_IH = "1.hyps"(2)
   note body_t = "1.prems"(2) and hyp_t = "1.prems"(5)
@@ -729,10 +728,10 @@ proof (induction "subst_bound 0 (Free undefined) t" arbitrary: t u rule: accp_in
     next
       fix w assume "beta_reduce (App (Abs \<tau>\<^sub>1 t) u) w"
       from beta_reduce_App_AbsD[OF this]
-      consider (contract) "w = subst_bound 0 u t"
+      consider (contract) "w = open_bound 0 \<tau>\<^sub>1 u t"
         | (body) t' \<X> where
             "w = App (Abs \<tau>\<^sub>1 t') u" and
-            "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (subst_bound 0 (Free x) t) (subst_bound 0 (Free x) t')"
+            "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (open_bound 0 \<tau>\<^sub>1 (Free x) t) (open_bound 0 \<tau>\<^sub>1 (Free x) t')"
         | (arg) u' where "w = App (Abs \<tau>\<^sub>1 t) u'" and "beta_reduce u u'"
         by blast
       then show "Red_ty \<tau>\<^sub>2 w"
@@ -744,14 +743,14 @@ proof (induction "subst_bound 0 (Free undefined) t" arbitrary: t u rule: accp_in
         case (body t')
         have SN_u: "SN u"
           using red_u by (rule CR1)
-        have body_t': "body t'"
+        have body_t': "body \<tau>\<^sub>1 t'"
         proof -
           have abs_red: "beta_reduce (Abs \<tau>\<^sub>1 t) (Abs \<tau>\<^sub>1 t')"
           proof (rule beta_reduce.Abs[where \<X> = \<X>])
             fix x
             assume "x |\<notin>| \<X>"
-            then show "beta_reduce (subst_bound 0 (Free x) t)
-                (subst_bound 0 (Free x) t')"
+            then show "beta_reduce (open_bound 0 \<tau>\<^sub>1 (Free x) t)
+                (open_bound 0 \<tau>\<^sub>1 (Free x) t')"
               by (rule body(2))
           qed
           have "locally_closed (Abs \<tau>\<^sub>1 t')"
@@ -760,7 +759,7 @@ proof (induction "subst_bound 0 (Free undefined) t" arbitrary: t u rule: accp_in
             by (simp add: locall_closed_Abs_iff_body)
         qed
         have opened_red_for:
-          "beta_reduce (subst_bound 0 v t) (subst_bound 0 v t')"
+          "beta_reduce (open_bound 0 \<tau>\<^sub>1 v t) (open_bound 0 \<tau>\<^sub>1 v t')"
           if "locally_closed v" for v
         proof -
           obtain y where y_fresh_\<X>: "y |\<notin>| \<X>"
@@ -771,23 +770,23 @@ proof (induction "subst_bound 0 (Free undefined) t" arbitrary: t u rule: accp_in
           have y_notin_t': "y \<notin> free_vars t'"
             by (rule fresh_terms) simp
           show ?thesis
-            by (rule beta_reduce_subst_bound_from_fresh[
+            by (rule beta_reduce_open_bound_from_fresh[
                   OF inf_vars y_notin_t y_notin_t'
                     body(2)[OF y_fresh_\<X>] that])
         qed
-        have hyp_t': "Red_ty \<tau>\<^sub>2 (subst_bound 0 v t')"
+        have hyp_t': "Red_ty \<tau>\<^sub>2 (open_bound 0 \<tau>\<^sub>1 v t')"
           if "locally_closed v" and "Red_ty \<tau>\<^sub>1 v" for v
         proof -
-          have "Red_ty \<tau>\<^sub>2 (subst_bound 0 v t)"
+          have "Red_ty \<tau>\<^sub>2 (open_bound 0 \<tau>\<^sub>1 v t)"
             by (rule hyp_t[OF that])
-          moreover have "beta_reduce (subst_bound 0 v t) (subst_bound 0 v t')"
+          moreover have "beta_reduce (open_bound 0 \<tau>\<^sub>1 v t) (open_bound 0 \<tau>\<^sub>1 v t')"
             by (rule opened_red_for[OF that(1)])
           ultimately show ?thesis
             by (rule CR2)
         qed
         have conv_open:
-          "beta_reduce\<inverse>\<inverse> (subst_bound 0 (Free undefined) t')
-            (subst_bound 0 (Free undefined) t)"
+          "beta_reduce\<inverse>\<inverse> (open_bound 0 \<tau>\<^sub>1 (Free undefined) t')
+            (open_bound 0 \<tau>\<^sub>1 (Free undefined) t)"
           using opened_red_for[OF locally_closed.Free]
           by (rule conversepI)
         have "Red_ty \<tau>\<^sub>2 (App (Abs \<tau>\<^sub>1 t') u)"
@@ -815,24 +814,24 @@ lemma Red_Abs:
   fixes t :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "locally_closed (Abs \<tau>\<^sub>1 t)"
-  assumes hyp: "\<And>u. locally_closed u \<Longrightarrow> Red_ty \<tau>\<^sub>1 u \<Longrightarrow> Red_ty \<tau>\<^sub>2 (subst_bound 0 u t)"
+  assumes hyp: "\<And>u. locally_closed u \<Longrightarrow> Red_ty \<tau>\<^sub>1 u \<Longrightarrow> Red_ty \<tau>\<^sub>2 (open_bound 0 \<tau>\<^sub>1 u t)"
   shows "Red_ty (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) (Abs \<tau>\<^sub>1 t)"
 proof -
-  have body_t: "body t"
+  have body_t: "body \<tau>\<^sub>1 t"
     using assms(2) by (simp add: locall_closed_Abs_iff_body)
-  have SN_open: "SN (subst_bound 0 (Free undefined) t)"
+  have SN_open: "SN (open_bound 0 \<tau>\<^sub>1 (Free undefined) t)"
     by (rule CR1[OF hyp[OF locally_closed.Free Red_Free]])
   have "SN (Abs \<tau>\<^sub>1 t)"
     using SN_open by (rule SN_Abs[OF inf_vars])
   moreover have "Red_ty \<tau>\<^sub>2 (App (Abs \<tau>\<^sub>1 t) u)"
     if "locally_closed u" and "Red_ty \<tau>\<^sub>1 u" for u
   proof (rule Red_Abs_aux[OF inf_vars])
-    show "SN (subst_bound 0 (Free undefined) t)" by (rule SN_open)
+    show "SN (open_bound 0 \<tau>\<^sub>1 (Free undefined) t)" by (rule SN_open)
     show "SN u" using that(2) by (rule CR1)
-    show "body t" by (rule body_t)
+    show "body \<tau>\<^sub>1 t" by (rule body_t)
     show "locally_closed u" by (rule that(1))
     show "Red_ty \<tau>\<^sub>1 u" by (rule that(2))
-    show "\<And>v. locally_closed v \<Longrightarrow> Red_ty \<tau>\<^sub>1 v \<Longrightarrow> Red_ty \<tau>\<^sub>2 (subst_bound 0 v t)"
+    show "\<And>v. locally_closed v \<Longrightarrow> Red_ty \<tau>\<^sub>1 v \<Longrightarrow> Red_ty \<tau>\<^sub>2 (open_bound 0 \<tau>\<^sub>1 v t)"
       by (rule hyp)
   qed
   ultimately show ?thesis
@@ -980,14 +979,14 @@ qed
 
 section \<open>Parallel substitution of free variables\<close>
 
-text \<open>Simultaneous substitution of the free (named) variables. Contrary to \<^const>\<open>subst_bound\<close>,
+text \<open>Simultaneous substitution of the free (named) variables. Contrary to \<^const>\<open>open_bound\<close>,
   this descends into the parameters of a constant, which may contain free variables.\<close>
 
 fun msubst ::
   "('\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm) \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
   "msubst \<theta> (Const c \<tau>s ts) = Const c \<tau>s (map (msubst \<theta>) ts)" |
   "msubst \<theta> (Free x) = \<theta> x" |
-  "msubst \<theta> (Bound n) = Bound n" |
+  "msubst \<theta> (Bound n \<tau>) = Bound n \<tau>" |
   "msubst \<theta> (App t\<^sub>1 t\<^sub>2) = App (msubst \<theta> t\<^sub>1) (msubst \<theta> t\<^sub>2)" |
   "msubst \<theta> (Abs \<tau> t) = Abs \<tau> (msubst \<theta> t)"
 
@@ -1001,16 +1000,17 @@ lemma msubst_cong:
 text \<open>Opening a fresh variable and then substituting it equals substituting into the opened body
   (the key commutation lemma for the abstraction case of the fundamental theorem).\<close>
 
-lemma msubst_subst_bound_Free:
+lemma msubst_open_bound_Free:
   fixes t :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "x \<notin> free_vars t"
   assumes "\<And>y. locally_closed (\<theta> y)"
-  shows "msubst (\<theta>(x := u)) (subst_bound n (Free x) t) = subst_bound n u (msubst \<theta> t)"
+  shows "msubst (\<theta>(x := u)) (open_bound n \<tau> (Free x) t) =
+    open_bound n \<tau> u (msubst \<theta> t)"
   using assms(2,3)
   by (induction t arbitrary: n)
     (auto intro!: msubst_cong cong: map_cong
-      simp: subst_bound_ident_if_locally_closed[OF inf_vars])
+      simp: open_bound_ident_if_locally_closed[OF inf_vars])
 
 text \<open>Parallel substitution of free variables preserves local closure.\<close>
 
@@ -1041,7 +1041,7 @@ proof (cases "infinite (UNIV :: '\<V> set)")
     then show ?case
       by (auto intro: locally_closed.App)
   next
-    case (Abs \<X> t \<tau>)
+    case (Abs \<X> \<tau> t)
     show ?case
       unfolding msubst.simps
     proof (rule locally_closed.Abs[
@@ -1067,10 +1067,10 @@ proof (cases "infinite (UNIV :: '\<V> set)")
         qed
       qed
       have "locally_closed
-          (msubst (\<theta>(x := Free x)) (subst_bound 0 (Free x) t))"
+          (msubst (\<theta>(x := Free x)) (open_bound 0 \<tau> (Free x) t))"
         by (rule Abs.IH[OF fresh_\<X> lc_update])
-      then show "locally_closed (subst_bound 0 (Free x) (msubst \<theta> t))"
-        by (simp add: msubst_subst_bound_Free[
+      then show "locally_closed (open_bound 0 \<tau> (Free x) (msubst \<theta> t))"
+        by (simp add: msubst_open_bound_Free[
               OF True x_notin_t Abs.prems])
     qed
   qed
@@ -1096,13 +1096,13 @@ next
     then show ?case
       by (auto intro: locally_closed.App)
   next
-    case (Abs \<Y> t \<tau>)
+    case (Abs \<Y> \<tau> t)
     show ?case
       unfolding msubst.simps
     proof (rule locally_closed.Abs[where \<X> = ?\<X>])
       fix x
       assume "x |\<notin>| ?\<X>"
-      then show "locally_closed (subst_bound 0 (Free x) (msubst \<theta> t))"
+      then show "locally_closed (open_bound 0 \<tau> (Free x) (msubst \<theta> t))"
         by (simp add: fset_\<X>)
     qed
   qed
@@ -1178,16 +1178,16 @@ next
     obtain x where fresh_x: "x |\<notin>| \<X>" and x_notin_t: "x \<notin> free_vars t"
       using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t|}"] by auto
     have red_open:
-      "Red_ty \<tau>\<^sub>2 (msubst (\<theta>(x := u)) (subst_bound 0 (Free x) t))"
+      "Red_ty \<tau>\<^sub>2 (msubst (\<theta>(x := u)) (open_bound 0 \<tau>\<^sub>1 (Free x) t))"
     proof (rule Abs.IH[OF fresh_x])
       show "\<And>y. locally_closed ((\<theta>(x := u)) y)"
         using Abs.prems(1) lc_u by simp
       show "\<And>y. Red_ty ((\<F>(x := \<tau>\<^sub>1)) y) ((\<theta>(x := u)) y)"
         using Abs.prems(2) red_u by simp
     qed
-    show "Red_ty \<tau>\<^sub>2 (subst_bound 0 u (msubst \<theta> t))"
+    show "Red_ty \<tau>\<^sub>2 (open_bound 0 \<tau>\<^sub>1 u (msubst \<theta> t))"
       using red_open
-      by (simp add: msubst_subst_bound_Free[OF inf_vars x_notin_t Abs.prems(1)])
+      by (simp add: msubst_open_bound_Free[OF inf_vars x_notin_t Abs.prems(1)])
   qed
 qed
 
@@ -1229,10 +1229,10 @@ lemma ex_has_type_and_not_SN_if_finite_vars:
 proof -
   obtain \<X> :: "'\<V> fset" where "\<forall>x. x |\<in>| \<X>"
     using ex_fset_UNIV[OF fin_vars] by blast
-  then have "has_type \<C> \<F> (Abs \<bool> (Bound 0)) (TyFun \<bool> \<bool>)"
+  then have "has_type \<C> \<F> (Abs \<bool> (Bound 0 \<bool>)) (TyFun \<bool> \<bool>)"
     for \<C> :: "'\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty" and \<F> :: "'\<V> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
     by (auto intro: has_type.Abs[where \<X> = \<X>])
-  moreover have "\<not> SN (Abs \<bool> (Bound 0) :: (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm)"
+  moreover have "\<not> SN (Abs \<bool> (Bound 0 \<bool>) :: (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm)"
     by (rule not_SN_if_beta_reduce_self[OF beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars]])
   ultimately show ?thesis
     by blast

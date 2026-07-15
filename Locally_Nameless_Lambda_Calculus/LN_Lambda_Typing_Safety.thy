@@ -14,44 +14,38 @@ qualified theorem preservation:
   shows "has_type \<C> \<F> t' \<tau>"
   using reduction typed
 proof (induction arbitrary: \<C> \<F> \<tau> rule: beta_reduce.induct)
-  case (beta t \<tau>' u)
+  case (beta \<tau>' t u)
   from beta.prems obtain sigma where
-    abs_typed: "has_type \<C> \<F> (Abs u t) (TyFun sigma \<tau>)" and
-    arg_typed: "has_type \<C> \<F> \<tau>' sigma"
+    abs_typed: "has_type \<C> \<F> (Abs \<tau>' t) (TyFun sigma \<tau>)" and
+    arg_typed: "has_type \<C> \<F> u sigma"
     by (cases rule: has_type.cases) auto
-  from abs_typed obtain \<X> where sigma_eq: "sigma = u" and
+  from abs_typed obtain \<X> where sigma_eq: "sigma = \<tau>'" and
     opened: "\<And>x. x |\<notin>| \<X> \<Longrightarrow>
-      has_type \<C> (\<F>(x := u)) (subst_bound 0 (Free x) t) \<tau>"
+      has_type \<C> (\<F>(x := \<tau>')) (open_bound 0 \<tau>' (Free x) t) \<tau>"
     by (cases rule: has_type.cases) auto
-  have arg_typed_u: "has_type \<C> \<F> \<tau>' u"
+  have arg_typed_\<tau>': "has_type \<C> \<F> u \<tau>'"
     using arg_typed sigma_eq by simp
   obtain x where fresh_\<X>: "x |\<notin>| \<X>" and
-    fresh: "\<And>s. s |\<in>| {|t, \<tau>'|} \<Longrightarrow> x \<notin> free_vars s"
+    fresh: "\<And>s. s |\<in>| {|t, u|} \<Longrightarrow> x \<notin> free_vars s"
     using fresh_for_fset_and_terms[OF inf_vars,
-        where \<X> = \<X> and \<T> = "{|t, \<tau>'|}"] by blast
-  have fresh_t: "x \<notin> free_vars t" and fresh_arg: "x \<notin> free_vars \<tau>'"
+        where \<X> = \<X> and \<T> = "{|t, u|}"] by blast
+  have fresh_t: "x \<notin> free_vars t" and fresh_arg: "x \<notin> free_vars u"
     by (rule fresh; simp)+
-  have arg_typed': "has_type \<C> (\<F>(x := u)) \<tau>' u"
-    by (rule has_type_weaken_funenv[OF arg_typed_u fresh_arg])
+  have arg_typed': "has_type \<C> (\<F>(x := \<tau>')) u \<tau>'"
+    by (rule has_type_weaken_funenv[OF arg_typed_\<tau>' fresh_arg])
   have substituted:
-      "has_type \<C> (\<F>(x := u))
-        (subst_free x \<tau>' (subst_bound 0 (Free x) t)) \<tau>"
+      "has_type \<C> (\<F>(x := \<tau>'))
+        (subst_free x u (open_bound 0 \<tau>' (Free x) t)) \<tau>"
   proof (rule has_type_subst_free[OF opened[OF fresh_\<X>]])
-    show "(\<F>(x := u)) x = u" by simp
-    show "has_type \<C> (\<F>(x := u)) \<tau>' u" by (rule arg_typed')
+    show "(\<F>(x := \<tau>')) x = \<tau>'" by simp
+    show "has_type \<C> (\<F>(x := \<tau>')) u \<tau>'" by (rule arg_typed')
   qed
-  have result_typed': "has_type \<C> (\<F>(x := u)) (subst_bound 0 \<tau>' t) \<tau>"
+  have result_typed': "has_type \<C> (\<F>(x := \<tau>')) (open_bound 0 \<tau>' u t) \<tau>"
     using substituted
-    by (simp only: subst_free_subst_bound_Free_eq_subst_bound[OF fresh_t])
-  have fresh_result: "x \<notin> free_vars (subst_bound 0 \<tau>' t)"
-  proof
-    assume "x \<in> free_vars (subst_bound 0 \<tau>' t)"
-    then have "x \<in> free_vars t \<union> free_vars \<tau>'"
-      using free_vars_subst_bound_subset by fast
-    then show False
-      using fresh_t fresh_arg by simp
-  qed
-  have "has_type \<C> (\<F>(x := u, x := \<F> x)) (subst_bound 0 \<tau>' t) \<tau>"
+    by (simp only: subst_free_open_bound_Free_eq_open_bound[OF fresh_t])
+  have fresh_result: "x \<notin> free_vars (open_bound 0 \<tau>' u t)"
+    using free_vars_open_bound_subset fresh_t fresh_arg by fast
+  have "has_type \<C> (\<F>(x := \<tau>', x := \<F> x)) (open_bound 0 \<tau>' u t) \<tau>"
     by (rule has_type_weaken_funenv[OF result_typed' fresh_result])
   then show ?case
     by simp
@@ -74,18 +68,18 @@ next
   show ?case
     by (rule has_type.App[OF left right'])
 next
-  case (Abs \<X> t t' \<tau>')
+  case (Abs \<X> \<tau>' t t')
   from Abs.prems obtain rho \<Y> where
     \<tau>_eq: "\<tau> = TyFun \<tau>' rho" and
     opened: "\<And>x. x |\<notin>| \<Y> \<Longrightarrow>
-      has_type \<C> (\<F>(x := \<tau>')) (subst_bound 0 (Free x) t) rho"
+      has_type \<C> (\<F>(x := \<tau>')) (open_bound 0 \<tau>' (Free x) t) rho"
     by (cases rule: has_type.cases) auto
   show ?case
     unfolding \<tau>_eq
   proof (rule has_type.Abs[where \<X> = "\<X> |\<union>| \<Y>"])
     fix x
     assume fresh: "x |\<notin>| \<X> |\<union>| \<Y>"
-    show "has_type \<C> (\<F>(x := \<tau>')) (subst_bound 0 (Free x) t') rho"
+    show "has_type \<C> (\<F>(x := \<tau>')) (open_bound 0 \<tau>' (Free x) t') rho"
       by (rule Abs.IH[OF _ opened]) (use fresh in auto)
   qed
 next

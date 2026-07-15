@@ -275,6 +275,10 @@ subsection \<open>Size\<close>
 lift_definition size_ty :: "('\<V>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty \<Rightarrow> nat"
   is size_prety .
 
+lemma size_ty_TyVar: "size_ty f\<^sub>1 f\<^sub>2 (TyVar x) = f\<^sub>1 x + Suc 0"
+  by transfer simp
+
+
 lemma size_ty_TyCtr:
   assumes "length \<tau>s = arity \<kappa>"
   shows "size_ty f\<^sub>1 f\<^sub>2 (TyCtr \<kappa> \<tau>s) = f\<^sub>2 \<kappa> + size_list (size_ty f\<^sub>1 f\<^sub>2) \<tau>s + Suc 0"
@@ -432,7 +436,7 @@ inductive has_type ::
     if "has_type \<C> \<F> t\<^sub>1 (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2)" and "has_type \<C> \<F> t\<^sub>2 \<tau>\<^sub>1"
     for \<F> t\<^sub>1 t\<^sub>2 \<tau>\<^sub>1 \<tau>\<^sub>2 |
   Abs: "has_type \<C> \<F> (Abs \<tau>\<^sub>1 t) (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2)"
-    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> has_type \<C> (\<F>(x := \<tau>\<^sub>1)) (subst_bound 0 (Free x) t) \<tau>\<^sub>2"
+    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> has_type \<C> (\<F>(x := \<tau>\<^sub>1)) (open_bound 0 \<tau>\<^sub>1 (Free x) t) \<tau>\<^sub>2"
     for \<F> t \<tau>\<^sub>1 \<tau>\<^sub>2 \<X>
 
 lemma locally_closed_if_has_type[intro]: "has_type \<C> \<F> t \<tau> \<Longrightarrow> locally_closed t"
@@ -444,7 +448,25 @@ proof (induction \<F> t \<tau> rule: has_type.induct)
       using Const.IH
       by (simp add: list_all2_conv_all_nth list_all_length)
   qed
-qed (auto intro: locally_closed.intros)
+next
+  case Free
+  show ?case
+    by (rule locally_closed.Free)
+next
+  case App
+  then show ?case
+    by (auto intro: locally_closed.App)
+next
+  case (Abs \<F> t \<tau>\<^sub>1 \<tau>\<^sub>2 \<X>)
+  show ?case
+  proof (rule locally_closed.Abs[where \<X> = \<X>])
+    fix x
+    assume "x |\<notin>| \<X>"
+    then show "locally_closed (open_bound 0 \<tau>\<^sub>1 (Free x) t)"
+      by (rule Abs.IH)
+  qed
+qed
+
 
 lemma has_type_weaken_funenv:
   "has_type \<C> \<F> t \<tau>\<^sub>1 \<Longrightarrow> x \<notin> free_vars t \<Longrightarrow> has_type \<C> (\<F>(x := \<tau>\<^sub>2)) t \<tau>\<^sub>1"
@@ -469,7 +491,7 @@ next
   proof (rule has_type.Abs)
     fix y
     assume "y |\<notin>| \<X>"
-    show "has_type \<C> (\<F>(x := \<tau>\<^sub>2, y := \<tau>\<^sub>1)) (subst_bound 0 (Free y) t) \<tau>\<^sub>3"
+    show "has_type \<C> (\<F>(x := \<tau>\<^sub>2, y := \<tau>\<^sub>1)) (open_bound 0 \<tau>\<^sub>1 (Free y) t) \<tau>\<^sub>3"
     proof (cases "x = y")
       case True
 
@@ -484,9 +506,9 @@ next
       then have "\<F>(x := \<tau>\<^sub>2, y := \<tau>\<^sub>1) = \<F>(y := \<tau>\<^sub>1, x := \<tau>\<^sub>2)"
         by auto
 
-      moreover have "x \<notin> free_vars (subst_bound 0 (Free y) t)"
+      moreover have "x \<notin> free_vars (open_bound 0 \<tau>\<^sub>1 (Free y) t)"
         using \<open>x \<notin> free_vars (Abs \<tau>\<^sub>1 t)\<close>[simplified] \<open>x \<noteq> y\<close>
-        using free_vars_subst_bound_subset by force
+        using free_vars_open_bound_subset by force
 
       ultimately show ?thesis
         using Abs.IH[OF \<open>y |\<notin>| \<X>\<close>] by metis
@@ -528,7 +550,7 @@ next
       moreover have "locally_closed u"
         using Abs.prems by auto
 
-      moreover have "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (subst_free x u (subst_bound 0 (Free y) t)) \<tau>\<^sub>3"
+      moreover have "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (subst_free x u (open_bound 0 \<tau>\<^sub>1 (Free y) t)) \<tau>\<^sub>3"
       proof (rule Abs.IH)
         show "y |\<notin>| \<X>"
           using y_in by simp
@@ -543,8 +565,8 @@ next
           using Abs.prems has_type_weaken_funenv by metis
       qed
 
-      ultimately show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (subst_bound 0 (Free y) (subst_free x u t)) \<tau>\<^sub>3"
-        using subst_free_commutes_with_subst_bound_Free[OF inf_vars] by metis
+      ultimately show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (open_bound 0 \<tau>\<^sub>1 (Free y) (subst_free x u t)) \<tau>\<^sub>3"
+        using subst_free_commutes_with_open_bound_Free[OF inf_vars] by metis
     qed
   next
     case False

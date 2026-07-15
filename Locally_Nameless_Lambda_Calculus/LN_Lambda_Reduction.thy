@@ -10,8 +10,8 @@ text \<open>One-step \<open>\<beta>\<close>-reduction on \<open>\<lambda>\<close
   reduction to take place anywhere inside a term, including inside a constant's parameters.\<close>
 
 inductive beta_reduce :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
-  beta: "beta_reduce (App (Abs \<tau> t) u) (subst_bound 0 u t)"
-    if "body t" and "locally_closed u"|
+  beta: "beta_reduce (App (Abs \<tau> t) u) (open_bound 0 \<tau> u t)"
+    if "body \<tau> t" and "locally_closed u" |
 
   App_left: "beta_reduce (App t u) (App t' u)"
     if "beta_reduce t t'" and "locally_closed u" |
@@ -20,7 +20,7 @@ inductive beta_reduce :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<
     if "locally_closed t" "beta_reduce u u'" |
 
   Abs: "beta_reduce (Abs \<tau> t) (Abs \<tau> t')"
-    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (subst_bound 0 (Free x) t) (subst_bound 0 (Free x) t')" |
+    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (open_bound 0 \<tau> (Free x) t) (open_bound 0 \<tau> (Free x) t')" |
 
   Const: "beta_reduce (Const c \<tau>s ts) (Const c \<tau>s (ts[i := t']))"
     if "\<forall>t \<in> set ts. locally_closed t" and "i < length ts" and "beta_reduce (ts ! i) t'"
@@ -44,7 +44,7 @@ proof (induction rule: beta_reduce.induct)
   case (beta t \<tau> u)
   then show ?case
     by (simp add: locally_closed_App_iff locall_closed_Abs_iff_body
-        locally_closed_subst_bound[OF inf_vars])
+        locally_closed_open_bound[OF inf_vars])
 next
   case (App_left t t' u)
   then show ?case
@@ -54,9 +54,25 @@ next
   then show ?case
     by (simp add: locally_closed_App_iff)
 next
-  case (Abs \<X> t t' \<tau>)
-  then show ?case
-    by (metis body_def locall_closed_Abs_iff_body)
+  case (Abs \<X> \<tau> t t')
+  show ?case
+  proof
+    show "locally_closed (Abs \<tau> t)"
+    proof (rule locally_closed.Abs[where \<X> = \<X>])
+      fix x
+      assume "x |\<notin>| \<X>"
+      then show "locally_closed (open_bound 0 \<tau> (Free x) t)"
+        using Abs.IH by blast
+    qed
+  next
+    show "locally_closed (Abs \<tau> t')"
+    proof (rule locally_closed.Abs[where \<X> = \<X>])
+      fix x
+      assume "x |\<notin>| \<X>"
+      then show "locally_closed (open_bound 0 \<tau> (Free x) t')"
+        using Abs.IH by blast
+    qed
+  qed
 next
   case (Const ts i t' c \<tau>s)
   then show ?case
@@ -73,15 +89,15 @@ text \<open>Inverting a \<open>\<beta>\<close>-step out of an application: eithe
 
 lemma beta_reduce_AppD:
   assumes "beta_reduce (App a b) v"
-  obtains (redex) \<tau> s where "a = Abs \<tau> s" and "v = subst_bound 0 b s"
+  obtains (redex) \<tau> s where "a = Abs \<tau> s" and "v = open_bound 0 \<tau> b s"
     | (left) a' where "v = App a' b" and "beta_reduce a a'"
     | (right) b' where "v = App a b'" and "beta_reduce b b'"
   using assms by (auto elim: beta_reduce.cases)
 
 lemma beta_reduce_App_AbsD:
   assumes "beta_reduce (App (Abs \<tau>\<^sub>1 t) u) v"
-  shows "v = subst_bound 0 u t
-    \<or> (\<exists>t'. v = App (Abs \<tau>\<^sub>1 t') u \<and> (\<exists>\<X>. \<forall>x. x |\<notin>| \<X> \<longrightarrow> beta_reduce (subst_bound 0 (Free x) t) (subst_bound 0 (Free x) t')))
+  shows "v = open_bound 0 \<tau>\<^sub>1 u t
+    \<or> (\<exists>t'. v = App (Abs \<tau>\<^sub>1 t') u \<and> (\<exists>\<X>. \<forall>x. x |\<notin>| \<X> \<longrightarrow> beta_reduce (open_bound 0 \<tau>\<^sub>1 (Free x) t) (open_bound 0 \<tau>\<^sub>1 (Free x) t')))
     \<or> (\<exists>u'. v = App (Abs \<tau>\<^sub>1 t) u' \<and> beta_reduce u u')"
   using assms
 proof (cases rule: beta_reduce_AppD)
@@ -91,7 +107,7 @@ next
   case (left a')
   from \<open>beta_reduce (Abs \<tau>\<^sub>1 t) a'\<close> obtain \<X> t'
     where "a' = Abs \<tau>\<^sub>1 t'" and
-      "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (subst_bound 0 (Free x) t) (subst_bound 0 (Free x) t')"
+      "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (open_bound 0 \<tau>\<^sub>1 (Free x) t) (open_bound 0 \<tau>\<^sub>1 (Free x) t')"
     by (auto elim!: beta_reduce.cases)
   then show ?thesis
     using \<open>v = App a' u\<close>
@@ -109,35 +125,13 @@ lemma beta_reduce_ConstD:
     and "v = Const c \<tau>s (ts[i := t'])"
   using assms by (auto elim: beta_reduce.cases)
 
-lemma beta_reduce_subst_bound_subst_bound:
+lemma beta_reduce_open_bound:
   fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes "beta_reduce t t'" and "locally_closed u"
-  shows "beta_reduce (subst_bound n u t) (subst_bound n u t')"
-  using assms(2)
-proof (induction arbitrary: n rule: beta_reduce.induct)
-  case (beta t u \<tau>)
-  then show ?case
-    by (metis beta_reduce.beta inf_vars locally_closed_if_beta_reduce(1,2)
-        subst_bound_ident_if_locally_closed)
-next
-  case (App_left t t' u)
-  then show ?case
-    by (simp add: beta_reduce.App_left inf_vars subst_bound_ident_if_locally_closed)
-next
-  case (App_right t u u')
-  then show ?case
-    by (simp add: beta_reduce.App_right inf_vars subst_bound_ident_if_locally_closed)
-next
-  case (Abs \<X> t t' \<tau>)
-  then show ?case
-    by (metis beta_reduce.Abs inf_vars locally_closed_if_beta_reduce(1,2)
-        subst_bound_ident_if_locally_closed)
-next
-  case (Const ts i t' c \<tau>s)
-  then show ?case
-    by (simp add: beta_reduce.Const)
-qed
+    and red: "beta_reduce t t'"
+  shows "beta_reduce (open_bound n \<tau> u t) (open_bound n \<tau> u t')"
+  using red locally_closed_if_beta_reduce[OF inf_vars red]
+  by (simp add: open_bound_ident_if_locally_closed[OF inf_vars])
 
 lemma beta_reduce_subst_free:
   fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
@@ -162,7 +156,7 @@ next
     by (auto intro: beta_reduce.App_right
       simp: locally_closed_subst_free)
 next
-  case (Abs \<X> t t' \<tau>)
+  case (Abs \<X> \<tau> t t')
   show ?case
     unfolding subst_free.simps
   proof (rule beta_reduce.Abs[where \<X> = "finsert x \<X>"])
@@ -171,13 +165,13 @@ next
     have x_ne_y: "x \<noteq> y" and y_fresh_\<X>: "y |\<notin>| \<X>"
       using y_fresh by auto
     have red_subst:
-      "beta_reduce (subst_free x u (subst_bound 0 (Free y) t))
-        (subst_free x u (subst_bound 0 (Free y) t'))"
+      "beta_reduce (subst_free x u (open_bound 0 \<tau> (Free y) t))
+        (subst_free x u (open_bound 0 \<tau> (Free y) t'))"
       by (rule Abs.IH[OF y_fresh_\<X> Abs.prems])
-    show "beta_reduce (subst_bound 0 (Free y) (subst_free x u t))
-        (subst_bound 0 (Free y) (subst_free x u t'))"
+    show "beta_reduce (open_bound 0 \<tau> (Free y) (subst_free x u t))
+        (open_bound 0 \<tau> (Free y) (subst_free x u t'))"
       using red_subst
-      by (simp add: subst_free_commutes_with_subst_bound_Free[OF inf_vars x_ne_y Abs.prems])
+      by (simp add: subst_free_commutes_with_open_bound_Free[OF inf_vars x_ne_y Abs.prems])
   qed
 next
   case Const
@@ -189,21 +183,21 @@ qed
 text \<open>A reduction between openings by a fresh free variable can be transported to an opening
   by any locally closed term.\<close>
 
-lemma beta_reduce_subst_bound_from_fresh:
+lemma beta_reduce_open_bound_from_fresh:
   fixes t t' v :: "(_, _, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes fresh: "x \<notin> free_vars t" "x \<notin> free_vars t'"
   assumes opened_red:
-    "beta_reduce (subst_bound n (Free x) t) (subst_bound n (Free x) t')"
-  assumes "locally_closed v"
-  shows "beta_reduce (subst_bound n v t) (subst_bound n v t')"
+    "beta_reduce (open_bound n \<tau> (Free x) t) (open_bound n \<tau> (Free x) t')"
+  assumes lc_v: "locally_closed v"
+  shows "beta_reduce (open_bound n \<tau> v t) (open_bound n \<tau> v t')"
 proof -
   have "beta_reduce
-      (subst_free x v (subst_bound n (Free x) t))
-      (subst_free x v (subst_bound n (Free x) t'))"
-    by (rule beta_reduce_subst_free[OF inf_vars opened_red assms(5)])
+      (subst_free x v (open_bound n \<tau> (Free x) t))
+      (subst_free x v (open_bound n \<tau> (Free x) t'))"
+    by (rule beta_reduce_subst_free[OF inf_vars opened_red lc_v])
   then show ?thesis
-    by (simp add: subst_free_subst_bound_Free_eq_subst_bound fresh)
+    by (simp add: subst_free_open_bound_Free_eq_open_bound fresh)
 qed
 
 
@@ -224,19 +218,20 @@ text \<open>\<^bold>\<open>Important.\<close> On untyped \<open>\<lambda>\<close
   work.\<close>
 
 definition omega :: "'\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
-  "omega \<tau> = Abs \<tau> (App (Bound 0) (Bound 0))"
+  "omega \<tau> = Abs \<tau> (App (Bound 0 \<tau>) (Bound 0 \<tau>))"
 
 lemma beta_reduce_omega_omega:
   "beta_reduce (App (omega \<tau>) (omega \<tau>)) (App (omega \<tau>) (omega \<tau>))"
 proof -
-  have step: "beta_reduce (App (omega \<tau>) (omega \<tau>))
-      (subst_bound 0 (omega \<tau>) (App (Bound 0) (Bound 0)))"
+  have body: "body \<tau> (App (Bound 0 \<tau>) (Bound 0 \<tau>))"
+    by (auto simp: body_def intro: locally_closed.intros)
+  have lc: "locally_closed (omega \<tau>)"
+    by (simp add: omega_def locall_closed_Abs_iff_body body)
+  have "beta_reduce (App (omega \<tau>) (omega \<tau>))
+      (open_bound 0 \<tau> (omega \<tau>) (App (Bound 0 \<tau>) (Bound 0 \<tau>)))"
     unfolding omega_def
-    by (metis beta body_App_iff body_def locall_closed_Abs_iff_body locally_closed.Free
-        subst_bound.simps(3))
-  have "subst_bound 0 (omega \<tau>) (App (Bound 0) (Bound 0)) = App (omega \<tau>) (omega \<tau>)"
-    by simp
-  with step show ?thesis
+    by (rule beta_reduce.beta[OF body]) (simp add: locall_closed_Abs_iff_body body)
+  then show ?thesis
     by simp
 qed
 

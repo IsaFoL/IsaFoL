@@ -188,7 +188,7 @@ primrec denotation_preterm ::
   "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (App t\<^sub>1 t\<^sub>2) =
     app (denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t\<^sub>1) (denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t\<^sub>1)" |
   "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Abs \<tau> t) = \<L> \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e (Abs \<tau> t)" |
-  "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Bound x) = undefined"
+  "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Bound x \<tau>) = undefined"
 
 
 subsection \<open>Denotation of ground terms\<close>
@@ -262,7 +262,7 @@ qed simp_all
 subsection \<open>Rest\<close>
 
 locale proper_interp = interp +
-  assumes "app (\<L> \<xi>\<^sub>t\<^sub>y \<xi> (Abs \<tau> t)) a = \<L> \<xi>\<^sub>t\<^sub>y (\<xi>(x := a)) (subst_bound 0 (Free x) t)"
+  assumes "app (\<L> \<xi>\<^sub>t\<^sub>y \<xi> (Abs \<tau> t)) a = \<L> \<xi>\<^sub>t\<^sub>y (\<xi>(x := a)) (open_bound 0 \<tau> (Free x) t)"
 
 declare [[typedef_overloaded]]
 record ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>, '\<Sigma>) interp =

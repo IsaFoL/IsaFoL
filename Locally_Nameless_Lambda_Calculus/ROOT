@@ -1,6 +1,8 @@
 session Locally_Nameless_Lambda_Calculus = HOL +
   options [document = pdf, document_output = "output"]
   sessions
+    Abstract_Substitution
+    "Abstract-Rewriting"
     First_Order_Terms
   theories
     LN_Lambda_Term
