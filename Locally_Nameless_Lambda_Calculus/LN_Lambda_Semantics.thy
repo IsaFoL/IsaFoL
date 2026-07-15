@@ -160,7 +160,7 @@ locale lambda_designation = type_interp \<U> \<J>\<^sub>t\<^sub>y
   fixes \<L> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y, '\<V>, '\<Sigma>) lambda_designation_fun"
   assumes "\<And>(\<xi>\<^sub>t\<^sub>y :: '\<V>\<^sub>t\<^sub>y \<Rightarrow> V) (\<xi>\<^sub>t\<^sub>e :: '\<V> \<Rightarrow> V) (\<F> :: '\<V> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty) t \<tau>.
     type_valuation \<U> \<xi>\<^sub>t\<^sub>y \<Longrightarrow> term_valuation \<U> \<J>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<Longrightarrow>
-    has_type \<C> \<F> t \<tau> \<Longrightarrow> is_Abs t \<Longrightarrow>
+    has_type \<C> t \<tau> \<Longrightarrow> is_Abs t \<Longrightarrow>
     \<L> \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e t \<in> elts (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y \<tau>)"
   assumes \<L>_depends_only_on_\<xi>_on_vars:
     "\<And>(\<xi>\<^sub>t\<^sub>y :: '\<V>\<^sub>t\<^sub>y \<Rightarrow> V) (\<xi>\<^sub>t\<^sub>y' :: '\<V>\<^sub>t\<^sub>y \<Rightarrow> V) (\<xi>\<^sub>t\<^sub>e :: '\<V> \<Rightarrow> V) (\<xi>\<^sub>t\<^sub>e' :: '\<V> \<Rightarrow> V) t.
@@ -182,7 +182,7 @@ primrec denotation_preterm ::
     ('\<Sigma>\<^sub>t\<^sub>y :: arity) type_interp_fun \<Rightarrow> '\<Sigma> term_interp_fun \<Rightarrow>
     ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y, '\<V>, '\<Sigma>) lambda_designation_fun \<Rightarrow>
     (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> V" where
-  "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Free x) = \<xi>\<^sub>t\<^sub>e x" |
+  "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Free x \<tau>) = \<xi>\<^sub>t\<^sub>e x" |
   "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Const f \<tau>s ts) =
     \<J> f (map (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y) \<tau>s) (map (denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L>) ts)" |
   "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (App t\<^sub>1 t\<^sub>2) =
@@ -262,7 +262,7 @@ qed simp_all
 subsection \<open>Rest\<close>
 
 locale proper_interp = interp +
-  assumes "app (\<L> \<xi>\<^sub>t\<^sub>y \<xi> (Abs \<tau> t)) a = \<L> \<xi>\<^sub>t\<^sub>y (\<xi>(x := a)) (open_bound 0 \<tau> (Free x) t)"
+  assumes "app (\<L> \<xi>\<^sub>t\<^sub>y \<xi> (Abs \<tau> t)) a = \<L> \<xi>\<^sub>t\<^sub>y (\<xi>(x := a)) (open_bound 0 \<tau> (Free x \<tau>) t)"
 
 declare [[typedef_overloaded]]
 record ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>, '\<Sigma>) interp =
