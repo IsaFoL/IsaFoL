@@ -6,8 +6,6 @@ theory LN_Lambda_Confluence
     "Abstract-Rewriting.Abstract_Rewriting"
 begin
 
-find_theorems "SN_on _ _ \<longleftrightarrow> wf_on _ _"
-
 lemma SN_on_iff_wf_on:
   assumes closed: "\<And>x y. x \<in> A \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> y \<in> A"
   shows "SN_on r A = wf_on A (r\<inverse>)"

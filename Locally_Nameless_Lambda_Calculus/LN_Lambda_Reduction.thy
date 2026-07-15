@@ -82,6 +82,8 @@ next
 qed
 
 
+
+
 subsection \<open>Inversion rules\<close>
 
 text \<open>Inverting a \<open>\<beta>\<close>-step out of an application: either the application is a redex, or the step

@@ -151,7 +151,35 @@ lift_definition TyVar :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^s
   by (rule wf_prety.PretyVar)
 
 definition TyCtr :: "'\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty list \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" where
-  "TyCtr \<kappa> \<tau>s = Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s))"
+  "length \<tau>s = arity \<kappa> \<Longrightarrow> TyCtr \<kappa> \<tau>s = Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s))"
+
+lemma PretyCtr_transfer[transfer_rule]:
+  assumes "length \<tau>s = arity \<kappa>"
+  assumes "list_all2 (pcr_ty (=) (=)) \<tau>s \<tau>s'"
+  shows "pcr_ty (=) (=) (PretyCtr \<kappa> \<tau>s) (TyCtr \<kappa> \<tau>s')"
+proof -
+  have "TyCtr \<kappa> \<tau>s' = Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s'))"
+    by (metis TyCtr_def assms(1,2) list_all2_lengthD)
+
+  have "Rep_ty (Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s'))) = PretyCtr \<kappa> (map Rep_ty \<tau>s')"
+  proof (rule Abs_ty_inverse)
+    show "PretyCtr \<kappa> (map Rep_ty \<tau>s') \<in> {\<tau>. wf_prety \<tau>}"
+      by (metis (no_types, opaque_lifting) PretyCtr Rep_ty assms(1,2) ex_map_conv length_map
+          list_all2_lengthD mem_Collect_eq)
+  qed
+
+  have "map Rep_ty \<tau>s' = \<tau>s"
+    using \<open>list_all2 (pcr_ty (=) (=)) \<tau>s \<tau>s'\<close>
+    by (induction rule: list.rel_induct) (simp_all add: cr_ty_def ty.pcr_cr_eq)
+
+  show ?thesis
+    unfolding ty.pcr_cr_eq cr_ty_def
+    unfolding \<open>TyCtr \<kappa> \<tau>s' = _\<close>
+    unfolding \<open>Rep_ty (Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s'))) = _\<close>
+    unfolding \<open>map Rep_ty \<tau>s' = _\<close> ..
+qed
+
+text \<open>@{thm PretyCtr_transfer} is an unsuccessful attempt to define a transfer rule for \<^const>\<open>TyCtr\<close>.\<close>
 
 lemma wf_prety_PretyCtr:
   assumes "length \<tau>s = arity \<kappa>"
@@ -199,22 +227,23 @@ proof (cases x)
       using TyVar_case .
   next
     case (PretyCtr \<kappa> \<tau>s)
+    then have "length (map Abs_ty \<tau>s) = arity \<kappa>"
+      by simp
 
-    have "P (Abs_ty (PretyCtr \<kappa> (map Rep_ty (map Abs_ty \<tau>s))))"
-    proof (rule TyCtr_case[unfolded TyCtr_def])
+    have "P (TyCtr \<kappa> (map Abs_ty \<tau>s))"
+    proof (rule TyCtr_case)
       show "length (map Abs_ty \<tau>s) = arity \<kappa>"
-        by (simp add: PretyCtr.hyps)
+        using \<open>length (map Abs_ty \<tau>s) = arity \<kappa>\<close> .
     next
       show "\<And>\<tau>. \<tau> \<in> set (map Abs_ty \<tau>s) \<Longrightarrow> P \<tau>"
         using PretyCtr.IH by auto
     qed
 
+    then have "P (Abs_ty (PretyCtr \<kappa> (map Rep_ty (map Abs_ty \<tau>s))))"
+      unfolding TyCtr_def[OF \<open>length (map Abs_ty \<tau>s) = arity \<kappa>\<close>, symmetric] .
+
     moreover have "map Rep_ty (map Abs_ty \<tau>s) = \<tau>s"
-      unfolding list.map_comp comp_def
-    proof (rule list.map_ident_strong)
-      show "\<And>z. z \<in> set \<tau>s \<Longrightarrow> Rep_ty (Abs_ty z) = z"
-        by (simp add: Abs_ty_inverse PretyCtr.IH)
-    qed
+      by (simp add: list.map_comp comp_def list.map_ident_strong Abs_ty_inverse PretyCtr.IH)
 
     ultimately show ?case
       by metis
@@ -290,9 +319,9 @@ proof -
   qed
 
   then show ?thesis
-  unfolding TyCtr_def
-  unfolding size_ty.rep_eq
-  by (simp add: comp_def)
+    unfolding TyCtr_def[OF \<open>length \<tau>s = arity \<kappa>\<close>]
+    unfolding size_ty.rep_eq
+    by (simp add: comp_def)
 qed
 
 lemma size_ty_TyFun:
@@ -318,12 +347,15 @@ lemma subst_ty_simps[simp]:
   "length \<tau>s = arity \<kappa> \<Longrightarrow> TyCtr \<kappa> \<tau>s \<cdot>\<^sub>t\<^sub>y \<sigma> = TyCtr \<kappa> (map (\<lambda>\<tau>. \<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>s)"
 proof -
   show "TyVar x \<cdot>\<^sub>t\<^sub>y \<sigma> = \<sigma> x"
-    by (metis Rep_ty_inject TyVar.rep_eq comp_def id_apply subst_prety.simps(1) subst_ty.rep_eq)
-  show "length \<tau>s = arity \<kappa> \<Longrightarrow> TyCtr \<kappa> \<tau>s \<cdot>\<^sub>t\<^sub>y \<sigma> = TyCtr \<kappa> (map (\<lambda>\<tau>. \<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>s)"
-    by (smt (verit, best) Abs_ty_inverse Rep_ty_inverse
-        TyCtr_def list.map_comp map_eq_conv
-        mem_Collect_eq o_def subst_prety.simps(2)
-        subst_ty.rep_eq wf_prety_PretyCtr)
+    by transfer simp
+next
+  assume assm: "length \<tau>s = arity \<kappa>"
+  have "Abs_ty (PretyCtr \<kappa> (map (Rep_ty \<circ> (\<lambda>t. t \<cdot>\<^sub>t\<^sub>y \<sigma>)) \<tau>s)) = Abs_ty (Rep_ty (Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s)) \<cdot>\<^sub>t\<^sub>y \<sigma>))"
+    by (simp add: Abs_ty_inverse assm subst_ty.rep_eq wf_prety_PretyCtr comp_def)
+  also have "\<dots> = Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s)) \<cdot>\<^sub>t\<^sub>y \<sigma>"
+    by (simp add: Rep_ty_inverse)
+  finally show "TyCtr \<kappa> \<tau>s \<cdot>\<^sub>t\<^sub>y \<sigma> = TyCtr \<kappa> (map (\<lambda>\<tau>. \<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>s)"
+    using assm by (simp add: TyCtr_def)
 qed
 
 lemma subst_ty_TyVar[simp]: "\<tau> \<cdot>\<^sub>t\<^sub>y TyVar = \<tau>"
