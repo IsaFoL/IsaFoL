@@ -20,7 +20,7 @@ inductive beta_reduce :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<
     if "locally_closed t" "beta_reduce u u'" |
 
   Abs: "beta_reduce (Abs \<tau> t) (Abs \<tau> t')"
-    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (open_bound 0 \<tau> (Free x) t) (open_bound 0 \<tau> (Free x) t')" |
+    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (open_bound 0 \<tau> (Free x \<tau>) t) (open_bound 0 \<tau> (Free x \<tau>) t')" |
 
   Const: "beta_reduce (Const c \<tau>s ts) (Const c \<tau>s (ts[i := t']))"
     if "\<forall>t \<in> set ts. locally_closed t" and "i < length ts" and "beta_reduce (ts ! i) t'"
@@ -61,7 +61,7 @@ next
     proof (rule locally_closed.Abs[where \<X> = \<X>])
       fix x
       assume "x |\<notin>| \<X>"
-      then show "locally_closed (open_bound 0 \<tau> (Free x) t)"
+      then show "locally_closed (open_bound 0 \<tau> (Free x \<tau>) t)"
         using Abs.IH by blast
     qed
   next
@@ -69,7 +69,7 @@ next
     proof (rule locally_closed.Abs[where \<X> = \<X>])
       fix x
       assume "x |\<notin>| \<X>"
-      then show "locally_closed (open_bound 0 \<tau> (Free x) t')"
+      then show "locally_closed (open_bound 0 \<tau> (Free x \<tau>) t')"
         using Abs.IH by blast
     qed
   qed
@@ -99,7 +99,7 @@ lemma beta_reduce_AppD:
 lemma beta_reduce_App_AbsD:
   assumes "beta_reduce (App (Abs \<tau>\<^sub>1 t) u) v"
   shows "v = open_bound 0 \<tau>\<^sub>1 u t
-    \<or> (\<exists>t'. v = App (Abs \<tau>\<^sub>1 t') u \<and> (\<exists>\<X>. \<forall>x. x |\<notin>| \<X> \<longrightarrow> beta_reduce (open_bound 0 \<tau>\<^sub>1 (Free x) t) (open_bound 0 \<tau>\<^sub>1 (Free x) t')))
+    \<or> (\<exists>t'. v = App (Abs \<tau>\<^sub>1 t') u \<and> (\<exists>\<X>. \<forall>x. x |\<notin>| \<X> \<longrightarrow> beta_reduce (open_bound 0 \<tau>\<^sub>1 (Free x \<tau>\<^sub>1) t) (open_bound 0 \<tau>\<^sub>1 (Free x \<tau>\<^sub>1) t')))
     \<or> (\<exists>u'. v = App (Abs \<tau>\<^sub>1 t) u' \<and> beta_reduce u u')"
   using assms
 proof (cases rule: beta_reduce_AppD)
@@ -109,7 +109,7 @@ next
   case (left a')
   from \<open>beta_reduce (Abs \<tau>\<^sub>1 t) a'\<close> obtain \<X> t'
     where "a' = Abs \<tau>\<^sub>1 t'" and
-      "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (open_bound 0 \<tau>\<^sub>1 (Free x) t) (open_bound 0 \<tau>\<^sub>1 (Free x) t')"
+      "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce (open_bound 0 \<tau>\<^sub>1 (Free x \<tau>\<^sub>1) t) (open_bound 0 \<tau>\<^sub>1 (Free x \<tau>\<^sub>1) t')"
     by (auto elim!: beta_reduce.cases)
   then show ?thesis
     using \<open>v = App a' u\<close>
@@ -167,11 +167,11 @@ next
     have x_ne_y: "x \<noteq> y" and y_fresh_\<X>: "y |\<notin>| \<X>"
       using y_fresh by auto
     have red_subst:
-      "beta_reduce (subst_free x u (open_bound 0 \<tau> (Free y) t))
-        (subst_free x u (open_bound 0 \<tau> (Free y) t'))"
+      "beta_reduce (subst_free x u (open_bound 0 \<tau> (Free y \<tau>) t))
+        (subst_free x u (open_bound 0 \<tau> (Free y \<tau>) t'))"
       by (rule Abs.IH[OF y_fresh_\<X> Abs.prems])
-    show "beta_reduce (open_bound 0 \<tau> (Free y) (subst_free x u t))
-        (open_bound 0 \<tau> (Free y) (subst_free x u t'))"
+    show "beta_reduce (open_bound 0 \<tau> (Free y \<tau>) (subst_free x u t))
+        (open_bound 0 \<tau> (Free y \<tau>) (subst_free x u t'))"
       using red_subst
       by (simp add: subst_free_commutes_with_open_bound_Free[OF inf_vars x_ne_y Abs.prems])
   qed
@@ -190,13 +190,13 @@ lemma beta_reduce_open_bound_from_fresh:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes fresh: "x \<notin> free_vars t" "x \<notin> free_vars t'"
   assumes opened_red:
-    "beta_reduce (open_bound n \<tau> (Free x) t) (open_bound n \<tau> (Free x) t')"
+    "beta_reduce (open_bound n \<tau> (Free x \<tau>) t) (open_bound n \<tau> (Free x \<tau>) t')"
   assumes lc_v: "locally_closed v"
   shows "beta_reduce (open_bound n \<tau> v t) (open_bound n \<tau> v t')"
 proof -
   have "beta_reduce
-      (subst_free x v (open_bound n \<tau> (Free x) t))
-      (subst_free x v (open_bound n \<tau> (Free x) t'))"
+      (subst_free x v (open_bound n \<tau> (Free x \<tau>) t))
+      (subst_free x v (open_bound n \<tau> (Free x \<tau>) t'))"
     by (rule beta_reduce_subst_free[OF inf_vars opened_red lc_v])
   then show ?thesis
     by (simp add: subst_free_open_bound_Free_eq_open_bound fresh)

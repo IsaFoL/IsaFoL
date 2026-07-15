@@ -72,7 +72,7 @@ qed
 theorem beta_reduce_confluent_on_typed_terms:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   defines "beta_reduce_rel \<equiv> {(t, t'). beta_reduce t (t' :: (_, _, '\<V>) preterm)}"
-  shows "CR_on beta_reduce_rel {t. \<exists>\<C> \<F> \<tau>. has_type \<C> \<F> t \<tau>}"
+  shows "CR_on beta_reduce_rel {t. \<exists>\<C> \<tau>. has_type \<C> t \<tau>}"
 proof (rule Abstract_Rewriting.WCR_SN_on_imp_CR_on)
   show "WCR beta_reduce_rel"
   proof (rule WCR_onI)
@@ -96,14 +96,14 @@ proof (rule Abstract_Rewriting.WCR_SN_on_imp_CR_on)
       using bv_set vc_set by auto
   qed
 next
-  show "SN_on beta_reduce_rel {t. \<exists>\<C> \<F> \<tau>. has_type \<C> \<F> t \<tau>}"
+  show "SN_on beta_reduce_rel {t. \<exists>\<C> \<tau>. has_type \<C> t \<tau>}"
   proof (rule SN_on_iff_wf_on[THEN iffD2])
-    show "\<And>x y. x \<in> {t. \<exists>\<C> \<F> \<tau>. has_type \<C> \<F> t \<tau>} \<Longrightarrow> (x, y) \<in> beta_reduce_rel \<Longrightarrow>
-      y \<in> {t. \<exists>\<C> \<F> \<tau>. has_type \<C> \<F> t \<tau>}"
+    show "\<And>x y. x \<in> {t. \<exists>\<C> \<tau>. has_type \<C> t \<tau>} \<Longrightarrow> (x, y) \<in> beta_reduce_rel \<Longrightarrow>
+      y \<in> {t. \<exists>\<C> \<tau>. has_type \<C> t \<tau>}"
       using LN_Lambda_Typing_Safety.preservation[OF inf_vars]
       using beta_reduce_rel_def by blast
   next
-    show "wf_on {t. \<exists>\<C> \<F>. Ex (has_type \<C> \<F> t)} (beta_reduce_rel\<inverse>)"
+    show "wf_on {t. \<exists>\<C>. Ex (has_type \<C> t)} (beta_reduce_rel\<inverse>)"
       unfolding beta_reduce_rel_def
       using strong_normalization_of_typed_terms[OF inf_vars, unfolded conversep_iff]
       using wfp_on_wf_on_eq by fastforce

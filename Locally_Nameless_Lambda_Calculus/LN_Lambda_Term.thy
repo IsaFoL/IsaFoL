@@ -11,7 +11,7 @@ declare foldl_inject[simp]
 
 datatype (type_symbols: '\<tau>, const_symbols: '\<Sigma>, free_vars: '\<V>) preterm =
   is_Const: Const '\<Sigma> "'\<tau> list" "('\<tau>, '\<Sigma>, '\<V>) preterm list" |
-  is_Free: Free '\<V> |
+  is_Free: Free '\<V> '\<tau> |
   is_Bound: Bound nat '\<tau> |
   is_App: App "('\<tau>, '\<Sigma>, '\<V>) preterm" "('\<tau>, '\<Sigma>, '\<V>) preterm" |
   is_Abs: Abs "'\<tau>" "('\<tau>, '\<Sigma>, '\<V>) preterm"
@@ -49,7 +49,7 @@ declare fset_of_list.rep_eq[termination_simp]
 
 fun free_vars_fset :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> '\<V> fset" where
   "free_vars_fset (Const _ _ ts) = ffUnion (free_vars_fset |`| fset_of_list ts)" |
-  "free_vars_fset (Free x) = {|x|}" |
+  "free_vars_fset (Free x _) = {|x|}" |
   "free_vars_fset (Bound _ _) = {||}" |
   "free_vars_fset (App t\<^sub>1 t\<^sub>2) = free_vars_fset t\<^sub>1 |\<union>| free_vars_fset t\<^sub>2" |
   "free_vars_fset (Abs _ t) = free_vars_fset t"
@@ -61,10 +61,10 @@ lemma free_vars_fset_rep_eq: "fset (free_vars_fset t) = free_vars t"
 primrec open_bound ::
   "nat \<Rightarrow> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
   "open_bound n \<tau> u (Const c \<tau>s ts) = Const c \<tau>s ts" |
-  "open_bound n \<tau> u (Free f) = Free f" |
-  "open_bound n \<tau> u (Bound k \<sigma>) = (if k = n \<and> \<sigma> = \<tau> then u else Bound k \<sigma>)" |
+  "open_bound n \<tau> u (Free x \<tau>\<^sub>x) = Free x \<tau>\<^sub>x" |
+  "open_bound n \<tau> u (Bound k \<tau>\<^sub>k) = (if k = n \<and> \<tau>\<^sub>k = \<tau> then u else Bound k \<tau>\<^sub>k)" |
   "open_bound n \<tau> u (App t\<^sub>1 t\<^sub>2) = App (open_bound n \<tau> u t\<^sub>1) (open_bound n \<tau> u t\<^sub>2)" |
-  "open_bound n \<tau> u (Abs \<sigma> t) = Abs \<sigma> (open_bound (Suc n) \<tau> u t)"
+  "open_bound n \<tau> u (Abs \<tau>\<^sub>2 t) = Abs \<tau>\<^sub>2 (open_bound (Suc n) \<tau> u t)"
 
 lemma free_vars_open_bound_subset:
   "free_vars (open_bound n \<tau> u t) \<subseteq> free_vars t \<union> free_vars u"
@@ -73,14 +73,14 @@ lemma free_vars_open_bound_subset:
 inductive locally_closed :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
   Const: "locally_closed (Const c \<tau>s ts)"
     if "list_all locally_closed ts" for c \<tau>s ts |
-  Free: "locally_closed (Free f)" |
+  Free: "locally_closed (Free x \<tau>\<^sub>x)" |
   App: "locally_closed (App t\<^sub>1 t\<^sub>2)"
     if "locally_closed t\<^sub>1" and "locally_closed t\<^sub>2" |
   Abs: "locally_closed (Abs \<tau> t)"
-    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> locally_closed (open_bound 0 \<tau> (Free x) t)"
+    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> locally_closed (open_bound 0 \<tau> (Free x \<tau>) t)"
 
 definition body where
-  "body \<tau> t \<longleftrightarrow> (\<exists>\<X>. \<forall>x. x |\<notin>| \<X> \<longrightarrow> locally_closed (open_bound 0 \<tau> (Free x) t))"
+  "body \<tau> t \<longleftrightarrow> (\<exists>\<X>. \<forall>x. x |\<notin>| \<X> \<longrightarrow> locally_closed (open_bound 0 \<tau> (Free x \<tau>) t))"
 
 text \<open>A structural, level-indexed notion of local closure: \<open>locally_closed_at k t\<close> holds when every
   dangling bound index of \<open>t\<close> is smaller than \<open>k\<close>. Constant parameters are required to be
@@ -91,15 +91,14 @@ text \<open>A structural, level-indexed notion of local closure: \<open>locally_
 inductive locally_closed_at :: "nat \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
   Bound: "locally_closed_at k (Bound i \<tau>)" if "i < k" |
   Const: "locally_closed_at k (Const c \<tau>s ts)" if "list_all (locally_closed_at 0) ts" for k c \<tau>s ts |
-  Free: "locally_closed_at k (Free f)" |
+  Free: "locally_closed_at k (Free x \<tau>\<^sub>x)" |
   App: "locally_closed_at k (App t\<^sub>1 t\<^sub>2)" if "locally_closed_at k t\<^sub>1" and "locally_closed_at k t\<^sub>2" |
   Abs: "locally_closed_at k (Abs \<tau> t)" if "locally_closed_at (Suc k) t"
 
+declare locally_closed_at.Free[simp]
+
 lemma locally_closed_at_Bound_iff[simp]: "locally_closed_at k (Bound i \<tau>) \<longleftrightarrow> i < k"
   by (auto elim: locally_closed_at.cases intro: locally_closed_at.Bound)
-
-lemma locally_closed_at_Free[simp]: "locally_closed_at k (Free f)"
-  by (rule locally_closed_at.Free)
 
 lemma locally_closed_App_iff: "locally_closed (App t\<^sub>1 t\<^sub>2) \<longleftrightarrow> locally_closed t\<^sub>1 \<and> locally_closed t\<^sub>2"
   by (auto elim: locally_closed.cases intro: locally_closed.App)
@@ -128,7 +127,7 @@ lemma locally_closed_at_Const_iff[simp]:
   by (auto elim: locally_closed_at.cases intro: locally_closed_at.Const simp: list.pred_set)
 
 lemma locally_closed_at_Suc_if_open_bound_Free:
-  "locally_closed_at k (open_bound k \<tau> (Free x) t) \<Longrightarrow> locally_closed_at (Suc k) t"
+  "locally_closed_at k (open_bound k \<tau> (Free x \<tau>) t) \<Longrightarrow> locally_closed_at (Suc k) t"
   by (induction t arbitrary: k) (auto split: if_splits)
 
 
@@ -141,12 +140,12 @@ lemma locally_closed_at_mono:
 primrec subst_free
   :: "'\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
   "subst_free x u (Const c \<tau>s ts) = Const c \<tau>s ts"|
-  "subst_free x u (Free y) = (if x = y then u else Free y)" |
+  "subst_free x u (Free y \<tau>) = (if x = y then u else Free y \<tau>)" |
   "subst_free x u (Bound k \<tau>) = Bound k \<tau>" |
   "subst_free x u (App t\<^sub>1 t\<^sub>2) = App (subst_free x u t\<^sub>1) (subst_free x u t\<^sub>2)" |
   "subst_free x u (Abs \<tau> t) = Abs \<tau> (subst_free x u t)"
 
-lemma size_open_bound_Free[simp]: "size (open_bound n \<tau> (Free x) t) = size t"
+lemma size_open_bound_Free[simp]: "size (open_bound n \<tau> (Free x \<tau>) t) = size t"
   by (induction t arbitrary: n) simp_all
 
 text \<open>Over a finite variable type, a cofinite binder premise may be vacuous.\<close>
@@ -205,7 +204,7 @@ next
   case (Abs \<X> \<tau> t)
   obtain x :: '\<V> where fresh: "x |\<notin>| \<X>"
     using inf_vars by (metis ex_new_if_finite finite_fset)
-  have "locally_closed_at 0 (open_bound 0 \<tau> (Free x) t)"
+  have "locally_closed_at 0 (open_bound 0 \<tau> (Free x \<tau>) t)"
     by (rule Abs.IH[OF fresh])
   then have "locally_closed_at (Suc 0) t"
     by (rule locally_closed_at_Suc_if_open_bound_Free)
@@ -243,14 +242,14 @@ lemma subst_free_commutes_with_open_bound_Free:
   fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and "x \<noteq> y" and "locally_closed u"
-  shows "subst_free x u (open_bound n \<tau> (Free y) t) =
-    open_bound n \<tau> (Free y) (subst_free x u t)"
-  using subst_open[OF inf_vars \<open>locally_closed u\<close>, of x n \<tau> "Free y" t]
+  shows "subst_free x u (open_bound n \<tau> (Free y \<tau>) t) =
+    open_bound n \<tau> (Free y \<tau>) (subst_free x u t)"
+  using subst_open[OF inf_vars \<open>locally_closed u\<close>, of x n \<tau> "Free y \<tau>" t]
     \<open>x \<noteq> y\<close> by simp
 
 lemma subst_free_open_bound_Free_eq_open_bound:
   assumes "x \<notin> free_vars t"
-  shows "subst_free x u (open_bound n \<tau> (Free x) t) = open_bound n \<tau> u t"
+  shows "subst_free x u (open_bound n \<tau> (Free x \<tau>) t) = open_bound n \<tau> u t"
   using assms by (induction t arbitrary: n) auto
 
 lemma locally_closed_subst_free:
@@ -281,7 +280,7 @@ proof (cases "infinite (UNIV :: '\<V> set)")
       fix y
       assume fresh: "y |\<notin>| finsert x \<X>"
       then have "x \<noteq> y" and "y |\<notin>| \<X>" by auto
-      show "locally_closed (open_bound 0 \<tau> (Free y) (subst_free x u t))"
+      show "locally_closed (open_bound 0 \<tau> (Free y \<tau>) (subst_free x u t))"
         using Abs.IH[OF \<open>y |\<notin>| \<X>\<close>]
         by (simp add: subst_free_commutes_with_open_bound_Free[
               OF inf_vars \<open>x \<noteq> y\<close> lc_u, symmetric])
@@ -316,12 +315,12 @@ lemma locally_closed_open_bound:
   shows "locally_closed (open_bound 0 \<tau> u t)"
 proof -
   obtain \<X> :: "'\<V> fset" where opened:
-      "\<And>x. x |\<notin>| \<X> \<Longrightarrow> locally_closed (open_bound 0 \<tau> (Free x) t)"
+      "\<And>x. x |\<notin>| \<X> \<Longrightarrow> locally_closed (open_bound 0 \<tau> (Free x \<tau>) t)"
     using body unfolding body_def by blast
   obtain x :: '\<V> where fresh_\<X>: "x |\<notin>| \<X>" and fresh_t: "x \<notin> free_vars t"
     using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t|}"]
     by blast
-  have "locally_closed (subst_free x u (open_bound 0 \<tau> (Free x) t))"
+  have "locally_closed (subst_free x u (open_bound 0 \<tau> (Free x \<tau>) t))"
     by (rule locally_closed_subst_free[OF opened[OF fresh_\<X>] lc_u])
   then show ?thesis
     by (simp add: subst_free_open_bound_Free_eq_open_bound[OF fresh_t])
@@ -367,14 +366,14 @@ lemma open_bound_commute:
 
 primrec shift_bound :: "nat \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
   "shift_bound n (Const c \<tau>s ts) = Const c \<tau>s ts" |
-  "shift_bound n (Free f) = Free f" |
+  "shift_bound n (Free x \<tau>) = Free x \<tau>" |
   "shift_bound n (Bound k \<tau>) = Bound (if k < n then k else Suc k) \<tau>" |
   "shift_bound n (App t\<^sub>1 t\<^sub>2) = App (shift_bound n t\<^sub>1) (shift_bound n t\<^sub>2)" |
   "shift_bound n (Abs \<tau> t) = Abs \<tau> (shift_bound (Suc n) t)"
 
 primrec head where
   "head (Const c \<tau>s ts) = Const c \<tau>s ts" |
-  "head (Free x) = Free x" |
+  "head (Free x \<tau>) = Free x \<tau>" |
   "head (Bound n \<tau>) = Bound n \<tau>" |
   "head (App t\<^sub>1 t\<^sub>2) = head t\<^sub>1" |
   "head (Abs \<tau> t) = head t"

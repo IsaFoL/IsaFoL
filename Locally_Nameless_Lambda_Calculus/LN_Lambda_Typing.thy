@@ -452,28 +452,27 @@ section \<open>Type System\<close>
 type_synonym ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty = "'\<V>\<^sub>t\<^sub>y dlist \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty list \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
 
 inductive has_type ::
-  "('\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) const_ty) \<Rightarrow> ('\<V> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty) \<Rightarrow>
+  "('\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) const_ty) \<Rightarrow>
     (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty \<Rightarrow> bool"
   for \<C> where
-  Const: "has_type \<C> \<F> (Const c \<tau>\<^sub>1s ts) \<tau>"
+  Const: "has_type \<C> (Const c \<tau>\<^sub>1s ts) \<tau>"
     if "\<C> c = (\<alpha>s, \<tau>\<^sub>2s, \<tau>\<^sub>3)" and "Dlist.length \<alpha>s = length \<tau>\<^sub>1s" and
       "\<sigma> = fun_upds TyVar (list_of_dlist \<alpha>s) \<tau>\<^sub>1s" and
-      "list_all2 (has_type \<C> \<F>) ts (map (\<lambda>\<tau>\<^sub>2. \<tau>\<^sub>2 \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>\<^sub>2s)" and
+      "list_all2 (has_type \<C>) ts (map (\<lambda>\<tau>\<^sub>2. \<tau>\<^sub>2 \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>\<^sub>2s)" and
       "\<tau> = \<tau>\<^sub>3 \<cdot>\<^sub>t\<^sub>y \<sigma>"
-    for \<F> :: "'\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) const_ty" and c \<tau>\<^sub>1s ts \<tau> |
-  Free: "has_type \<C> \<F> (Free f) \<tau>"
-    if "\<F> f = \<tau>"
-    for \<F> f \<tau> |
-  App: "has_type \<C> \<F> (App t\<^sub>1 t\<^sub>2) \<tau>\<^sub>2"
-    if "has_type \<C> \<F> t\<^sub>1 (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2)" and "has_type \<C> \<F> t\<^sub>2 \<tau>\<^sub>1"
-    for \<F> t\<^sub>1 t\<^sub>2 \<tau>\<^sub>1 \<tau>\<^sub>2 |
-  Abs: "has_type \<C> \<F> (Abs \<tau>\<^sub>1 t) (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2)"
-    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> has_type \<C> (\<F>(x := \<tau>\<^sub>1)) (open_bound 0 \<tau>\<^sub>1 (Free x) t) \<tau>\<^sub>2"
-    for \<F> t \<tau>\<^sub>1 \<tau>\<^sub>2 \<X>
+    for c \<tau>\<^sub>1s ts \<tau> |
+  Free: "has_type \<C> (Free x \<tau>) \<tau>"
+    for x \<tau> |
+  App: "has_type \<C> (App t\<^sub>1 t\<^sub>2) \<tau>\<^sub>2"
+    if "has_type \<C> t\<^sub>1 (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2)" and "has_type \<C> t\<^sub>2 \<tau>\<^sub>1"
+    for t\<^sub>1 t\<^sub>2 \<tau>\<^sub>1 \<tau>\<^sub>2 |
+  Abs: "has_type \<C> (Abs \<tau>\<^sub>1 t) (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2)"
+    if "\<And>x. x |\<notin>| \<X> \<Longrightarrow> has_type \<C> (open_bound 0 \<tau>\<^sub>1 (Free x \<tau>\<^sub>1) t) \<tau>\<^sub>2"
+    for t \<tau>\<^sub>1 \<tau>\<^sub>2 \<X>
 
-lemma locally_closed_if_has_type[intro]: "has_type \<C> \<F> t \<tau> \<Longrightarrow> locally_closed t"
-proof (induction \<F> t \<tau> rule: has_type.induct)
-  case (Const \<F> c \<tau>\<^sub>1s ts \<tau>\<^sub>3 \<alpha>s \<tau>\<^sub>2s)
+lemma locally_closed_if_has_type[intro]: "has_type \<C> t \<tau> \<Longrightarrow> locally_closed t"
+proof (induction t \<tau> rule: has_type.induct)
+  case (Const c \<tau>\<^sub>1s ts \<tau> \<alpha>s \<tau>\<^sub>2s \<tau>\<^sub>3 \<sigma>)
   show ?case
   proof (rule locally_closed.Const)
     show "list_all locally_closed ts"
@@ -489,127 +488,127 @@ next
   then show ?case
     by (auto intro: locally_closed.App)
 next
-  case (Abs \<F> t \<tau>\<^sub>1 \<tau>\<^sub>2 \<X>)
+  case (Abs t \<tau>\<^sub>1 \<tau>\<^sub>2 \<X>)
   show ?case
   proof (rule locally_closed.Abs[where \<X> = \<X>])
     fix x
     assume "x |\<notin>| \<X>"
-    then show "locally_closed (open_bound 0 \<tau>\<^sub>1 (Free x) t)"
+    then show "locally_closed (open_bound 0 \<tau>\<^sub>1 (Free x \<tau>\<^sub>1) t)"
       by (rule Abs.IH)
   qed
 qed
 
+text \<open>Since \<^const>\<open>has_type\<close> no longer carries a typing environment for free variables (they are
+  typed by their own annotation instead), soundly substituting \<open>u\<close> for \<open>x\<close> in a well-typed term
+  requires every occurrence of \<open>x\<close> in that term to carry the same annotation as \<open>u\<close>'s type ---
+  \<^const>\<open>subst_free\<close> matches on the variable's name alone and ignores the stored annotation.
+  \<open>free_var_types\<close> (defined below) collects those annotations.\<close>
 
-lemma has_type_weaken_funenv:
-  "has_type \<C> \<F> t \<tau>\<^sub>1 \<Longrightarrow> x \<notin> free_vars t \<Longrightarrow> has_type \<C> (\<F>(x := \<tau>\<^sub>2)) t \<tau>\<^sub>1"
-proof (induction \<F> t \<tau>\<^sub>1 rule: has_type.induct)
-  case (Const \<F> c \<tau>\<^sub>1s ts \<tau> \<alpha>s \<tau>\<^sub>2s \<tau>\<^sub>3 \<sigma>)
-  show ?case
-  proof (rule has_type.Const)
-    show "list_all2 (has_type \<C> (\<F>(x := \<tau>\<^sub>2))) ts (map (\<lambda>\<tau>\<^sub>2. \<tau>\<^sub>2 \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>\<^sub>2s)"
-      by (rule list.rel_mono_strong[OF Const.IH]) (use Const.prems in force)
-  qed (use Const in simp_all)
-next
-  case (Free \<F> f \<tau>)
-  then show ?case
-    by (simp add: has_type.Free)
-next
-  case (App \<F> t\<^sub>1 t\<^sub>2 \<tau>\<^sub>1 \<tau>\<^sub>2)
-  then show ?case
-    by (auto intro: has_type.intros)
-next
-  case (Abs \<F> t \<tau>\<^sub>1 \<tau>\<^sub>3 \<X>)
-  show ?case
-  proof (rule has_type.Abs)
-    fix y
-    assume "y |\<notin>| \<X>"
-    show "has_type \<C> (\<F>(x := \<tau>\<^sub>2, y := \<tau>\<^sub>1)) (open_bound 0 \<tau>\<^sub>1 (Free y) t) \<tau>\<^sub>3"
-    proof (cases "x = y")
-      case True
+primrec free_var_types :: "'\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> '\<tau> set" where
+  "free_var_types x (Const c \<tau>s ts) = {}" |
+  "free_var_types x (Free y \<tau>) = (if x = y then {\<tau>} else {})" |
+  "free_var_types x (Bound k \<tau>) = {}" |
+  "free_var_types x (App t\<^sub>1 t\<^sub>2) = free_var_types x t\<^sub>1 \<union> free_var_types x t\<^sub>2" |
+  "free_var_types x (Abs \<tau> t) = free_var_types x t"
 
-      then have "\<F>(x := \<tau>\<^sub>2, y := \<tau>\<^sub>1) = \<F>(y := \<tau>\<^sub>1)"
-        by simp
+text \<open>\<^const>\<open>free_var_types\<close> ignores a \<open>Const\<close>'s parameters, matching the opacity of
+  \<^const>\<open>subst_free\<close> and \<^const>\<open>open_bound\<close> towards them (see the note on
+  \<^const>\<open>locally_closed_at\<close>): since substitution never descends into a constant's parameters,
+  their annotations are irrelevant to the soundness of the substitution lemma below.\<close>
 
-      then show ?thesis
-        using Abs.hyps \<open>y |\<notin>| \<X>\<close> by metis
-    next
-      case False
+lemma free_var_types_empty_if_not_in_free_vars:
+  "x \<notin> free_vars t \<Longrightarrow> free_var_types x t = {}"
+  by (induction t) auto
 
-      then have "\<F>(x := \<tau>\<^sub>2, y := \<tau>\<^sub>1) = \<F>(y := \<tau>\<^sub>1, x := \<tau>\<^sub>2)"
-        by auto
+lemma free_var_types_open_bound_Free_other[simp]:
+  "x \<noteq> y \<Longrightarrow> free_var_types x (open_bound n \<tau> (Free y \<tau>) t) = free_var_types x t"
+  by (induction t arbitrary: n) auto
 
-      moreover have "x \<notin> free_vars (open_bound 0 \<tau>\<^sub>1 (Free y) t)"
-        using \<open>x \<notin> free_vars (Abs \<tau>\<^sub>1 t)\<close>[simplified] \<open>x \<noteq> y\<close>
-        using free_vars_open_bound_subset by force
-
-      ultimately show ?thesis
-        using Abs.IH[OF \<open>y |\<notin>| \<X>\<close>] by metis
-    qed
-  qed
-qed
+lemma free_var_types_open_bound_Free_subset:
+  "free_var_types x (open_bound n \<tau> (Free x \<tau>) t) \<subseteq> insert \<tau> (free_var_types x t)"
+  by (induction t arbitrary: n) auto
 
 lemma has_type_subst_free:
   fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
-  assumes "has_type \<C> \<F> t \<tau>\<^sub>1" and "\<F> x = \<tau>\<^sub>2" and "has_type \<C> \<F> u \<tau>\<^sub>2"
-  shows "has_type \<C> \<F> (subst_free x u t) \<tau>\<^sub>1"
-  using assms
-proof (induction \<F> t \<tau>\<^sub>1 rule: has_type.induct)
-  case (Const \<F> c \<tau>\<^sub>1s ts \<tau>\<^sub>3 \<alpha>s \<tau>\<^sub>2s)
-  then show ?case
-    by (simp add: has_type.Const list_all2_mono)
-next
-  case (Free \<F> f \<tau>)
-  then show ?case
-    by (auto intro: has_type.intros)
-next
-  case (App \<F> t\<^sub>1 t\<^sub>2 \<tau>\<^sub>1 \<tau>\<^sub>2)
-  then show ?case
-    by (auto intro: has_type.intros)
-next
-  case (Abs \<F> t \<tau>\<^sub>1 \<tau>\<^sub>3 \<X>)
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  assumes ht_t: "has_type \<C> t \<tau>\<^sub>1" and consistent: "free_var_types x t \<subseteq> {\<tau>\<^sub>2}"
+    and ht_u: "has_type \<C> u \<tau>\<^sub>2"
+  shows "has_type \<C> (subst_free x u t) \<tau>\<^sub>1"
+  using ht_t consistent
+proof (induction t \<tau>\<^sub>1 rule: has_type.induct)
+  case (Const c \<tau>\<^sub>1s ts \<tau> \<alpha>s \<tau>\<^sub>2s \<tau>\<^sub>3 \<sigma>)
   show ?case
-  proof (cases "infinite (UNIV :: '\<V> set)")
-    case inf_vars: True
-    show ?thesis
-      unfolding subst_free.simps
-    proof (rule has_type.Abs)
-      fix y
-      assume y_in: "y |\<notin>| finsert x (free_vars_fset t |\<union>| free_vars_fset u |\<union>| \<X>)"
-
-      then have "x \<noteq> y"
-        by blast
-
-      moreover have "locally_closed u"
-        using Abs.prems by auto
-
-      moreover have "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (subst_free x u (open_bound 0 \<tau>\<^sub>1 (Free y) t)) \<tau>\<^sub>3"
-      proof (rule Abs.IH)
-        show "y |\<notin>| \<X>"
-          using y_in by simp
-      next
-        show "(\<F>(y := \<tau>\<^sub>1)) x = \<tau>\<^sub>2"
-          using Abs.prems \<open>x \<noteq> y\<close> by simp
-      next
-        have "y \<notin> free_vars u"
-        by (metis y_in free_vars_fset_rep_eq[of u] funion_finsert_left[of x] funionCI[of y])
-
-        then show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) u \<tau>\<^sub>2"
-          using Abs.prems has_type_weaken_funenv by metis
-      qed
-
-      ultimately show "has_type \<C> (\<F>(y := \<tau>\<^sub>1)) (open_bound 0 \<tau>\<^sub>1 (Free y) (subst_free x u t)) \<tau>\<^sub>3"
-        using subst_free_commutes_with_open_bound_Free[OF inf_vars] by metis
-    qed
+    unfolding subst_free.simps
+  proof (rule has_type.Const)
+    show "\<C> c = (\<alpha>s, \<tau>\<^sub>2s, \<tau>\<^sub>3)" by (rule Const.hyps(1))
+    show "Dlist.length \<alpha>s = length \<tau>\<^sub>1s" by (rule Const.hyps(2))
+    show "\<sigma> = fun_upds TyVar (list_of_dlist \<alpha>s) \<tau>\<^sub>1s" by (rule Const.hyps(3))
+    show "list_all2 (has_type \<C>) ts (map (\<lambda>\<tau>\<^sub>2. \<tau>\<^sub>2 \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>\<^sub>2s)"
+      by (rule list.rel_mono_strong[OF Const.IH]) simp
+    show "\<tau> = \<tau>\<^sub>3 \<cdot>\<^sub>t\<^sub>y \<sigma>" by (rule Const.hyps(4))
+  qed
+next
+  case (Free y \<tau>)
+  show ?case
+  proof (cases "x = y")
+    case True
+    then have "\<tau> = \<tau>\<^sub>2"
+      using Free.prems by auto
+    then show ?thesis
+      using True ht_u by (simp add: has_type.Free)
   next
     case False
-    then have fin_vars: "finite (UNIV :: '\<V> set)"
-      by simp
-    obtain \<Y> :: "'\<V> fset" where "\<forall>y. y |\<in>| \<Y>"
-      using ex_fset_UNIV[OF fin_vars] by blast
     then show ?thesis
-      unfolding subst_free.simps
-      by (auto intro: has_type.Abs[where \<X> = \<Y>])
+      by (simp add: has_type.Free)
   qed
+next
+  case (App s\<^sub>1 s\<^sub>2 \<rho>\<^sub>1 \<rho>\<^sub>2)
+  have prems1: "free_var_types x s\<^sub>1 \<subseteq> {\<tau>\<^sub>2}" and prems2: "free_var_types x s\<^sub>2 \<subseteq> {\<tau>\<^sub>2}"
+    using App.prems by auto
+  have "has_type \<C> (subst_free x u s\<^sub>1) (TyFun \<rho>\<^sub>1 \<rho>\<^sub>2)"
+    using App.IH(1)[OF prems1] .
+  moreover have "has_type \<C> (subst_free x u s\<^sub>2) \<rho>\<^sub>1"
+    using App.IH(2)[OF prems2] .
+  ultimately show ?case
+    unfolding subst_free.simps
+    by (rule has_type.App)
+next
+  case (Abs t \<rho>\<^sub>1 \<rho>\<^sub>2 \<X>)
+  show ?case
+    unfolding subst_free.simps
+  proof (rule has_type.Abs[where \<X> = "finsert x \<X>"])
+    fix y
+    assume y_in: "y |\<notin>| finsert x \<X>"
+    then have x_ne_y: "x \<noteq> y" and y_notin_\<X>: "y |\<notin>| \<X>"
+      by auto
+    have consistent': "free_var_types x (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t) \<subseteq> {\<tau>\<^sub>2}"
+      using Abs.prems x_ne_y by simp
+    have "has_type \<C> (subst_free x u (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t)) \<rho>\<^sub>2"
+      using Abs.IH[OF y_notin_\<X> consistent'] .
+    then show "has_type \<C> (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) (subst_free x u t)) \<rho>\<^sub>2"
+      using subst_free_commutes_with_open_bound_Free[
+          OF inf_vars x_ne_y locally_closed_if_has_type[OF ht_u]]
+      by metis
+  qed
+qed
+
+lemma has_type_open_bound:
+  fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  assumes body_typed: "\<And>x. x |\<notin>| \<X> \<Longrightarrow> has_type \<C> (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t) \<tau>\<^sub>1"
+    and arg_typed: "has_type \<C> u \<tau>\<^sub>2"
+  shows "has_type \<C> (open_bound 0 \<tau>\<^sub>2 u t) \<tau>\<^sub>1"
+proof -
+  obtain x where fresh_\<X>: "x |\<notin>| \<X>" and fresh_t: "x \<notin> free_vars t"
+    using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t|}"]
+    by blast
+  have consistent: "free_var_types x (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t) \<subseteq> {\<tau>\<^sub>2}"
+    using free_var_types_open_bound_Free_subset[of x 0 \<tau>\<^sub>2 t]
+    by (simp add: free_var_types_empty_if_not_in_free_vars[OF fresh_t])
+  have "has_type \<C> (subst_free x u (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t)) \<tau>\<^sub>1"
+    by (rule has_type_subst_free[OF inf_vars body_typed[OF fresh_\<X>] consistent arg_typed])
+  then show ?thesis
+    by (simp add: subst_free_open_bound_Free_eq_open_bound[OF fresh_t])
 qed
 
 
