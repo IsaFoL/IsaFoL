@@ -1,6 +1,6 @@
-theory LN_Lambda_Substitution
+theory LNLC_Substitution
   imports
-    LN_Lambda_Term
+    LNLC_Term
     "Abstract_Substitution.Substitution"
 begin
 
@@ -13,7 +13,7 @@ text \<open>The paper's substitutions (\<open>\<rho>\<close>) map term variables
   we define a general substitution keyed on \<open>'\<V> \<times> '\<tau>\<close> pairs, faithful to the paper's \<open>x\<langle>\<tau>\<rangle>\<close>
   notation, and show it forms an @{locale substitution} in the sense of
   \<^theory>\<open>Abstract_Substitution.Substitution\<close> --- mirroring the treatment of type substitutions in
-  theory \<open>LN_Lambda_Typing\<close>.\<close>
+  theory \<open>LNLC_Typing\<close>.\<close>
 
 primrec subst_preterm ::
   "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm) \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm"
@@ -36,7 +36,7 @@ text \<open>Unlike \<^const>\<open>subst_free\<close> and \<^const>\<open>open_b
   (they are locally closed), but they routinely contain free term variables, which a substitution
   must reach (see \<open>basic.tex\<close>, lines 653, 798, 874, 936, 984--985, 1305, 1346, 1801--1804, and
   1882--1884). This makes \<^const>\<open>subst_preterm\<close> genuinely more general than \<^const>\<open>subst_free\<close>: the
-  latter (and \<open>close_free\<close> in theory \<open>LN_Lambda_Local_Confluence\<close>, which it is tied to via
+  latter (and \<open>close_free\<close> in theory \<open>LNLC_Local_Confluence\<close>, which it is tied to via
   \<open>open_bound_close_free\<close>) must stay opaque towards parameters, since \<open>close_free\<close> would otherwise
   be able to plant a free De Bruijn index inside a parameter, which the paper forbids. Since the
   specific variable a \<open>\<lambda>\<close>-abstraction binds never occurs inside a parameter, this opacity is

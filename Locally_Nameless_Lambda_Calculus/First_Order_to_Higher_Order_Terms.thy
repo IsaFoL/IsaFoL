@@ -1,7 +1,7 @@
 theory First_Order_to_Higher_Order_Terms
   imports
     "First_Order_Terms.Term"
-    LN_Lambda_Term
+    LNLC_Term
 begin
 
 lemma foldl_def_eq_def_iff_list_eq_nil:
@@ -22,16 +22,16 @@ text \<open>First-order terms carry no type information, so the free variables p
   annotated according to an externally supplied type environment \<open>\<F>\<close> for first-order variable
   names.\<close>
 
-primrec foterm_to_hoterm :: "('f \<Rightarrow> '\<tau>) \<Rightarrow> ('c, 'f) Term.term \<Rightarrow> ('\<tau>, 'c, 'f) LN_Lambda_Term.preterm"  where
+primrec foterm_to_hoterm :: "('f \<Rightarrow> '\<tau>) \<Rightarrow> ('c, 'f) Term.term \<Rightarrow> ('\<tau>, 'c, 'f) LNLC_Term.preterm"  where
   "foterm_to_hoterm \<F> (Term.Var x) = Free x (\<F> x)" |
   "foterm_to_hoterm \<F> (Term.Fun f ts) = foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) ts)"
 
 lemma
-  fixes z :: "('\<tau>, 'c, 'f) LN_Lambda_Term.preterm"
+  fixes z :: "('\<tau>, 'c, 'f) LNLC_Term.preterm"
   assumes "\<And>x y. App x y \<noteq> z"
   shows "inj (foldl App z)"
 proof (rule injI)
-  fix xs ys :: "('\<tau>, 'c, 'f) LN_Lambda_Term.preterm list"
+  fix xs ys :: "('\<tau>, 'c, 'f) LNLC_Term.preterm list"
   assume "foldl App z xs = foldl App z ys"
   thus "xs = ys"
     using assms
@@ -63,7 +63,7 @@ next
       by simp
     then show ?thesis ..
   next
-    fix t\<^sub>1 t\<^sub>2 :: "('\<tau>, 'c, 'f) LN_Lambda_Term.preterm"
+    fix t\<^sub>1 t\<^sub>2 :: "('\<tau>, 'c, 'f) LNLC_Term.preterm"
     have "foterm_to_hoterm \<F> (Term.Fun f (arg # args)) =
       foldl App (Const f [] []) (foterm_to_hoterm \<F> arg # map (foterm_to_hoterm \<F>) args)"
       unfolding foterm_to_hoterm.simps

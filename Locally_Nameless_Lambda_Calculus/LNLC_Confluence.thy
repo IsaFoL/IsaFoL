@@ -1,8 +1,8 @@
-theory LN_Lambda_Confluence
+theory LNLC_Confluence
   imports
-    LN_Lambda_Strong_Normalization
-    LN_Lambda_Local_Confluence
-    LN_Lambda_Typing_Safety
+    LNLC_Strong_Normalization
+    LNLC_Local_Confluence
+    LNLC_Typing_Safety
     "Abstract-Rewriting.Abstract_Rewriting"
 begin
 
@@ -100,7 +100,7 @@ next
   proof (rule SN_on_iff_wf_on[THEN iffD2])
     show "\<And>x y. x \<in> {t. \<exists>\<C> \<tau>. has_type \<C> t \<tau>} \<Longrightarrow> (x, y) \<in> beta_reduce_rel \<Longrightarrow>
       y \<in> {t. \<exists>\<C> \<tau>. has_type \<C> t \<tau>}"
-      using LN_Lambda_Typing_Safety.preservation[OF inf_vars]
+      using LNLC_Typing_Safety.preservation[OF inf_vars]
       using beta_reduce_rel_def by blast
   next
     show "wf_on {t. \<exists>\<C>. Ex (has_type \<C> t)} (beta_reduce_rel\<inverse>)"

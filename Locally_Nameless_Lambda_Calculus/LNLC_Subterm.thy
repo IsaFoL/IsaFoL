@@ -1,5 +1,5 @@
-theory LN_Lambda_Subterm
-  imports LN_Lambda_Term
+theory LNLC_Subterm
+  imports LNLC_Term
 begin
 
 primrec subterms where

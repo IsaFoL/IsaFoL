@@ -1,19 +1,20 @@
 session Locally_Nameless_Lambda_Calculus = HOL +
-  options [document = pdf, document_output = "output"]
+  options [timeout = 300, document = pdf, document_output = "output"]
   sessions
     Abstract_Substitution
     "Abstract-Rewriting"
     First_Order_Terms
+    ZFC_in_HOL
   theories
-    LN_Lambda_Term
-    LN_Lambda_Subterm
-    LN_Lambda_Substitution
-    LN_Lambda_Reduction
-    LN_Lambda_Strong_Normalization
-    LN_Lambda_Typing
-    LN_Lambda_Typing_Safety
-    LN_Lambda_Confluence
-    LN_Lambda_Semantics
+    LNLC_Term
+    LNLC_Subterm
+    LNLC_Substitution
+    LNLC_Reduction
+    LNLC_Strong_Normalization
+    LNLC_Typing
+    LNLC_Typing_Safety
+    LNLC_Confluence
+    LNLC_Semantics
     First_Order_to_Higher_Order_Terms
   document_files
     "root.tex"

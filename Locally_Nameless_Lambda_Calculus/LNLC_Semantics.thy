@@ -1,6 +1,6 @@
-theory LN_Lambda_Semantics
+theory LNLC_Semantics
   imports
-    LN_Lambda_Typing
+    LNLC_Typing
     "HOL-Library.FuncSet"
     ZFC_in_HOL.ZFC_Typeclasses
 begin

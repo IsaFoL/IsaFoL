@@ -1,5 +1,5 @@
-theory LN_Lambda_Reduction
-  imports LN_Lambda_Term
+theory LNLC_Reduction
+  imports LNLC_Term
 begin
 
 section \<open>One-step \<open>\<beta>\<close>-reduction\<close>
@@ -215,7 +215,7 @@ text \<open>\<^bold>\<open>Important.\<close> On untyped \<open>\<lambda>\<close
   normalizing, so the property requested cannot be proved as stated. The standard witness is the
   self-replicating term \<open>\<omega> = \<lambda>x. x x\<close>: the application \<open>\<omega> \<omega>\<close> \<open>\<beta>\<close>-reduces to itself, yielding an
   infinite reduction sequence. Strong normalization only holds once reduction is restricted to
-  \<^emph>\<open>well-typed\<close> preterms (via the typing judgment \<open>has_type\<close> from theory \<open>LN_Lambda_Typing\<close>);
+  \<^emph>\<open>well-typed\<close> preterms (via the typing judgment \<open>has_type\<close> from theory \<open>LNLC_Typing\<close>);
   that is a substantial, separate development (Tait/Girard reducibility) and is left as future
   work.\<close>
 

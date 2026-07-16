@@ -1,5 +1,5 @@
-theory LN_Lambda_Local_Confluence
-  imports LN_Lambda_Reduction
+theory LNLC_Local_Confluence
+  imports LNLC_Reduction
 begin
 
 section \<open>Local confluence of \<open>\<beta>\<close>-reduction\<close>

@@ -1,7 +1,7 @@
-theory LN_Lambda_Typing_Safety
+theory LNLC_Typing_Safety
   imports
-    LN_Lambda_Reduction
-    LN_Lambda_Typing
+    LNLC_Reduction
+    LNLC_Typing
 begin
 
 context begin

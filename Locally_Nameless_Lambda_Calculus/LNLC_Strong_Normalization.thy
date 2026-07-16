@@ -1,7 +1,7 @@
-theory LN_Lambda_Strong_Normalization
+theory LNLC_Strong_Normalization
   imports
-    LN_Lambda_Reduction
-    LN_Lambda_Typing
+    LNLC_Reduction
+    LNLC_Typing
 begin
 
 text \<open>Strong normalization of the well-typed fragment, via Tait/Girard reducibility.\<close>

@@ -1,6 +1,6 @@
-theory LN_Lambda_Typing
+theory LNLC_Typing
   imports
-    LN_Lambda_Term
+    LNLC_Term
     "Abstract_Substitution.Substitution"
 begin
 
