@@ -130,7 +130,7 @@ locale interp_fun = type_interp \<U> \<J>\<^sub>t\<^sub>y
   fixes \<J> :: "'\<Sigma> term_interp_fun"
   assumes "\<And>(\<xi>\<^sub>t\<^sub>y :: '\<V>\<^sub>t\<^sub>y \<Rightarrow> V) f \<alpha>s \<tau>s v \<D>s as.
     type_valuation \<U> \<xi>\<^sub>t\<^sub>y \<Longrightarrow>
-    Rep_const_ty (\<C> f) = (\<alpha>s, \<tau>s, v) \<Longrightarrow> length \<D>s = Dlist.length \<alpha>s \<Longrightarrow>
+    Rep_const_ty (\<C> f) = (\<alpha>s, \<tau>s, v) \<Longrightarrow> length \<D>s = length \<alpha>s \<Longrightarrow>
     (\<And>\<D>. \<D> \<in> list.set \<D>s \<Longrightarrow> \<D> \<in> \<U>) \<Longrightarrow>
     list_all2 (\<lambda>a \<tau>. a \<in> elts (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y \<tau>)) as \<tau>s \<Longrightarrow>
     \<J> f \<D>s as \<in> elts (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y v)"

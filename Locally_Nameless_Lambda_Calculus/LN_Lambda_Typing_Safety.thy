@@ -64,8 +64,8 @@ next
   case (Const ts i t' c \<tau>s)
   from Const.prems obtain alphas sigma_tys result_ty sigma where
     const: "Rep_const_ty (\<C> c) = (alphas, sigma_tys, result_ty)" and
-    arity: "Dlist.length alphas = length \<tau>s" and
-    sigma: "sigma = fun_upds TyVar (list_of_dlist alphas) \<tau>s" and
+    arity: "length alphas = length \<tau>s" and
+    sigma: "sigma = fun_upds TyVar alphas \<tau>s" and
     args: "list_all2 (has_type \<C>) ts
       (map (\<lambda>sigma_ty. sigma_ty \<cdot>\<^sub>t\<^sub>y sigma) sigma_tys)" and
     result: "\<tau> = result_ty \<cdot>\<^sub>t\<^sub>y sigma"
