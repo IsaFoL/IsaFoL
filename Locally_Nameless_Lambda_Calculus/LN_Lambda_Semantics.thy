@@ -130,7 +130,7 @@ locale interp_fun = type_interp \<U> \<J>\<^sub>t\<^sub>y
   fixes \<J> :: "'\<Sigma> term_interp_fun"
   assumes "\<And>(\<xi>\<^sub>t\<^sub>y :: '\<V>\<^sub>t\<^sub>y \<Rightarrow> V) f \<alpha>s \<tau>s v \<D>s as.
     type_valuation \<U> \<xi>\<^sub>t\<^sub>y \<Longrightarrow>
-    \<C> f = (\<alpha>s, \<tau>s, v) \<Longrightarrow> length \<D>s = Dlist.length \<alpha>s \<Longrightarrow>
+    Rep_const_ty (\<C> f) = (\<alpha>s, \<tau>s, v) \<Longrightarrow> length \<D>s = Dlist.length \<alpha>s \<Longrightarrow>
     (\<And>\<D>. \<D> \<in> list.set \<D>s \<Longrightarrow> \<D> \<in> \<U>) \<Longrightarrow>
     list_all2 (\<lambda>a \<tau>. a \<in> elts (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y \<tau>)) as \<tau>s \<Longrightarrow>
     \<J> f \<D>s as \<in> elts (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y v)"
@@ -267,7 +267,7 @@ locale proper_interp = interp +
 declare [[typedef_overloaded]]
 record ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>, '\<Sigma>) interp =
   \<U> :: "V set"
-  \<C> :: "'\<Sigma> \<Rightarrow> '\<V>\<^sub>t\<^sub>y dlist \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty list \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
+  \<C> :: "'\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty"
   \<J>\<^sub>t\<^sub>y :: "'\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> V list \<Rightarrow> V"
   \<J> :: "'\<Sigma> \<Rightarrow> V list \<Rightarrow> V list \<Rightarrow> V"
   \<L> :: "('\<V>\<^sub>t\<^sub>y \<Rightarrow> V) \<Rightarrow> ('\<V> \<Rightarrow> V) \<Rightarrow> (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> V"

@@ -63,7 +63,7 @@ next
 next
   case (Const ts i t' c \<tau>s)
   from Const.prems obtain alphas sigma_tys result_ty sigma where
-    const: "\<C> c = (alphas, sigma_tys, result_ty)" and
+    const: "Rep_const_ty (\<C> c) = (alphas, sigma_tys, result_ty)" and
     arity: "Dlist.length alphas = length \<tau>s" and
     sigma: "sigma = fun_upds TyVar (list_of_dlist alphas) \<tau>s" and
     args: "list_all2 (has_type \<C>) ts

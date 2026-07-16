@@ -449,14 +449,38 @@ qed *)
 
 section \<open>Type System\<close>
 
-type_synonym ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty = "'\<V>\<^sub>t\<^sub>y dlist \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty list \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
+type_synonym ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) pre_const_ty = "'\<V>\<^sub>t\<^sub>y dlist \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty list \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
+
+text \<open>A constant's declared type-variable tuple must contain every type variable occurring in its
+  parameter and result types, matching the paper's signature well-formedness requirement.\<close>
+
+definition wf_const_ty :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) pre_const_ty \<Rightarrow> bool" where
+  "wf_const_ty \<equiv> \<lambda>(\<alpha>s, \<tau>s, \<tau>). (\<Union>\<tau>'\<in>set \<tau>s. type_vars \<tau>') \<union> type_vars \<tau> \<subseteq> set (list_of_dlist \<alpha>s)"
+
+typedef (overloaded) ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) const_ty =
+  \<open>{c :: ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) pre_const_ty. wf_const_ty c}\<close>
+proof
+  show \<open>(Dlist.Dlist [undefined], [], TyVar undefined) \<in> {c. wf_const_ty c}\<close>
+    by (simp add: wf_const_ty_def)
+qed
+
+setup_lifting type_definition_const_ty
+
+definition ConstTy ::
+  "'\<V>\<^sub>t\<^sub>y dlist \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty list \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) const_ty" where
+  "wf_const_ty (\<alpha>s, \<tau>s, \<tau>) \<Longrightarrow> ConstTy \<alpha>s \<tau>s \<tau> = Abs_const_ty (\<alpha>s, \<tau>s, \<tau>)"
+
+lemma Rep_const_ty_ConstTy[simp]:
+  assumes "wf_const_ty (\<alpha>s, \<tau>s, \<tau>)"
+  shows "Rep_const_ty (ConstTy \<alpha>s \<tau>s \<tau>) = (\<alpha>s, \<tau>s, \<tau>)"
+  using assms by (simp add: ConstTy_def Abs_const_ty_inverse)
 
 inductive has_type ::
   "('\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) const_ty) \<Rightarrow>
     (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty \<Rightarrow> bool"
   for \<C> where
   Const: "has_type \<C> (Const c \<tau>\<^sub>1s ts) \<tau>"
-    if "\<C> c = (\<alpha>s, \<tau>\<^sub>2s, \<tau>\<^sub>3)" and "Dlist.length \<alpha>s = length \<tau>\<^sub>1s" and
+    if "Rep_const_ty (\<C> c) = (\<alpha>s, \<tau>\<^sub>2s, \<tau>\<^sub>3)" and "Dlist.length \<alpha>s = length \<tau>\<^sub>1s" and
       "\<sigma> = fun_upds TyVar (list_of_dlist \<alpha>s) \<tau>\<^sub>1s" and
       "list_all2 (has_type \<C>) ts (map (\<lambda>\<tau>\<^sub>2. \<tau>\<^sub>2 \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>\<^sub>2s)" and
       "\<tau> = \<tau>\<^sub>3 \<cdot>\<^sub>t\<^sub>y \<sigma>"
@@ -540,7 +564,7 @@ proof (induction t \<tau>\<^sub>1 rule: has_type.induct)
   show ?case
     unfolding subst_free.simps
   proof (rule has_type.Const)
-    show "\<C> c = (\<alpha>s, \<tau>\<^sub>2s, \<tau>\<^sub>3)" by (rule Const.hyps(1))
+    show "Rep_const_ty (\<C> c) = (\<alpha>s, \<tau>\<^sub>2s, \<tau>\<^sub>3)" by (rule Const.hyps(1))
     show "Dlist.length \<alpha>s = length \<tau>\<^sub>1s" by (rule Const.hyps(2))
     show "\<sigma> = fun_upds TyVar (list_of_dlist \<alpha>s) \<tau>\<^sub>1s" by (rule Const.hyps(3))
     show "list_all2 (has_type \<C>) ts (map (\<lambda>\<tau>\<^sub>2. \<tau>\<^sub>2 \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>\<^sub>2s)"
