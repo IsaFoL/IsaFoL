@@ -1,7 +1,7 @@
 theory LNLC_Typing
   imports
     LNLC_Term
-    "Abstract_Substitution.Substitution"
+    "Abstract_Substitution.Based_Substitution"
 begin
 
 abbreviation fold2 :: "('a \<Rightarrow> 'b \<Rightarrow> 'c \<Rightarrow> 'c) \<Rightarrow> 'a list \<Rightarrow> 'b list \<Rightarrow> 'c \<Rightarrow> 'c" where
@@ -89,7 +89,7 @@ next
     by (simp add: comp_subst_prety_def)
 qed
 
-global_interpretation subst_prety: substitution where
+global_interpretation subst_prety: base_substitution where
   comp_subst = comp_subst_prety and
   id_subst = PretyVar and
   subst = subst_prety and
@@ -110,6 +110,17 @@ next
   assume "type_vars_prety \<tau> = {}"
   then show "\<forall>\<sigma>. subst_prety \<tau> \<sigma> = \<tau>"
     by (induction \<tau>) (simp_all add: list.map_ident_strong)
+next
+  show "\<And>\<sigma> \<sigma>' x. comp_subst_prety \<sigma> \<sigma>' x = subst_prety (\<sigma> x) \<sigma>'"
+    by (simp add: comp_subst_prety_def)
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
+  show "type_vars_prety (subst_prety \<tau> \<sigma>) = \<Union> (type_vars_prety ` \<sigma> ` type_vars_prety \<tau>)"
+    by (induction \<tau>) simp_all
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
+  show "type_vars_prety (subst_prety \<tau> \<sigma>) = {} \<Longrightarrow> \<forall>x\<in>type_vars_prety \<tau>. type_vars_prety (\<sigma> x) = {}"
+    by (induction \<tau>) simp_all
 qed simp_all
 (* next
   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
@@ -125,8 +136,6 @@ next
   show "x \<noteq> y \<Longrightarrow> (\<sigma>(y := \<tau>)) x = \<sigma> x"
     by simp
 qed *)
-
-find_theorems "subst_prety"
                                                             
 section \<open>Well-Formed Types\<close>
 
@@ -410,7 +419,7 @@ qed
   vars = type_vars_prety
 *)
 
-global_interpretation subst_ty: substitution where
+global_interpretation subst_ty: base_substitution where
   comp_subst = comp_subst_ty and
   id_subst = TyVar and
   subst = subst_ty and
@@ -431,6 +440,17 @@ next
   assume "type_vars \<tau> = {}"
   then show "\<forall>\<sigma>. \<tau> \<cdot>\<^sub>t\<^sub>y \<sigma> = \<tau>"
     by (induction \<tau>) (simp_all add: list.map_ident_strong)
+next
+  show "\<And>\<sigma> \<sigma>' x. (\<sigma> \<circ>\<^sub>t\<^sub>y \<sigma>') x = \<sigma> x \<cdot>\<^sub>t\<^sub>y \<sigma>'"
+    by (simp add: comp_subst_ty_conv)
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
+  show "type_vars (\<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>) = \<Union> (type_vars ` \<sigma> ` type_vars \<tau>)"
+    by (induction \<tau>) simp_all
+next
+  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
+  show "type_vars (\<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>) = {} \<Longrightarrow> \<forall>x\<in>type_vars \<tau>. type_vars (\<sigma> x) = {}"
+    by (induction \<tau>) simp_all
 qed simp_all
 (*   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
   assume "\<And>x. x \<in> type_vars \<tau> \<Longrightarrow> \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
