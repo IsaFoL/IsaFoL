@@ -6,69 +6,6 @@ theory LNLC_Confluence
     "Abstract-Rewriting.Abstract_Rewriting"
 begin
 
-lemma SN_on_iff_wf_on:
-  assumes closed: "\<And>x y. x \<in> A \<Longrightarrow> (x, y) \<in> r \<Longrightarrow> y \<in> A"
-  shows "SN_on r A = wf_on A (r\<inverse>)"
-proof -
-  have "SN_on r A \<longleftrightarrow> (\<nexists>f. f 0 \<in> A \<and> (\<forall>i. (f i, f (Suc i)) \<in> r))"
-    unfolding SN_on_def ..
-
-  also have "\<dots> \<longleftrightarrow> (\<nexists>f. \<forall>i. (f (Suc i), f i) \<in> {(x, y). (x, y) \<in> r\<inverse> \<and> x \<in> A \<and> y \<in> A})"
-    (is "?LHS \<longleftrightarrow> ?RHS")
-  proof (rule iffI)
-    assume ?LHS
-    show ?RHS
-    proof (rule notI)
-      assume "\<exists>f. \<forall>i. (f (Suc i), f i) \<in> {(x, y) \<in> r\<inverse>. x \<in> A \<and> y \<in> A}"
-      then obtain f where steps:
-        "\<And>i. (f (Suc i), f i) \<in> {(x, y) \<in> r\<inverse>. x \<in> A \<and> y \<in> A}"
-        by blast
-
-      have "f 0 \<in> A"
-        using steps[of 0] by simp
-
-      moreover have "chain r f"
-        using steps by simp
-
-      ultimately show False
-        using \<open>?LHS\<close> by blast
-    qed
-  next
-    assume ?RHS
-    show ?LHS
-    proof (rule notI)
-      assume "\<exists>f. f 0 \<in> A \<and> chain r f"
-      then obtain f where "f 0 \<in> A" and "chain r f"
-        by blast
-
-      have "f i \<in> A" for i
-      proof (induction i)
-        case 0
-        show ?case
-          using \<open>f 0 \<in> A\<close> .
-      next
-        case (Suc i)
-        have "(f i, f (Suc i)) \<in> r"
-          using \<open>chain r f\<close> by simp
-        then show ?case
-          by (rule closed[OF Suc.IH])
-      qed
-      then have "\<forall>i. (f (Suc i), f i) \<in> {(x, y) \<in> r\<inverse>. x \<in> A \<and> y \<in> A}"
-        using \<open>chain r f\<close> by simp
-      then show False
-        using \<open>?RHS\<close> by blast
-    qed
-  qed
-
-  also have "\<dots> \<longleftrightarrow> wf {(x, y) \<in> r\<inverse>. x \<in> A \<and> y \<in> A}"
-    unfolding wf_iff_no_infinite_down_chain ..
-
-  also have "\<dots> \<longleftrightarrow> wf_on A (r\<inverse>)"
-    using wf_on_iff_wf[of A "r\<inverse>"] ..
-
-  finally show ?thesis .
-qed
-
 theorem beta_reduce_confluent_on_typed_terms:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   defines "beta_reduce_rel \<equiv> {(t, t'). beta_reduce t (t' :: (_, _, '\<V>) preterm)}"
