@@ -103,7 +103,7 @@ next
       using LNLC_Typing_Safety.preservation[OF inf_vars]
       using beta_reduce_rel_def by blast
   next
-    show "wf_on {t. \<exists>\<C>. Ex (has_type \<C> t)} (beta_reduce_rel\<inverse>)"
+    show "wf_on {t. \<exists>\<C> \<tau>. has_type \<C> t \<tau>} (beta_reduce_rel\<inverse>)"
       unfolding beta_reduce_rel_def
       using strong_normalization_of_typed_terms[OF inf_vars, unfolded conversep_iff]
       using wfp_on_wf_on_eq by fastforce
