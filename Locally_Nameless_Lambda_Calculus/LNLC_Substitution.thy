@@ -1,6 +1,6 @@
 theory LNLC_Substitution
   imports
-    LNLC_Term
+    LNLC_Typing
     "Abstract_Substitution.Substitution"
 begin
 
@@ -15,14 +15,22 @@ text \<open>The paper's substitutions (\<open>\<rho>\<close>) map term variables
   \<^theory>\<open>Abstract_Substitution.Substitution\<close> --- mirroring the treatment of type substitutions in
   theory \<open>LNLC_Typing\<close>.\<close>
 
+type_synonym ('\<tau>, '\<Sigma>, '\<V>) preterm_subst = "'\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm"
+type_synonym ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty_subst = "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty"
+type_synonym ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) subst =
+  "('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty_subst \<times> (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm_subst"
+
 primrec subst_preterm ::
-  "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm) \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm"
-  (infixl "\<cdot>\<^sub>t" 69) where
-  "subst_preterm (Const c \<tau>s ts) \<sigma> = Const c \<tau>s (map (\<lambda>t. subst_preterm t \<sigma>) ts)" |
-  "subst_preterm (Free x \<tau>) \<sigma> = \<sigma> (x, \<tau>)" |
-  "subst_preterm (Bound k \<tau>) \<sigma> = Bound k \<tau>" |
-  "subst_preterm (App t\<^sub>1 t\<^sub>2) \<sigma> = App (subst_preterm t\<^sub>1 \<sigma>) (subst_preterm t\<^sub>2 \<sigma>)" |
-  "subst_preterm (Abs \<tau> t) \<sigma> = Abs \<tau> (subst_preterm t \<sigma>)"
+  "('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) subst \<Rightarrow> (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow>
+    (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm" where
+  "subst_preterm \<sigma> (Const c \<tau>s ts) = Const c (map (subst_ty (fst \<sigma>)) \<tau>s) (map (subst_preterm \<sigma>) ts)" |
+  "subst_preterm \<sigma> (Free x \<tau>) = snd \<sigma> (x, \<tau>)" |
+  "subst_preterm \<sigma> (Bound k \<tau>) = Bound k (subst_ty (fst \<sigma>) \<tau>)" |
+  "subst_preterm \<sigma> (App t\<^sub>1 t\<^sub>2) = App (subst_preterm \<sigma> t\<^sub>1) (subst_preterm \<sigma> t\<^sub>2)" |
+  "subst_preterm \<sigma> (Abs \<tau> t) = Abs (subst_ty (fst \<sigma>) \<tau>) (subst_preterm \<sigma> t)"
+
+abbreviation subst_preterm_alt (infixl "\<cdot>\<^sub>t\<^sub>e" 51) where
+  "t \<cdot>\<^sub>t\<^sub>e \<sigma> \<equiv> subst_preterm \<sigma> t"
 
 primrec free_typed_vars :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<V> \<times> '\<tau>) set" where
   "free_typed_vars (Const c \<tau>s ts) = \<Union> (set (map free_typed_vars ts))" |
@@ -45,147 +53,69 @@ text \<open>Unlike \<^const>\<open>subst_free\<close> and \<^const>\<open>open_b
   \<^const>\<open>subst_preterm\<close> defined here (they disagree whenever the substituted variable occurs
   inside a parameter).\<close>
 
-definition id_subst_preterm :: "'\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
-  "id_subst_preterm \<equiv> \<lambda>(x, \<tau>). Free x \<tau>"
+abbreviation id_subst_preterm :: "('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) subst" where
+  "id_subst_preterm \<equiv> (TyVar, \<lambda>(x, \<tau>). Free x \<tau>)"
 
-lemma id_subst_preterm_simp[simp]: "id_subst_preterm (x, \<tau>) = Free x \<tau>"
-  by (simp add: id_subst_preterm_def)
-
-lemma subst_preterm_id_subst_preterm[simp]: "subst_preterm t id_subst_preterm = t"
-proof (induction t)
-  case (Const c \<tau>s ts)
-  then show ?case
-    by (simp add: list.map_ident_strong)
-next
-  case (Free x \<tau>)
-  then show ?case by simp
-next
-  case (Bound k \<tau>)
-  then show ?case by simp
-next
-  case (App t\<^sub>1 t\<^sub>2)
-  then show ?case by simp
-next
-  case (Abs \<tau> t)
-  then show ?case by simp
-qed
+lemma subst_preterm_id_subst_preterm_ident[simp]: "subst_preterm id_subst_preterm t = t"
+  by (induction t) (simp_all add: list.map_ident_strong)
 
 definition comp_subst_preterm ::
-  "('\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm) \<Rightarrow> ('\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm) \<Rightarrow>
-    '\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
-  "comp_subst_preterm \<sigma>\<^sub>1 \<sigma>\<^sub>2 \<equiv> \<lambda>v. subst_preterm (\<sigma>\<^sub>1 v) \<sigma>\<^sub>2"
+  "('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) subst \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) subst \<Rightarrow>
+    ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) subst" where
+  "comp_subst_preterm \<sigma>\<^sub>1 \<sigma>\<^sub>2 \<equiv> (fst \<sigma>\<^sub>1 \<then>\<^sub>t\<^sub>y fst \<sigma>\<^sub>2, \<lambda>v. subst_preterm \<sigma>\<^sub>2 (snd \<sigma>\<^sub>1 v))"
 
-lemma subst_preterm_comp_subst_preterm:
-  "subst_preterm t (comp_subst_preterm \<sigma>\<^sub>1 \<sigma>\<^sub>2) = subst_preterm (subst_preterm t \<sigma>\<^sub>1) \<sigma>\<^sub>2"
-proof (induction t)
-  case (Const c \<tau>s ts)
-  have "map (\<lambda>t. subst_preterm t (comp_subst_preterm \<sigma>\<^sub>1 \<sigma>\<^sub>2)) ts =
-      map (\<lambda>t. subst_preterm (subst_preterm t \<sigma>\<^sub>1) \<sigma>\<^sub>2) ts"
-  proof (rule list.map_cong0)
-    fix t'
-    assume "t' \<in> set ts"
-    then show "subst_preterm t' (comp_subst_preterm \<sigma>\<^sub>1 \<sigma>\<^sub>2) = subst_preterm (subst_preterm t' \<sigma>\<^sub>1) \<sigma>\<^sub>2"
-      using Const.IH by blast
-  qed
-  then show ?case
-    by (simp add: list.map_comp comp_def)
-qed (simp_all add: comp_subst_preterm_def)
+notation comp_subst_preterm (infix "\<then>" 51)
 
-definition is_ground_preterm :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
-  "is_ground_preterm t \<longleftrightarrow> free_typed_vars t = {}"
+lemma subst_preterm_comp_subst_preterm: "t \<cdot>\<^sub>t\<^sub>e (\<sigma>\<^sub>1 \<then> \<sigma>\<^sub>2) = t \<cdot>\<^sub>t\<^sub>e \<sigma>\<^sub>1 \<cdot>\<^sub>t\<^sub>e \<sigma>\<^sub>2"
+  by (induction t) (auto simp: comp_subst_preterm_def)
+
+definition is_ground_preterm :: "(('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
+  "is_ground_preterm t \<longleftrightarrow> (\<forall>\<tau> \<in> type_symbols t. free_vars_ty \<tau> = {}) \<and> free_typed_vars t = {}"
 
 lemma subst_preterm_ident_if_is_ground_preterm:
   assumes "is_ground_preterm t"
-  shows "subst_preterm t \<sigma> = t"
+  shows "subst_preterm \<sigma> t = t"
   using assms
 proof (induction t)
   case (Const c \<tau>s ts)
-  have "map (\<lambda>t. subst_preterm t \<sigma>) ts = ts"
-  proof (rule list.map_ident_strong)
-    fix t'
-    assume t'_in: "t' \<in> set ts"
-    then have "free_typed_vars t' \<subseteq> \<Union> (set (map free_typed_vars ts))"
-      by auto
-    then have "is_ground_preterm t'"
-      using Const.prems by (simp add: is_ground_preterm_def)
-    then show "subst_preterm t' \<sigma> = t'"
-      using Const.IH t'_in by blast
-  qed
   then show ?case
-    by simp
-next
-  case (Free x \<tau>)
-  then show ?case
-    by (simp add: is_ground_preterm_def)
-next
-  case (Bound k \<tau>)
-  then show ?case by simp
-next
-  case (App t\<^sub>1 t\<^sub>2)
-  then show ?case
-    by (simp add: is_ground_preterm_def)
-next
-  case (Abs \<tau> t)
-  then show ?case
-    by (simp add: is_ground_preterm_def)
-qed
+    by (auto simp: is_ground_preterm_def intro: list.map_ident_strong)
+qed (simp_all add: is_ground_preterm_def)
 
 global_interpretation comp_subst_preterm: monoid comp_subst_preterm id_subst_preterm
 proof unfold_locales
-  fix \<sigma>\<^sub>1 \<sigma>\<^sub>2 \<sigma>\<^sub>3 :: "'\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm"
-  show "comp_subst_preterm (comp_subst_preterm \<sigma>\<^sub>1 \<sigma>\<^sub>2) \<sigma>\<^sub>3 =
-    comp_subst_preterm \<sigma>\<^sub>1 (comp_subst_preterm \<sigma>\<^sub>2 \<sigma>\<^sub>3)"
-  proof (rule ext)
-    fix v
-    have "comp_subst_preterm (comp_subst_preterm \<sigma>\<^sub>1 \<sigma>\<^sub>2) \<sigma>\<^sub>3 v =
-      subst_preterm (subst_preterm (\<sigma>\<^sub>1 v) \<sigma>\<^sub>2) \<sigma>\<^sub>3"
-      by (simp add: comp_subst_preterm_def)
-    also have "\<dots> = subst_preterm (\<sigma>\<^sub>1 v) (comp_subst_preterm \<sigma>\<^sub>2 \<sigma>\<^sub>3)"
-      by (simp add: subst_preterm_comp_subst_preterm)
-    also have "\<dots> = comp_subst_preterm \<sigma>\<^sub>1 (comp_subst_preterm \<sigma>\<^sub>2 \<sigma>\<^sub>3) v"
-      by (simp add: comp_subst_preterm_def)
-    finally show "comp_subst_preterm (comp_subst_preterm \<sigma>\<^sub>1 \<sigma>\<^sub>2) \<sigma>\<^sub>3 v =
-      comp_subst_preterm \<sigma>\<^sub>1 (comp_subst_preterm \<sigma>\<^sub>2 \<sigma>\<^sub>3) v" .
-  qed
-next
-  fix a :: "'\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm"
-  show "comp_subst_preterm id_subst_preterm a = a"
-  proof (rule ext)
-    fix v :: "'\<V> \<times> '\<tau>"
-    obtain x \<tau> where "v = (x, \<tau>)"
-      by (cases v)
-    then show "comp_subst_preterm id_subst_preterm a v = a v"
-      by (simp add: comp_subst_preterm_def)
-  qed
-next
-  show "\<And>a. comp_subst_preterm a id_subst_preterm = a"
+  fix \<sigma>\<^sub>1 \<sigma>\<^sub>2 \<sigma>\<^sub>3 :: "('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) subst"
+  show "(\<sigma>\<^sub>1 \<then> \<sigma>\<^sub>2) \<then> \<sigma>\<^sub>3 = \<sigma>\<^sub>1 \<then> (\<sigma>\<^sub>2 \<then> \<sigma>\<^sub>3)"
+    by (metis (no_types, lifting) ext comp_subst_preterm_def
+        comp_subst_ty.assoc[of "fst \<sigma>\<^sub>1" "fst \<sigma>\<^sub>2" "fst \<sigma>\<^sub>3"] prod.sel
+        subst_preterm_comp_subst_preterm[of \<sigma>\<^sub>2 \<sigma>\<^sub>3 "snd \<sigma>\<^sub>1 _"])
+
+  show "id_subst_preterm \<then> \<sigma>\<^sub>1 = \<sigma>\<^sub>1"
+    by (simp add: comp_subst_preterm_def case_prod_beta)
+
+  show "comp_subst_preterm \<sigma>\<^sub>1 id_subst_preterm = \<sigma>\<^sub>1"
     by (simp add: comp_subst_preterm_def)
 qed
 
 global_interpretation subst_preterm: substitution where
   comp_subst = comp_subst_preterm and
   id_subst = id_subst_preterm and
-  subst = subst_preterm and
+  subst = "\<lambda>t \<sigma>. subst_preterm \<sigma> t" and
   is_ground = is_ground_preterm and
-  apply_subst = "\<lambda>v \<sigma>. \<sigma> v" and
+  apply_subst = "\<lambda>v \<sigma>. snd \<sigma> v" and
   vars = free_typed_vars
 proof unfold_locales
-  fix t :: "('\<tau>, '\<Sigma>, '\<V>) preterm" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm"
-  show "subst_preterm t (comp_subst_preterm \<sigma>\<^sub>1 \<sigma>\<^sub>2) = subst_preterm (subst_preterm t \<sigma>\<^sub>1) \<sigma>\<^sub>2"
+  fix t :: "(('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) subst"
+  show "t \<cdot>\<^sub>t\<^sub>e (\<sigma>\<^sub>1 \<then> \<sigma>\<^sub>2) = t \<cdot>\<^sub>t\<^sub>e \<sigma>\<^sub>1 \<cdot>\<^sub>t\<^sub>e \<sigma>\<^sub>2"
     by (rule subst_preterm_comp_subst_preterm)
-next
-  fix t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
-  show "subst_preterm t id_subst_preterm = t"
+
+  show "t  \<cdot>\<^sub>t\<^sub>e id_subst_preterm = t"
     by simp
-next
-  fix t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
-  assume "is_ground_preterm t"
-  then show "\<forall>\<sigma>. subst_preterm t \<sigma> = t"
-    by (simp add: subst_preterm_ident_if_is_ground_preterm)
-next
-  fix t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
-  assume "is_ground_preterm t"
-  then show "free_typed_vars t = {}"
+
+  show "is_ground_preterm t \<Longrightarrow> \<forall>\<sigma>. t \<cdot>\<^sub>t\<^sub>e \<sigma> = t"
+    using subst_preterm_ident_if_is_ground_preterm ..
+
+  show "is_ground_preterm t \<Longrightarrow> free_typed_vars t = {}"
     by (simp add: is_ground_preterm_def)
 qed
 

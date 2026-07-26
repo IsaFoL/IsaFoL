@@ -149,26 +149,25 @@ definition comp_subst_ty ::
   "('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty) \<Rightarrow> '\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) ty" where
   "comp_subst_ty \<sigma>\<^sub>1 \<sigma>\<^sub>2 x \<equiv> subst_ty \<sigma>\<^sub>2 (\<sigma>\<^sub>1 x)"
 
+notation comp_subst_ty (infix "\<then>\<^sub>t\<^sub>y" 51)
+
 global_interpretation comp_subst_ty: monoid comp_subst_ty TyVar
 proof unfold_locales
   fix \<sigma>\<^sub>1 \<sigma>\<^sub>2 \<sigma>\<^sub>3 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) ty"
-  show "comp_subst_ty (comp_subst_ty \<sigma>\<^sub>1 \<sigma>\<^sub>2) \<sigma>\<^sub>3 = comp_subst_ty \<sigma>\<^sub>1 (comp_subst_ty \<sigma>\<^sub>2 \<sigma>\<^sub>3)"
-  proof (intro ext)
-    show "\<And>x. comp_subst_ty (comp_subst_ty \<sigma>\<^sub>1 \<sigma>\<^sub>2) \<sigma>\<^sub>3 x = comp_subst_ty \<sigma>\<^sub>1 (comp_subst_ty \<sigma>\<^sub>2 \<sigma>\<^sub>3) x"
-      unfolding comp_subst_ty_def
-      by (metis subst_ty_subst_ty_conv)
-  qed
+  show "(\<sigma>\<^sub>1 \<then>\<^sub>t\<^sub>y \<sigma>\<^sub>2) \<then>\<^sub>t\<^sub>y \<sigma>\<^sub>3 = \<sigma>\<^sub>1 \<then>\<^sub>t\<^sub>y (\<sigma>\<^sub>2 \<then>\<^sub>t\<^sub>y \<sigma>\<^sub>3)"
+    unfolding comp_subst_ty_def
+    by (metis subst_ty_subst_ty_conv)
 next
-  show "\<And>\<tau>. comp_subst_ty TyVar \<tau> = \<tau>"
+  show "\<And>\<tau>. TyVar \<then>\<^sub>t\<^sub>y \<tau> = \<tau>"
     unfolding comp_subst_ty_def
     by simp
 next
-  show "\<And>\<tau>. comp_subst_ty \<tau> TyVar = \<tau>"
+  show "\<And>\<tau>. \<tau> \<then>\<^sub>t\<^sub>y TyVar = \<tau>"
     unfolding comp_subst_ty_def
     by simp
 qed
 
-global_interpretation subst_prety: base_substitution where
+global_interpretation subst_ty: base_substitution where
   comp_subst = comp_subst_ty and
   id_subst = TyVar and
   subst = "\<lambda>\<tau> \<sigma>. subst_ty \<sigma> \<tau>" and
