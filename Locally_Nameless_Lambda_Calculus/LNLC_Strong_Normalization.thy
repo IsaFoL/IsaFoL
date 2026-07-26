@@ -400,7 +400,7 @@ text \<open>Reducibility \<open>Red_ty \<tau> t\<close> is defined by recursion 
   reducible results; at any other type reducibility is just strong normalization.\<close>
 
 function Red_ty ::
-  "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty \<Rightarrow> (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
+  "('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
   "Red_ty (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) t \<longleftrightarrow> (SN t \<and> (\<forall>u. locally_closed u \<longrightarrow> Red_ty \<tau>\<^sub>1 u \<longrightarrow> Red_ty \<tau>\<^sub>2 (App t u)))" |
   "\<not> is_TyFun \<tau> \<Longrightarrow> Red_ty \<tau> t \<longleftrightarrow> SN t"
 proof -
@@ -490,7 +490,7 @@ lemma beta_normal_if_SN_if_finite_vars:
   by metis
 
 lemma Red_ty_if_beta_normal_if_finite_vars:
-  fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
+  fixes t :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm"
   assumes fin_vars: "finite (UNIV :: '\<V> set)"
   assumes "beta_normal t"
   shows "Red_ty \<tau> t"
@@ -1118,7 +1118,7 @@ text \<open>Every well-typed term is reducible under any reducible, locally clos
   free variables.\<close>
 
 lemma fundamental:
-  fixes t :: "(('vty, 'sty :: type_signature) ty, 'c, '\<V>) preterm"
+  fixes t :: "(('sty :: type_signature, 'vty) ty, 'c, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "has_type \<C> t \<tau>"
   assumes "\<And>x \<sigma>. locally_closed (\<theta> (x, \<sigma>))"
@@ -1126,7 +1126,7 @@ lemma fundamental:
   shows "Red_ty \<tau> (msubst \<theta> t)"
   using assms(2-4)
 proof (induction arbitrary: \<theta> rule: has_type.induct)
-  case (Const c \<tau>\<^sub>1s ts \<tau> \<alpha>s \<tau>\<^sub>2s \<tau>\<^sub>3 \<sigma>)
+  case (Const c \<tau>\<^sub>1s ts \<tau> \<sigma>)
   have lc_args: "\<forall>s \<in> set ts. locally_closed (msubst \<theta> s)"
     using Const.IH
     by (induction rule: list_all2_induct)
@@ -1176,7 +1176,7 @@ next
       using locally_closed_msubst[where \<theta> = \<theta> and t = "Abs \<tau>\<^sub>1 t", OF Abs.prems(1) lc_abs]
       by simp
   next
-    fix u :: "(('vty, 'sty) ty, 'c, '\<V>) preterm"
+    fix u :: "(('sty, 'vty) ty, 'c, '\<V>) preterm"
     assume lc_u: "locally_closed u" and red_u: "Red_ty \<tau>\<^sub>1 u"
     obtain x where fresh_x: "x |\<notin>| \<X>" and x_notin_t: "x \<notin> free_vars t"
       using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t|}"] by auto
@@ -1228,17 +1228,17 @@ text \<open>The assumption of infinitely many variables is not an artifact of th
 
 lemma ex_has_type_and_not_SN_if_finite_vars:
   assumes fin_vars: "finite (UNIV :: '\<V> set)"
-  shows "\<exists>t :: (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm.
+  shows "\<exists>t :: (('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm.
     (\<exists>\<C> \<tau>. has_type \<C> t \<tau>) \<and> \<not> SN t"
 proof -
   have "has_type \<C> (Abs \<bool> (Bound 0 \<bool>)) (TyFun \<bool> \<bool>)"
-    for \<C> :: "'\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) const_ty"
+    for \<C> :: "'\<Sigma> \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) const_ty"
   proof (rule has_type.Abs[where \<X> = "{||}"])
     fix x
     show "has_type \<C> (open_bound 0 \<bool> (Free x \<bool>) (Bound 0 \<bool>)) \<bool>"
       by (simp add: has_type.Free)
   qed
-  moreover have "\<not> SN (Abs \<bool> (Bound 0 \<bool>) :: (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm)"
+  moreover have "\<not> SN (Abs \<bool> (Bound 0 \<bool>) :: (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm)"
     by (rule not_SN_if_beta_reduce_self[OF beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars]])
   ultimately show ?thesis
     by blast

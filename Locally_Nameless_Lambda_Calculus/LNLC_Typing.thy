@@ -56,6 +56,52 @@ lemma set_tyargs[simp]: "set (tyargs fts) = set_ty_comb fts"
 lemma length_tyargs[simp]: "length (tyargs t) = arity (tycon t)"
   by transfer auto
 
+lemma tycon_Abs_ty_comb[simp]: "arity \<kappa> = length \<tau>s \<Longrightarrow> tycon (Abs_ty_comb (\<kappa>, \<tau>s)) = \<kappa>"
+  by (simp add: tycon.abs_eq eq_onp_same_args)
+
+lemma tyargs_Abs_ty_comb[simp]: "arity \<kappa> = length \<tau>s \<Longrightarrow> tyargs (Abs_ty_comb (\<kappa>, \<tau>s)) = \<tau>s"
+  by (simp add: tyargs.abs_eq eq_onp_same_args)
+
+lemma Abs_ty_comb_inject_iff[simp]:
+  assumes "arity \<kappa>\<^sub>1 = length \<tau>s\<^sub>1" and "arity \<kappa>\<^sub>2 = length \<tau>s\<^sub>2"
+  shows "Abs_ty_comb (\<kappa>\<^sub>1, \<tau>s\<^sub>1) = Abs_ty_comb (\<kappa>\<^sub>2, \<tau>s\<^sub>2) \<longleftrightarrow> \<kappa>\<^sub>1 = \<kappa>\<^sub>2 \<and> \<tau>s\<^sub>1 = \<tau>s\<^sub>2"
+  using assms by (simp add: Abs_ty_comb_inject)
+
+text \<open>The \<^const>\<open>size\<close> plugin only descends into a nested type if that type has a registered size
+  function. Registering one for \<^type>\<open>ty_comb\<close> here---before the datatype \<open>ty\<close> below is
+  declared---makes the generated \<open>size_ty\<close> recurse into a type constructor's arguments instead of
+  counting every \<open>TyCtr\<close> as a leaf.\<close>
+
+lift_definition size_ty_comb ::
+  "('\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<tau> \<Rightarrow> nat) \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<tau>) ty_comb \<Rightarrow> nat"
+  is "\<lambda>f g (\<kappa>, \<tau>s). f \<kappa> + size_list g \<tau>s" .
+
+instantiation ty_comb :: (arity, type) size
+begin
+
+definition size_ty_comb where
+  size_ty_comb_overloaded_def: "size_ty_comb = LNLC_Typing.size_ty_comb (\<lambda>_. 0) (\<lambda>_. 0)"
+
+instance ..
+
+end
+
+lemma size_ty_comb_simps[simp]: "size_ty_comb f g x = f (tycon x) + size_list g (tyargs x)"
+  by transfer auto
+
+lemma size_ty_comb_overloaded_simps[simp]: "size x = size_list (\<lambda>_. 0) (tyargs x)"
+  unfolding size_ty_comb_overloaded_def
+  by simp
+
+lemma ty_comb_size_o_map: "inj h \<Longrightarrow> size_ty_comb f g \<circ> map_ty_comb h = size_ty_comb f (g \<circ> h)"
+  by (rule ext) (simp add: size_list_conv_sum_list comp_def)
+
+setup \<open>
+BNF_LFP_Size.register_size_global \<^type_name>\<open>ty_comb\<close> \<^const_name>\<open>size_ty_comb\<close>
+  @{thm size_ty_comb_overloaded_def} @{thms size_ty_comb_simps size_ty_comb_overloaded_simps}
+  @{thms ty_comb_size_o_map}
+\<close>
+
 declare [[typedef_overloaded]]
 
 datatype ('\<Sigma>\<^sub>t\<^sub>y :: arity, free_vars_ty: '\<V>\<^sub>t\<^sub>y) ty =
@@ -177,11 +223,13 @@ abbreviation TyFun :: "('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty \<R
 abbreviation is_TyFun where
   "is_TyFun \<tau> \<equiv> \<exists>\<tau>\<^sub>1 \<tau>\<^sub>2. \<tau> = TyFun \<tau>\<^sub>1 \<tau>\<^sub>2"
 
+lemma TyFun_inject[simp]: "TyFun \<tau>\<^sub>1 \<tau>\<^sub>2 = TyFun \<rho>\<^sub>1 \<rho>\<^sub>2 \<longleftrightarrow> \<tau>\<^sub>1 = \<rho>\<^sub>1 \<and> \<tau>\<^sub>2 = \<rho>\<^sub>2"
+  by (simp add: Abs_ty_comb_inject)
+
 
 subsection \<open>Size\<close>
 
 (* TODO: Make the proof nice and submit to Tobias for inclusion to List *)
-(* OR BETTER: have the size plugin generate it automatically *)
 lemma size_list_transfer[transfer_rule]:
   "(rel_fun (rel_fun A (=)) (rel_fun (list_all2 A) (=))) size_list size_list"
   unfolding rel_fun_def
@@ -193,15 +241,17 @@ lemma size_list_transfer[transfer_rule]:
     done
   done
 
-(* lemma size_ty_TyCtr:
-  shows "size_ty f\<^sub>1 f\<^sub>2 (TyCtr \<kappa>_\<tau>s) =
-    f\<^sub>2 (tycon \<kappa>_\<tau>s) + size_list (size_ty f\<^sub>1 f\<^sub>2) (tyargs \<kappa>_\<tau>s) + Suc 0"
-  using ty.size
+text \<open>Thanks to the size function registered for \<^type>\<open>ty_comb\<close> above, the size function generated
+  for \<^type>\<open>ty\<close> descends into a type constructor's arguments.\<close>
 
-lemma size_ty_TyFun:
-  "size_ty f\<^sub>1 f\<^sub>2 (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) = f\<^sub>2 fun_tyctr + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>1  + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>2 + 3"
-  using size_ty_TyCtr[of "[\<tau>\<^sub>1, \<tau>\<^sub>2]" fun_tyctr, simplified]
-  by presburger *)
+lemma size_ty_TyCtr:
+  "size_ty f\<^sub>1 f\<^sub>2 (TyCtr \<kappa>_\<tau>s) =
+    f\<^sub>1 (tycon \<kappa>_\<tau>s) + size_list (size_ty f\<^sub>1 f\<^sub>2) (tyargs \<kappa>_\<tau>s) + Suc 0"
+  by simp
+
+lemma size_ty_TyFun[simp]:
+  "size_ty f\<^sub>1 f\<^sub>2 (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) = f\<^sub>1 fun_tyctr + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>1 + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>2 + 3"
+  by simp
 
 
 section \<open>Type System\<close>

@@ -62,20 +62,19 @@ next
   qed
 next
   case (Const ts i t' c \<tau>s)
-  from Const.prems obtain alphas sigma_tys result_ty sigma where
-    const: "Rep_const_ty (\<C> c) = (alphas, sigma_tys, result_ty)" and
-    arity: "length alphas = length \<tau>s" and
-    sigma: "sigma = fun_upds TyVar alphas \<tau>s" and
+  from Const.prems obtain sigma where
+    arity: "length (const_ty_vars (\<C> c)) = length \<tau>s" and
+    sigma: "sigma = fun_upds TyVar (const_ty_vars (\<C> c)) \<tau>s" and
     args: "list_all2 (has_type \<C>) ts
-      (map (\<lambda>sigma_ty. sigma_ty \<cdot>\<^sub>t\<^sub>y sigma) sigma_tys)" and
-    result: "\<tau> = result_ty \<cdot>\<^sub>t\<^sub>y sigma"
+      (map (\<lambda>sigma_ty. sigma_ty \<cdot>\<^sub>t\<^sub>y sigma) (const_ty_dom (\<C> c)))" and
+    result: "\<tau> = const_ty_codom (\<C> c) \<cdot>\<^sub>t\<^sub>y sigma"
     by (cases rule: has_type.cases) auto
   have args': "list_all2 (has_type \<C>) (ts[i := t'])
-      (map (\<lambda>sigma_ty. sigma_ty \<cdot>\<^sub>t\<^sub>y sigma) sigma_tys)"
+      (map (\<lambda>sigma_ty. sigma_ty \<cdot>\<^sub>t\<^sub>y sigma) (const_ty_dom (\<C> c)))"
     using args Const.hyps(2)
     by (auto simp: list_all2_conv_all_nth nth_list_update intro: Const.IH)
   show ?case
-    by (rule has_type.Const[OF const arity sigma args' result])
+    by (rule has_type.Const[OF arity sigma args' result])
 qed
 
 end
