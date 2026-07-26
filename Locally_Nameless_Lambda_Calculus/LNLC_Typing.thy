@@ -30,264 +30,155 @@ class type_signature = arity +
   assumes arity\<^sub>_tyctr_simps[simp]: "arity bool_tyctr = 0" "arity fun_tyctr = 2"
 
 
-section \<open>Pretypes\<close>
+section \<open>Types\<close>
 
-datatype (type_vars_prety: '\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety =
-  PretyVar '\<V>\<^sub>t\<^sub>y |
-  PretyCtr '\<Sigma>\<^sub>t\<^sub>y "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety list"
+typedef (overloaded) ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<tau>) ty_comb (infixr "$" 65) =
+  "{(s :: '\<Sigma>\<^sub>t\<^sub>y, Ts :: '\<tau> list). arity s = length Ts}"
+  by (auto intro!: exI[of _ "replicate _ undefined"])
+
+setup_lifting type_definition_ty_comb
+
+lift_bnf (no_warn_wits) (dead 'c :: arity, 'ty) ty_comb
+  by force+
+
+lift_definition tycon :: "'\<Sigma>\<^sub>t\<^sub>y :: arity $ '\<tau> \<Rightarrow> '\<Sigma>\<^sub>t\<^sub>y" is fst .
+lift_definition tyargs :: "'\<Sigma>\<^sub>t\<^sub>y :: arity $ '\<tau> \<Rightarrow> '\<tau> list" is snd .
+
+lemma tycon_map_ty_comb[simp]: "tycon (map_ty_comb f x) = tycon x"
+  by transfer simp
+
+lemma tyargs_map_ty_comb[simp]: "tyargs (map_ty_comb f x) = map f (tyargs x)"
+  by transfer simp
+
+lemma set_tyargs[simp]: "set (tyargs fts) = set_ty_comb fts"
+  by transfer auto
+
+lemma length_tyargs[simp]: "length (tyargs t) = arity (tycon t)"
+  by transfer auto
+
+declare [[typedef_overloaded]]
+
+datatype ('\<Sigma>\<^sub>t\<^sub>y :: arity, free_vars_ty: '\<V>\<^sub>t\<^sub>y) ty =
+  TyVar '\<V>\<^sub>t\<^sub>y |
+  TyCtr "'\<Sigma>\<^sub>t\<^sub>y $ ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty"
+
+thm ty.size
 
 
 subsection \<open>Substitutions\<close>
 
-primrec subst_prety ::
-  "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety \<Rightarrow> ('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" where
-  "subst_prety (PretyVar x) \<sigma> = \<sigma> x" |
-  "subst_prety (PretyCtr \<kappa> \<tau>s) \<sigma> = PretyCtr \<kappa> (map (\<lambda>\<tau>. subst_prety \<tau> \<sigma>) \<tau>s)"
+primrec subst_ty ::
+  "('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty) \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) ty" where
+  "subst_ty \<sigma> (TyVar x) = \<sigma> x" |
+  "subst_ty \<sigma> (TyCtr \<kappa>_\<tau>s) = TyCtr (map_ty_comb (subst_ty \<sigma>) \<kappa>_\<tau>s)"
 
-lemma subst_prety_PretyVar[simp]: "subst_prety \<tau> PretyVar = \<tau>"
+abbreviation subst_ty_alt (infix "(\<cdot>\<^sub>t\<^sub>y)" 51) where
+  "\<tau> \<cdot>\<^sub>t\<^sub>y \<sigma> \<equiv> subst_ty \<sigma> \<tau>"
+
+lemma subst_prety_PretyVar[simp]: "subst_ty TyVar \<tau> = \<tau>"
 proof (induction \<tau>)
-  case (PretyVar x)
-  then show ?case
+  case (TyVar x)
+  show ?case
     by simp
 next
-  case (PretyCtr \<kappa> \<tau>s)
+  case (TyCtr x)
   then show ?case
-    by (simp add: list.map_ident_strong)
+    by (simp add: ty_comb.map_ident_strong)
 qed
 
-definition comp_subst_prety ::
-  "('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety) \<Rightarrow> '\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" where
-  "comp_subst_prety \<sigma>\<^sub>1 \<sigma>\<^sub>2 \<equiv> \<lambda>x. subst_prety (\<sigma>\<^sub>1 x) \<sigma>\<^sub>2"
+lemma subst_ty_subst_ty_conv: "subst_ty \<sigma>\<^sub>2 (subst_ty \<sigma>\<^sub>1 t) = subst_ty (\<lambda>x. subst_ty \<sigma>\<^sub>2 (\<sigma>\<^sub>1 x)) t"
+proof (induction t)
+  case (TyVar x)
+  show ?case
+    by simp
+next
+  case (TyCtr x)
+  then show ?case
+    unfolding subst_ty.simps ty.inject
+    unfolding ty_comb.map_comp comp_def
+    by (meson ty_comb.map_cong)
+qed
 
-global_interpretation comp_subst_prety: monoid comp_subst_prety PretyVar
+definition comp_subst_ty ::
+  "('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty) \<Rightarrow> '\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) ty" where
+  "comp_subst_ty \<sigma>\<^sub>1 \<sigma>\<^sub>2 x \<equiv> subst_ty \<sigma>\<^sub>2 (\<sigma>\<^sub>1 x)"
+
+global_interpretation comp_subst_ty: monoid comp_subst_ty TyVar
 proof unfold_locales
-  fix \<sigma>\<^sub>1 \<sigma>\<^sub>2 \<sigma>\<^sub>3 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
-  show "comp_subst_prety (comp_subst_prety \<sigma>\<^sub>1 \<sigma>\<^sub>2) \<sigma>\<^sub>3 = comp_subst_prety \<sigma>\<^sub>1 (comp_subst_prety \<sigma>\<^sub>2 \<sigma>\<^sub>3)"
-    unfolding comp_subst_prety_def
+  fix \<sigma>\<^sub>1 \<sigma>\<^sub>2 \<sigma>\<^sub>3 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) ty"
+  show "comp_subst_ty (comp_subst_ty \<sigma>\<^sub>1 \<sigma>\<^sub>2) \<sigma>\<^sub>3 = comp_subst_ty \<sigma>\<^sub>1 (comp_subst_ty \<sigma>\<^sub>2 \<sigma>\<^sub>3)"
   proof (intro ext)
-    have "subst_prety (subst_prety t \<sigma>\<^sub>2) \<sigma>\<^sub>3 = subst_prety t (\<lambda>x. subst_prety (\<sigma>\<^sub>2 x) \<sigma>\<^sub>3)" for t
-    proof (induction t)
-      case (PretyVar y)
-      then show ?case
-        by (metis subst_prety.simps(1))
-    next
-      case (PretyCtr \<kappa> \<tau>s)
-      then show ?case
-        unfolding subst_prety.simps prety.inject
-        unfolding list.map_comp comp_def
-        by simp
-    qed
-    then show "\<And>x. subst_prety (subst_prety (\<sigma>\<^sub>1 x) \<sigma>\<^sub>2) \<sigma>\<^sub>3 =
-      subst_prety (\<sigma>\<^sub>1 x) (\<lambda>x. subst_prety (\<sigma>\<^sub>2 x) \<sigma>\<^sub>3)"
-      by metis
+    show "\<And>x. comp_subst_ty (comp_subst_ty \<sigma>\<^sub>1 \<sigma>\<^sub>2) \<sigma>\<^sub>3 x = comp_subst_ty \<sigma>\<^sub>1 (comp_subst_ty \<sigma>\<^sub>2 \<sigma>\<^sub>3) x"
+      unfolding comp_subst_ty_def
+      by (metis subst_ty_subst_ty_conv)
   qed
 next
-  show "\<And>a. comp_subst_prety PretyVar a = a"
-    by (simp add: comp_subst_prety_def)
+  show "\<And>\<tau>. comp_subst_ty TyVar \<tau> = \<tau>"
+    unfolding comp_subst_ty_def
+    by simp
 next
-  show "\<And>a. comp_subst_prety a PretyVar = a"
-    by (simp add: comp_subst_prety_def)
+  show "\<And>\<tau>. comp_subst_ty \<tau> TyVar = \<tau>"
+    unfolding comp_subst_ty_def
+    by simp
 qed
 
 global_interpretation subst_prety: base_substitution where
-  comp_subst = comp_subst_prety and
-  id_subst = PretyVar and
-  subst = subst_prety and
-  is_ground = "\<lambda>x. type_vars_prety x = {}" and
+  comp_subst = comp_subst_ty and
+  id_subst = TyVar and
+  subst = "\<lambda>\<tau> \<sigma>. subst_ty \<sigma> \<tau>" and
+  is_ground = "\<lambda>x. free_vars_ty x = {}" and
   apply_subst = "\<lambda>x \<sigma>. \<sigma> x" and
-  (* subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and *)
-  vars = type_vars_prety
+  vars = free_vars_ty
 proof unfold_locales
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
-  show "subst_prety \<tau> (comp_subst_prety \<sigma>\<^sub>1 \<sigma>\<^sub>2) = subst_prety (subst_prety \<tau> \<sigma>\<^sub>1) \<sigma>\<^sub>2"
-    by (induction \<tau>) (simp_all add: comp_subst_prety_def)
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
-  show "subst_prety \<tau> PretyVar = \<tau>"
-    by simp
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
-  assume "type_vars_prety \<tau> = {}"
-  then show "\<forall>\<sigma>. subst_prety \<tau> \<sigma> = \<tau>"
-    by (induction \<tau>) (simp_all add: list.map_ident_strong)
-next
-  show "\<And>\<sigma> \<sigma>' x. comp_subst_prety \<sigma> \<sigma>' x = subst_prety (\<sigma> x) \<sigma>'"
-    by (simp add: comp_subst_prety_def)
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
-  show "type_vars_prety (subst_prety \<tau> \<sigma>) = \<Union> (type_vars_prety ` \<sigma> ` type_vars_prety \<tau>)"
-    by (induction \<tau>) simp_all
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
-  show "type_vars_prety (subst_prety \<tau> \<sigma>) = {} \<Longrightarrow> \<forall>x\<in>type_vars_prety \<tau>. type_vars_prety (\<sigma> x) = {}"
-    by (induction \<tau>) simp_all
-qed simp_all
-(* next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
-  assume "\<And>x. x \<in> type_vars_prety \<tau> \<Longrightarrow> \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
-  then show "subst_prety \<tau> \<sigma>\<^sub>1 = subst_prety \<tau> \<sigma>\<^sub>2"
-    by (induction \<tau>) auto
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and x :: '\<V>\<^sub>t\<^sub>y
-  show "(\<sigma>(x := \<tau>)) x = \<tau>"
-    by simp
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and x y :: '\<V>\<^sub>t\<^sub>y
-  show "x \<noteq> y \<Longrightarrow> (\<sigma>(y := \<tau>)) x = \<sigma> x"
-    by simp
-qed *)
-                                                            
-section \<open>Well-Formed Types\<close>
-
-inductive wf_prety :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) prety \<Rightarrow> bool" where
-  PretyVar: "wf_prety (PretyVar \<alpha>)"
-    for \<alpha> :: '\<V>\<^sub>t\<^sub>y |
-  PretyCtr: "wf_prety (PretyCtr \<kappa> \<tau>s)"
-    if "length \<tau>s = arity \<kappa>" and "\<forall>\<tau> \<in> set \<tau>s. wf_prety \<tau>"
-    for \<kappa> :: '\<Sigma>\<^sub>t\<^sub>y and \<tau>s :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety list"
-
-typedef (overloaded) ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty = \<open>{\<tau> :: ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety. wf_prety \<tau>}\<close>
-  morphisms Rep_ty Abs_ty
-proof
-  show \<open>PretyVar undefined \<in> {\<tau>. wf_prety \<tau>}\<close>
-    by (blast intro: wf_prety.intros)
-qed
-
-setup_lifting type_definition_ty
-
-lift_definition TyVar :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" is PretyVar
-  by (rule wf_prety.PretyVar)
-
-lift_definition TyCtr :: "'\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty list \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty"
-  is "\<lambda>\<kappa> \<tau>s.
-    if length \<tau>s = arity \<kappa> then
-      PretyCtr \<kappa> \<tau>s
-    else
-      PretyVar undefined"
-  by (simp_all add: wf_prety.intros list.pred_set)
-
-lemma wf_prety_PretyCtr:
-  assumes "length \<tau>s = arity \<kappa>"
-  shows "wf_prety (PretyCtr \<kappa> (map Rep_ty \<tau>s))"
-proof (rule wf_prety.PretyCtr)
-  show "\<forall>\<tau>\<in>set (map Rep_ty \<tau>s). wf_prety \<tau>"
-    using Rep_ty by auto
-qed (use assms in simp_all)
-
-
-subsection \<open>Injection\<close>
-
-lemma ty_inject[simp]:
-  "TyVar x = TyVar y \<longleftrightarrow> x = y"
-  "length \<tau>s\<^sub>1 = arity \<kappa>\<^sub>1 \<Longrightarrow> length \<tau>s\<^sub>2 = arity \<kappa>\<^sub>2 \<Longrightarrow>
-    TyCtr \<kappa>\<^sub>1 \<tau>s\<^sub>1 = TyCtr \<kappa>\<^sub>2 \<tau>s\<^sub>2 \<longleftrightarrow> \<kappa>\<^sub>1 = \<kappa>\<^sub>2 \<and> \<tau>s\<^sub>1 = \<tau>s\<^sub>2"
-proof -
-  show "TyVar x = TyVar y \<longleftrightarrow> x = y"
-    by transfer simp
-  show "length \<tau>s\<^sub>1 = arity \<kappa>\<^sub>1 \<Longrightarrow> length \<tau>s\<^sub>2 = arity \<kappa>\<^sub>2 \<Longrightarrow>
-    TyCtr \<kappa>\<^sub>1 \<tau>s\<^sub>1 = TyCtr \<kappa>\<^sub>2 \<tau>s\<^sub>2 \<longleftrightarrow> \<kappa>\<^sub>1 = \<kappa>\<^sub>2 \<and> \<tau>s\<^sub>1 = \<tau>s\<^sub>2"
-    by transfer simp
-qed
-
-subsection \<open>Induction and Cases rules\<close>
-
-lemma ty_induct [case_names TyVar TyCtr, induct type: ty]:
-  assumes
-    TyVar_case: "\<And>x. P (TyVar x)" and
-    TyCtr_case: "\<And>\<kappa> \<tau>s. length \<tau>s = arity \<kappa> \<Longrightarrow> (\<And>\<tau>. \<tau> \<in> set \<tau>s \<Longrightarrow> P \<tau>) \<Longrightarrow> P (TyCtr \<kappa> \<tau>s)"
-  shows "P x"
-proof (cases x)
-  case (Abs_ty \<tau>)
-  then have "wf_prety \<tau>"
-    by simp
-  then show ?thesis
-    unfolding \<open>x = Abs_ty \<tau>\<close>
+  fix \<tau> :: "('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) ty"
+    and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty"
+    and x :: '\<V>\<^sub>t\<^sub>y
+  show "subst_ty (comp_subst_ty \<sigma>\<^sub>1 \<sigma>\<^sub>2) \<tau> = subst_ty \<sigma>\<^sub>2 (subst_ty \<sigma>\<^sub>1 \<tau>)"
   proof (induction \<tau>)
-    case (PretyVar y)
-    show ?case
-      unfolding TyVar.abs_eq[symmetric]
-      using TyVar_case .
+    case (TyVar x)
+    then show ?case
+      by (simp add: comp_subst_ty_def)
   next
-    case (PretyCtr \<kappa> \<tau>s)
-    then have "length (map Abs_ty \<tau>s) = arity \<kappa>"
-      by simp
-
-    have "P (TyCtr \<kappa> (map Abs_ty \<tau>s))"
-    proof (rule TyCtr_case)
-      show "length (map Abs_ty \<tau>s) = arity \<kappa>"
-        using \<open>length (map Abs_ty \<tau>s) = arity \<kappa>\<close> .
-    next
-      show "\<And>\<tau>. \<tau> \<in> set (map Abs_ty \<tau>s) \<Longrightarrow> P \<tau>"
-        using PretyCtr.IH by auto
-    qed
-
-    then have "P (Abs_ty (PretyCtr \<kappa> (map Rep_ty (map Abs_ty \<tau>s))))"
-      by (metis Rep_ty_inverse TyCtr.rep_eq \<open>length (map Abs_ty \<tau>s) = arity \<kappa>\<close> length_map)
-
-    moreover have "map Rep_ty (map Abs_ty \<tau>s) = \<tau>s"
-      by (simp add: list.map_comp comp_def list.map_ident_strong Abs_ty_inverse PretyCtr.IH)
-
-    ultimately show ?case
-      by metis
+    case (TyCtr \<kappa>_\<tau>s)
+    then show ?case
+      by (auto simp: subst_ty_subst_ty_conv ty_comb.map_comp intro: ty_comb.map_cong0)
   qed
+
+  show "subst_ty TyVar \<tau> = \<tau>"
+    by simp
+
+  show "free_vars_ty \<tau> = {} \<Longrightarrow> \<forall>\<sigma>. subst_ty \<sigma> \<tau> = \<tau>"
+    by (induction \<tau>) (simp_all add: ty_comb.map_ident_strong)
+
+  show "free_vars_ty \<tau> = {} \<Longrightarrow> free_vars_ty \<tau> = {}" .
+
+  show "\<exists>\<tau>. free_vars_ty \<tau> \<noteq> {} \<Longrightarrow> free_vars_ty (TyVar x) = {x}"
+    by simp
+
+  show "comp_subst_ty \<sigma>\<^sub>1 \<sigma>\<^sub>2 x = subst_ty \<sigma>\<^sub>2 (\<sigma>\<^sub>1 x)"
+    unfolding comp_subst_ty_def ..
+
+  show "free_vars_ty (subst_ty \<sigma>\<^sub>1 \<tau>) = \<Union> (free_vars_ty ` \<sigma>\<^sub>1 ` free_vars_ty \<tau>)"
+    by (induction \<tau>) (simp_all add: ty_comb.set_map)
+
+  show "free_vars_ty (subst_ty \<sigma>\<^sub>1 \<tau>) = {} \<Longrightarrow> \<forall>x\<in>free_vars_ty \<tau>. free_vars_ty (\<sigma>\<^sub>1 x) = {}"
+    by (induction \<tau>) (simp_all add: ty_comb.set_map)
 qed
-
-lemma ty_exhaust [case_names TyVar TyCtr]:
-  assumes
-    TyVar_case: "\<And>x. \<tau> = TyVar x \<Longrightarrow> thesis" and
-    TyCtr_case: "\<And>\<kappa> \<tau>s. \<tau> = TyCtr \<kappa> \<tau>s \<Longrightarrow> length \<tau>s = arity \<kappa> \<Longrightarrow> thesis"
-  shows thesis
-  using assms
-  by (induction \<tau>) metis+
-
-
-subsection \<open>Type Variables\<close>
-
-lift_definition type_vars :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty \<Rightarrow> '\<V>\<^sub>t\<^sub>y set"
-  is type_vars_prety .
-
-lemma type_vars_TyVar[simp]: "type_vars (TyVar x) = {x}"
-  by (simp add: TyVar.rep_eq type_vars.rep_eq)
-
-lemma type_vars_TyCtr[simp]:
-  "length \<tau>s = arity \<kappa> \<Longrightarrow> type_vars (TyCtr \<kappa> \<tau>s) = (\<Union>\<tau> \<in> set \<tau>s. type_vars \<tau>)"
-  by (simp add: Abs_ty_inverse TyCtr_def type_vars_def wf_prety_PretyCtr)
-
-lemma "finite (type_vars \<tau>)"
-  by (induction \<tau>) simp_all
 
 
 subsection \<open>Common Types\<close>
 
-lemma wf_prety_PretyCtr_bool_tyctr[intro]: "wf_prety (PretyCtr bool_tyctr [])"
-  by (rule wf_prety.PretyCtr) simp_all
+definition TyBool :: "('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty" ("\<bool>") where
+  "TyBool \<equiv> TyCtr (Abs_ty_comb (bool_tyctr, []))"
 
-definition TyBool :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty" ("\<bool>") where
-  "\<bool> \<equiv> Abs_ty (PretyCtr bool_tyctr [])"
-
-
-lemma wf_prety_PretyCtr_fun_tyctr[intro]: "wf_prety (PretyCtr fun_tyctr [Rep_ty \<tau>\<^sub>1, Rep_ty \<tau>\<^sub>2])"
-proof (intro wf_prety.PretyCtr[rule_format])
-  show "\<And>x. x \<in> set [Rep_ty \<tau>\<^sub>1, Rep_ty \<tau>\<^sub>2] \<Longrightarrow> wf_prety x"
-    using Rep_ty by auto
-qed simp_all
-
-abbreviation TyFun ::
-  "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty \<Rightarrow>
-    ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty" where
-  "TyFun \<tau>\<^sub>1 \<tau>\<^sub>2 \<equiv> TyCtr fun_tyctr [\<tau>\<^sub>1, \<tau>\<^sub>2]"
+abbreviation TyFun :: "('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty" where
+  "TyFun \<tau>\<^sub>1 \<tau>\<^sub>2 \<equiv> TyCtr (Abs_ty_comb (fun_tyctr, [\<tau>\<^sub>1, \<tau>\<^sub>2]))"
 
 abbreviation is_TyFun where
   "is_TyFun \<tau> \<equiv> \<exists>\<tau>\<^sub>1 \<tau>\<^sub>2. \<tau> = TyFun \<tau>\<^sub>1 \<tau>\<^sub>2"
 
 
 subsection \<open>Size\<close>
-
-lift_definition size_ty :: "('\<V>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> nat) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty \<Rightarrow> nat"
-  is size_prety .
-
-lemma size_ty_TyVar: "size_ty f\<^sub>1 f\<^sub>2 (TyVar x) = f\<^sub>1 x + Suc 0"
-  by transfer simp
 
 (* TODO: Make the proof nice and submit to Tobias for inclusion to List *)
 (* OR BETTER: have the size plugin generate it automatically *)
@@ -302,169 +193,49 @@ lemma size_list_transfer[transfer_rule]:
     done
   done
 
-lemma size_ty_TyCtr:
-  assumes "length \<tau>s = arity \<kappa>"
-  shows "size_ty f\<^sub>1 f\<^sub>2 (TyCtr \<kappa> \<tau>s) = f\<^sub>2 \<kappa> + size_list (size_ty f\<^sub>1 f\<^sub>2) \<tau>s + Suc 0"
-  using \<open>length \<tau>s = arity \<kappa>\<close>
-  by transfer simp
+(* lemma size_ty_TyCtr:
+  shows "size_ty f\<^sub>1 f\<^sub>2 (TyCtr \<kappa>_\<tau>s) =
+    f\<^sub>2 (tycon \<kappa>_\<tau>s) + size_list (size_ty f\<^sub>1 f\<^sub>2) (tyargs \<kappa>_\<tau>s) + Suc 0"
+  using ty.size
 
 lemma size_ty_TyFun:
   "size_ty f\<^sub>1 f\<^sub>2 (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) = f\<^sub>2 fun_tyctr + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>1  + size_ty f\<^sub>1 f\<^sub>2 \<tau>\<^sub>2 + 3"
   using size_ty_TyCtr[of "[\<tau>\<^sub>1, \<tau>\<^sub>2]" fun_tyctr, simplified]
-  by presburger
+  by presburger *)
 
-
-subsection \<open>Substitutions\<close>
-
-lift_definition subst_ty ::
-  "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty \<Rightarrow> ('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty" (infix "\<cdot>\<^sub>t\<^sub>y" 55)
-  is subst_prety
-proof -
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) prety"
-  assume "wf_prety \<tau>" and "\<And>x. wf_prety (\<sigma> x)"
-  then show "wf_prety (subst_prety \<tau> \<sigma>)"
-    by (induction \<tau> rule: wf_prety.induct) (simp_all add: wf_prety.PretyCtr)
-qed
-
-lemma subst_ty_simps[simp]:
-  "TyVar x \<cdot>\<^sub>t\<^sub>y \<sigma> = \<sigma> x"
-  "length \<tau>s = arity \<kappa> \<Longrightarrow> TyCtr \<kappa> \<tau>s \<cdot>\<^sub>t\<^sub>y \<sigma> = TyCtr \<kappa> (map (\<lambda>\<tau>. \<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>s)"
-proof -
-  show "TyVar x \<cdot>\<^sub>t\<^sub>y \<sigma> = \<sigma> x"
-    by transfer simp
-next
-  assume assm: "length \<tau>s = arity \<kappa>"
-  have "Abs_ty (PretyCtr \<kappa> (map (Rep_ty \<circ> (\<lambda>t. t \<cdot>\<^sub>t\<^sub>y \<sigma>)) \<tau>s)) = Abs_ty (Rep_ty (Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s)) \<cdot>\<^sub>t\<^sub>y \<sigma>))"
-    by (simp add: Abs_ty_inverse assm subst_ty.rep_eq wf_prety_PretyCtr comp_def)
-  also have "\<dots> = Abs_ty (PretyCtr \<kappa> (map Rep_ty \<tau>s)) \<cdot>\<^sub>t\<^sub>y \<sigma>"
-    by (simp add: Rep_ty_inverse)
-  finally show "TyCtr \<kappa> \<tau>s \<cdot>\<^sub>t\<^sub>y \<sigma> = TyCtr \<kappa> (map (\<lambda>\<tau>. \<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>s)"
-    using assm by (simp add: TyCtr_def)
-qed
-
-lemma subst_ty_TyVar[simp]: "\<tau> \<cdot>\<^sub>t\<^sub>y TyVar = \<tau>"
-  by (induction \<tau> rule: ty_induct) (simp_all add: list.map_ident_strong)
-
-lift_definition comp_subst_ty ::
-  "('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty) \<Rightarrow> ('\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty) \<Rightarrow> '\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty"
-  (infix "\<circ>\<^sub>t\<^sub>y" 50) is comp_subst_prety
-  by (metis (no_types, lifting) rel_fun_eq_rel[of "eq_onp wf_prety"] eq_onp_same_args[of wf_prety]
-      subst_ty.rsp
-      rel_funD2[of "rel_fun (=) (eq_onp wf_prety)" "eq_onp wf_prety" "subst_prety _"
-        "subst_prety _"]
-      rel_funD2[of "eq_onp wf_prety" "rel_fun (rel_fun (=) (eq_onp wf_prety)) (eq_onp wf_prety)"
-        subst_prety subst_prety]
-      comp_subst_prety_def)
-
-lemma comp_subst_ty_conv: "\<sigma>\<^sub>1 \<circ>\<^sub>t\<^sub>y \<sigma>\<^sub>2 = (\<lambda>x. \<sigma>\<^sub>1 x \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>2)"
-  by (metis (mono_tags, opaque_lifting)
-      Rep_ty_inverse
-      subst_ty.rep_eq[of "\<sigma>\<^sub>1 _" \<sigma>\<^sub>2]
-      comp_subst_ty.rep_eq[of \<sigma>\<^sub>1 \<sigma>\<^sub>2]
-      comp_id[of "Rep_ty \<circ> _"]
-      comp_apply[of Rep_ty]
-      comp_subst_prety_def[of "Rep_ty \<circ> \<sigma>\<^sub>1" "Rep_ty \<circ> \<sigma>\<^sub>2"])
-
-global_interpretation comp_subst_ty: monoid comp_subst_ty TyVar
-proof unfold_locales
-  fix \<sigma>\<^sub>1 \<sigma>\<^sub>2 \<sigma>\<^sub>3 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty"
-  show "((\<sigma>\<^sub>1 \<circ>\<^sub>t\<^sub>y \<sigma>\<^sub>2) \<circ>\<^sub>t\<^sub>y \<sigma>\<^sub>3) = (\<sigma>\<^sub>1 \<circ>\<^sub>t\<^sub>y (\<sigma>\<^sub>2 \<circ>\<^sub>t\<^sub>y \<sigma>\<^sub>3))"
-    unfolding comp_subst_ty_conv
-  proof (intro ext)
-    have "(t \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>2) \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>3 = t \<cdot>\<^sub>t\<^sub>y (\<lambda>x. \<sigma>\<^sub>2 x \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>3)" for t
-      by (induction t) simp_all
-
-    then show "\<And>x. (\<sigma>\<^sub>1 x \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>2) \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>3 = \<sigma>\<^sub>1 x \<cdot>\<^sub>t\<^sub>y (\<lambda>x. \<sigma>\<^sub>2 x \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>3)"
-      by metis
-  qed
-next
-  show "\<And>a. (TyVar \<circ>\<^sub>t\<^sub>y a) = a"
-    by (simp add: comp_subst_ty_conv)
-next
-  show "\<And>a. (a \<circ>\<^sub>t\<^sub>y TyVar) = a"
-    by (simp add: comp_subst_ty_conv)
-qed
-
-(*
-
-  comp_subst = comp_subst_prety and
-  id_subst = PretyVar and
-  subst = subst_prety and
-  apply_subst = "\<lambda>x \<sigma>. \<sigma> x" and
-  subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and
-  vars = type_vars_prety
-*)
-
-global_interpretation subst_ty: base_substitution where
-  comp_subst = comp_subst_ty and
-  id_subst = TyVar and
-  subst = subst_ty and
-  is_ground = "\<lambda>x. type_vars x = {}" and
-  apply_subst = "\<lambda>x \<sigma>. \<sigma> x" and
-  (* subst_update = "\<lambda>\<sigma> x \<tau>. \<sigma>(x := \<tau>)" and *)
-  vars = type_vars
-proof unfold_locales
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
-  show "\<tau> \<cdot>\<^sub>t\<^sub>y (\<sigma>\<^sub>1 \<circ>\<^sub>t\<^sub>y \<sigma>\<^sub>2) = (\<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>1) \<cdot>\<^sub>t\<^sub>y \<sigma>\<^sub>2"
-    by (induction \<tau>) (simp_all add: comp_subst_ty_conv)
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty"
-  show "subst_ty \<tau> TyVar = \<tau>"
-    by simp
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty"
-  assume "type_vars \<tau> = {}"
-  then show "\<forall>\<sigma>. \<tau> \<cdot>\<^sub>t\<^sub>y \<sigma> = \<tau>"
-    by (induction \<tau>) (simp_all add: list.map_ident_strong)
-next
-  show "\<And>\<sigma> \<sigma>' x. (\<sigma> \<circ>\<^sub>t\<^sub>y \<sigma>') x = \<sigma> x \<cdot>\<^sub>t\<^sub>y \<sigma>'"
-    by (simp add: comp_subst_ty_conv)
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
-  show "type_vars (\<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>) = \<Union> (type_vars ` \<sigma> ` type_vars \<tau>)"
-    by (induction \<tau>) simp_all
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
-  show "type_vars (\<tau> \<cdot>\<^sub>t\<^sub>y \<sigma>) = {} \<Longrightarrow> \<forall>x\<in>type_vars \<tau>. type_vars (\<sigma> x) = {}"
-    by (induction \<tau>) simp_all
-qed simp_all
-(*   fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma>\<^sub>1 \<sigma>\<^sub>2 :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
-  assume "\<And>x. x \<in> type_vars \<tau> \<Longrightarrow> \<sigma>\<^sub>1 x = \<sigma>\<^sub>2 x"
-  then show "subst_ty \<tau> \<sigma>\<^sub>1 = subst_ty \<tau> \<sigma>\<^sub>2"
-    by (induction \<tau>) auto
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty" and x :: '\<V>\<^sub>t\<^sub>y
-  show "(\<sigma>(x := \<tau>)) x = \<tau>"
-    by simp
-next
-  fix \<tau> :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) ty" and \<sigma> :: "'\<V>\<^sub>t\<^sub>y \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty" and x y :: '\<V>\<^sub>t\<^sub>y
-  show "x \<noteq> y \<Longrightarrow> (\<sigma>(y := \<tau>)) x = \<sigma> x"
-    by simp
-qed *)
 
 section \<open>Type System\<close>
 
-type_synonym ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) pre_const_ty = "'\<V>\<^sub>t\<^sub>y list \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty list \<times> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty"
+type_synonym ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) pre_const_ty = "'\<V>\<^sub>t\<^sub>y list \<times> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty list \<times> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty"
 
 text \<open>A constant's declared type-variable tuple must be distinct and must contain every type
   variable occurring in its parameter and result types, matching the paper's signature
   well-formedness requirement.\<close>
 
-definition wf_const_ty :: "('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) pre_const_ty \<Rightarrow> bool" where
+definition wf_const_ty :: "('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) pre_const_ty \<Rightarrow> bool" where
   "wf_const_ty \<equiv> \<lambda>(\<alpha>s, \<tau>s, \<tau>).
-    distinct \<alpha>s \<and> (\<Union>\<tau>'\<in>set \<tau>s. type_vars \<tau>') \<union> type_vars \<tau> \<subseteq> set \<alpha>s"
+    distinct \<alpha>s \<and> (\<Union>\<tau>'\<in>set \<tau>s. free_vars_ty \<tau>') \<union> free_vars_ty \<tau> \<subseteq> set \<alpha>s"
 
-typedef (overloaded) ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) const_ty =
-  \<open>{c :: ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) pre_const_ty. wf_const_ty c}\<close>
-proof
+typedef (overloaded) ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) const_ty =
+  \<open>{c :: ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) pre_const_ty. wf_const_ty c}\<close>
+proof (rule exI)
   show \<open>([undefined], [], TyVar undefined) \<in> {c. wf_const_ty c}\<close>
     by (simp add: wf_const_ty_def)
 qed
 
 setup_lifting type_definition_const_ty
 
+term ty.rel_ty
+
+lift_definition const_ty_vars :: "('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) const_ty \<Rightarrow> '\<V>\<^sub>t\<^sub>y list"
+  is fst .
+lift_definition const_ty_dom :: "('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) const_ty \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty list"
+  is "fst \<circ> snd" .
+lift_definition const_ty_codom :: "('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) const_ty \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty"
+  is "snd \<circ> snd" .
+
 definition ConstTy ::
-  "'\<V>\<^sub>t\<^sub>y list \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty list \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: arity) const_ty" where
+  "'\<V>\<^sub>t\<^sub>y list \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty list \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y) const_ty" where
   "wf_const_ty (\<alpha>s, \<tau>s, \<tau>) \<Longrightarrow> ConstTy \<alpha>s \<tau>s \<tau> = Abs_const_ty (\<alpha>s, \<tau>s, \<tau>)"
 
 lemma Rep_const_ty_ConstTy[simp]:
@@ -473,14 +244,14 @@ lemma Rep_const_ty_ConstTy[simp]:
   using assms by (simp add: ConstTy_def Abs_const_ty_inverse)
 
 inductive has_type ::
-  "('\<Sigma> \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) const_ty) \<Rightarrow>
-    (('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y) ty \<Rightarrow> bool"
+  "('\<Sigma> \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) const_ty) \<Rightarrow>
+    (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> bool"
   for \<C> where
   Const: "has_type \<C> (Const c \<tau>\<^sub>1s ts) \<tau>"
-    if "Rep_const_ty (\<C> c) = (\<alpha>s, \<tau>\<^sub>2s, \<tau>\<^sub>3)" and "length \<alpha>s = length \<tau>\<^sub>1s" and
-      "\<sigma> = fun_upds TyVar \<alpha>s \<tau>\<^sub>1s" and
-      "list_all2 (has_type \<C>) ts (map (\<lambda>\<tau>\<^sub>2. \<tau>\<^sub>2 \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>\<^sub>2s)" and
-      "\<tau> = \<tau>\<^sub>3 \<cdot>\<^sub>t\<^sub>y \<sigma>"
+    if "length (const_ty_vars (\<C> c)) = length \<tau>\<^sub>1s" and
+      "\<sigma> = fun_upds TyVar (const_ty_vars (\<C> c)) \<tau>\<^sub>1s" and
+      "list_all2 (has_type \<C>) ts (map (subst_ty \<sigma>) (const_ty_dom (\<C> c)))" and
+      "\<tau> = const_ty_codom (\<C> c) \<cdot>\<^sub>t\<^sub>y \<sigma>"
     for c \<tau>\<^sub>1s ts \<tau> |
   Free: "has_type \<C> (Free x \<tau>) \<tau>"
     for x \<tau> |
@@ -493,7 +264,7 @@ inductive has_type ::
 
 lemma locally_closed_if_has_type[intro]: "has_type \<C> t \<tau> \<Longrightarrow> locally_closed t"
 proof (induction t \<tau> rule: has_type.induct)
-  case (Const c \<tau>\<^sub>1s ts \<tau> \<alpha>s \<tau>\<^sub>2s \<tau>\<^sub>3 \<sigma>)
+  case (Const c \<tau>\<^sub>1s ts \<tau> \<sigma>)
   show ?case
   proof (rule locally_closed.Const)
     show "list_all locally_closed ts"
@@ -511,7 +282,7 @@ next
 next
   case (Abs t \<tau>\<^sub>1 \<tau>\<^sub>2 \<X>)
   show ?case
-  proof (rule locally_closed.Abs[where \<X> = \<X>])
+  proof (rule locally_closed.Abs)
     fix x
     assume "x |\<notin>| \<X>"
     then show "locally_closed (open_bound 0 \<tau>\<^sub>1 (Free x \<tau>\<^sub>1) t)"
@@ -550,23 +321,25 @@ lemma free_var_types_open_bound_Free_subset:
   by (induction t arbitrary: n) auto
 
 lemma has_type_subst_free:
-  fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
+  fixes t\<^sub>1 :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes ht_t: "has_type \<C> t \<tau>\<^sub>1" and consistent: "free_var_types x t \<subseteq> {\<tau>\<^sub>2}"
-    and ht_u: "has_type \<C> u \<tau>\<^sub>2"
-  shows "has_type \<C> (subst_free x u t) \<tau>\<^sub>1"
+  assumes ht_t: "has_type \<C> t\<^sub>1 \<tau>\<^sub>1" and consistent: "free_var_types x t\<^sub>1 \<subseteq> {\<tau>\<^sub>2}"
+    and ht_u: "has_type \<C> t\<^sub>2 \<tau>\<^sub>2"
+  shows "has_type \<C> (subst_free x t\<^sub>2 t\<^sub>1) \<tau>\<^sub>1"
   using ht_t consistent
-proof (induction t \<tau>\<^sub>1 rule: has_type.induct)
-  case (Const c \<tau>\<^sub>1s ts \<tau> \<alpha>s \<tau>\<^sub>2s \<tau>\<^sub>3 \<sigma>)
+proof (induction t\<^sub>1 \<tau>\<^sub>1 rule: has_type.induct)
+  case (Const c \<tau>\<^sub>1s ts \<tau> \<sigma>)
   show ?case
     unfolding subst_free.simps
   proof (rule has_type.Const)
-    show "Rep_const_ty (\<C> c) = (\<alpha>s, \<tau>\<^sub>2s, \<tau>\<^sub>3)" by (rule Const.hyps(1))
-    show "length \<alpha>s = length \<tau>\<^sub>1s" by (rule Const.hyps(2))
-    show "\<sigma> = fun_upds TyVar \<alpha>s \<tau>\<^sub>1s" by (rule Const.hyps(3))
-    show "list_all2 (has_type \<C>) ts (map (\<lambda>\<tau>\<^sub>2. \<tau>\<^sub>2 \<cdot>\<^sub>t\<^sub>y \<sigma>) \<tau>\<^sub>2s)"
+    show "length (const_ty_vars (\<C> c)) = length \<tau>\<^sub>1s"
+      by (rule Const.hyps)
+    show "\<sigma> = fun_upds TyVar (const_ty_vars (\<C> c)) \<tau>\<^sub>1s"
+      by (rule Const.hyps)
+    show "list_all2 (has_type \<C>) ts (map (\<lambda>\<tau>\<^sub>2. \<tau>\<^sub>2 \<cdot>\<^sub>t\<^sub>y \<sigma>) (const_ty_dom (\<C> c)))"
       by (rule list.rel_mono_strong[OF Const.IH]) simp
-    show "\<tau> = \<tau>\<^sub>3 \<cdot>\<^sub>t\<^sub>y \<sigma>" by (rule Const.hyps(4))
+    show "\<tau> = const_ty_codom (\<C> c) \<cdot>\<^sub>t\<^sub>y \<sigma>"
+      by (rule Const.hyps)
   qed
 next
   case (Free y \<tau>)
@@ -586,9 +359,9 @@ next
   case (App s\<^sub>1 s\<^sub>2 \<rho>\<^sub>1 \<rho>\<^sub>2)
   have prems1: "free_var_types x s\<^sub>1 \<subseteq> {\<tau>\<^sub>2}" and prems2: "free_var_types x s\<^sub>2 \<subseteq> {\<tau>\<^sub>2}"
     using App.prems by auto
-  have "has_type \<C> (subst_free x u s\<^sub>1) (TyFun \<rho>\<^sub>1 \<rho>\<^sub>2)"
+  have "has_type \<C> (subst_free x t\<^sub>2 s\<^sub>1) (TyFun \<rho>\<^sub>1 \<rho>\<^sub>2)"
     using App.IH(1)[OF prems1] .
-  moreover have "has_type \<C> (subst_free x u s\<^sub>2) \<rho>\<^sub>1"
+  moreover have "has_type \<C> (subst_free x t\<^sub>2 s\<^sub>2) \<rho>\<^sub>1"
     using App.IH(2)[OF prems2] .
   ultimately show ?case
     unfolding subst_free.simps
@@ -597,40 +370,38 @@ next
   case (Abs t \<rho>\<^sub>1 \<rho>\<^sub>2 \<X>)
   show ?case
     unfolding subst_free.simps
-  proof (rule has_type.Abs[where \<X> = "finsert x \<X>"])
-    fix y
+  proof (rule has_type.Abs)
+    fix y :: '\<V>
     assume y_in: "y |\<notin>| finsert x \<X>"
     then have x_ne_y: "x \<noteq> y" and y_notin_\<X>: "y |\<notin>| \<X>"
       by auto
     have consistent': "free_var_types x (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t) \<subseteq> {\<tau>\<^sub>2}"
       using Abs.prems x_ne_y by simp
-    have "has_type \<C> (subst_free x u (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t)) \<rho>\<^sub>2"
+    have "has_type \<C> (subst_free x t\<^sub>2 (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t)) \<rho>\<^sub>2"
       using Abs.IH[OF y_notin_\<X> consistent'] .
-    then show "has_type \<C> (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) (subst_free x u t)) \<rho>\<^sub>2"
-      using subst_free_commutes_with_open_bound_Free[
-          OF inf_vars x_ne_y locally_closed_if_has_type[OF ht_u]]
-      by metis
+    then show "has_type \<C> (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) (subst_free x t\<^sub>2 t)) \<rho>\<^sub>2"
+      unfolding subst_free_commutes_with_open_bound_Free[
+          OF inf_vars x_ne_y locally_closed_if_has_type[OF ht_u]] .
   qed
 qed
 
 lemma has_type_open_bound:
-  fixes t :: "(('\<V>\<^sub>t\<^sub>y, '\<Sigma>\<^sub>t\<^sub>y :: type_signature) ty, '\<Sigma>, '\<V>) preterm"
+  fixes t\<^sub>1 :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes body_typed: "\<And>x. x |\<notin>| \<X> \<Longrightarrow> has_type \<C> (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t) \<tau>\<^sub>1"
-    and arg_typed: "has_type \<C> u \<tau>\<^sub>2"
-  shows "has_type \<C> (open_bound 0 \<tau>\<^sub>2 u t) \<tau>\<^sub>1"
+  assumes body_typed: "\<And>x. x |\<notin>| \<X> \<Longrightarrow> has_type \<C> (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1) \<tau>\<^sub>1"
+    and arg_typed: "has_type \<C> t\<^sub>2 \<tau>\<^sub>2"
+  shows "has_type \<C> (open_bound 0 \<tau>\<^sub>2 t\<^sub>2 t\<^sub>1) \<tau>\<^sub>1"
 proof -
-  obtain x where fresh_\<X>: "x |\<notin>| \<X>" and fresh_t: "x \<notin> free_vars t"
-    using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t|}"]
-    by blast
-  have consistent: "free_var_types x (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t) \<subseteq> {\<tau>\<^sub>2}"
-    using free_var_types_open_bound_Free_subset[of x 0 \<tau>\<^sub>2 t]
+  obtain x :: '\<V> where fresh_\<X>: "x |\<notin>| \<X>" and fresh_t: "x \<notin> free_vars t\<^sub>1"
+    using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t\<^sub>1|}"]
+    by auto
+  have consistent: "free_var_types x (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1) \<subseteq> {\<tau>\<^sub>2}"
+    using free_var_types_open_bound_Free_subset[of x 0 \<tau>\<^sub>2 t\<^sub>1]
     by (simp add: free_var_types_empty_if_not_in_free_vars[OF fresh_t])
-  have "has_type \<C> (subst_free x u (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t)) \<tau>\<^sub>1"
+  have "has_type \<C> (subst_free x t\<^sub>2 (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1)) \<tau>\<^sub>1"
     by (rule has_type_subst_free[OF inf_vars body_typed[OF fresh_\<X>] consistent arg_typed])
   then show ?thesis
     by (simp add: subst_free_open_bound_Free_eq_open_bound[OF fresh_t])
 qed
-
 
 end
