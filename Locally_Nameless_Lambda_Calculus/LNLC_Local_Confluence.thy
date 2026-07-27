@@ -77,40 +77,21 @@ lemma open_bound_Free_close_free_idem:
 
 text \<open>Since \<^const>\<open>close_free\<close> only converts a \<open>Free x \<tau>\<close> node into a bound variable when its
   annotation matches the level being closed, while \<^const>\<open>subst_free\<close> matches on the name alone,
-  the two only agree when every occurrence of \<open>x\<close> in the term carries the same annotation \<open>\<tau>\<close>.
-  \<open>free_var_annot\<close> (defined below) collects those annotations, and is preserved (as a subset)
-  along \<^const>\<open>beta_reduce\<close>, since reduction only ever duplicates or discards already-existing
-  subterms.\<close>
+  the two only agree when every occurrence of \<open>x\<close> in the term carries the same annotation \<open>\<tau>\<close>, that
+  is, when \<open>{\<rho>. (x, \<rho>) \<in> free_typed_vars t} \<subseteq> {\<tau>}\<close>. Such a constraint is preserved along
+  \<^const>\<open>beta_reduce\<close>, since reduction only ever duplicates or discards already-existing subterms
+  and hence never introduces a free typed variable.\<close>
 
-primrec free_var_annot :: "'\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> '\<tau> set" where
-  "free_var_annot x (Const c \<tau>s ts) = {}" |
-  "free_var_annot x (Free y \<tau>) = (if x = y then {\<tau>} else {})" |
-  "free_var_annot x (Bound k \<tau>) = {}" |
-  "free_var_annot x (App t\<^sub>1 t\<^sub>2) = free_var_annot x t\<^sub>1 \<union> free_var_annot x t\<^sub>2" |
-  "free_var_annot x (Abs \<tau> t) = free_var_annot x t"
-
-lemma free_var_annot_empty_if_not_in_free_vars:
-  "x \<notin> free_vars t \<Longrightarrow> free_var_annot x t = {}"
-  by (induction t) auto
-
-lemma free_var_annot_open_bound_Free_other[simp]:
-  "x \<noteq> y \<Longrightarrow> free_var_annot x (open_bound n \<tau> (Free y \<tau>) t) = free_var_annot x t"
-  by (induction t arbitrary: n) auto
-
-lemma free_var_annot_open_bound_subset:
-  "free_var_annot x (open_bound n \<tau> u t) \<subseteq> free_var_annot x t \<union> free_var_annot x u"
-  by (induction t arbitrary: n) auto
-
-lemma free_var_annot_beta_reduce_subset:
+lemma free_typed_vars_beta_reduce_subset:
   fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and red: "beta_reduce t t'"
-  shows "free_var_annot x t' \<subseteq> free_var_annot x t"
+  shows "free_typed_vars t' \<subseteq> free_typed_vars t"
   using red
 proof (induction rule: beta_reduce.induct)
-  case (beta \<tau> b u)
+  case (beta \<tau> t u)
   then show ?case
-    using free_var_annot_open_bound_subset[of x 0 \<tau> u b] by simp
+    using free_typed_vars_open_bound_subset[of 0 \<tau> u t] by simp
 next
   case (App_left t t' u)
   then show ?case by auto
@@ -119,24 +100,33 @@ next
   then show ?case by auto
 next
   case (Abs \<X> \<tau> t t')
-  obtain y where y_notin: "y |\<notin>| finsert x \<X>"
-    using inf_vars by (metis ex_new_if_finite finite_fset)
-  then have y_ne_x: "y \<noteq> x" and y_notin_\<X>: "y |\<notin>| \<X>"
-    by auto
-  have "free_var_annot x (open_bound 0 \<tau> (Free y \<tau>) t') \<subseteq> free_var_annot x (open_bound 0 \<tau> (Free y \<tau>) t)"
+  obtain y where y_notin_\<X>: "y |\<notin>| \<X>" and
+    y_fresh: "\<And>s. s |\<in>| {|t, t'|} \<Longrightarrow> y \<notin> free_vars s"
+    using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t, t'|}"] by blast
+  have y_t': "y \<notin> free_vars t'"
+    by (rule y_fresh; simp)
+  have "free_typed_vars t' \<subseteq> free_typed_vars (open_bound 0 \<tau> (Free y \<tau>) t')"
+    by (rule free_typed_vars_subset_open_bound)
+  also have "\<dots> \<subseteq> free_typed_vars (open_bound 0 \<tau> (Free y \<tau>) t)"
     using Abs.IH[OF y_notin_\<X>] .
-  then show ?case
-    by (simp add: free_var_annot_open_bound_Free_other[OF y_ne_x[symmetric]])
+  also have "\<dots> \<subseteq> free_typed_vars t \<union> {(y, \<tau>)}"
+    using free_typed_vars_open_bound_subset[of 0 \<tau> "Free y \<tau>" t] by simp
+  finally show ?case
+    using y_t' by (auto dest: in_free_vars_if_in_free_typed_vars)
 next
   case (Const ts i t' c \<tau>s)
-  then show ?case by simp
+  have ts_i: "ts ! i \<in> set ts"
+    using Const.hyps(2) by simp
+  show ?case
+    using Const.IH ts_i
+    by (auto dest!: set_update_subset_insert[THEN subsetD])
 qed
 
-lemma free_var_annot_rtranclp_beta_reduce_subset:
+lemma free_typed_vars_rtranclp_beta_reduce_subset:
   fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and reds: "beta_reduce\<^sup>*\<^sup>* t t'"
-  shows "free_var_annot x t' \<subseteq> free_var_annot x t"
+  shows "free_typed_vars t' \<subseteq> free_typed_vars t"
   using reds
 proof (induction rule: rtranclp_induct)
   case base
@@ -144,12 +134,12 @@ proof (induction rule: rtranclp_induct)
 next
   case (step s s')
   show ?case
-    using free_var_annot_beta_reduce_subset[OF inf_vars step.hyps(2)] step.IH
+    using free_typed_vars_beta_reduce_subset[OF inf_vars step.hyps(2)] step.IH
     by (rule subset_trans)
 qed
 
 lemma open_bound_close_free:
-  assumes "x \<noteq> y" and "locally_closed_at n t" and "free_var_annot x t \<subseteq> {\<tau>}"
+  assumes "x \<noteq> y" and "locally_closed_at n t" and "{\<rho>. (x, \<rho>) \<in> free_typed_vars t} \<subseteq> {\<tau>}"
   shows "open_bound n \<tau> (Free y \<tau>) (close_free n \<tau> x t) =
     subst_free x (Free y \<tau>) t"
   using assms
@@ -159,7 +149,7 @@ lemma beta_reduce_Abs_close_free:
   fixes s s' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and red: "beta_reduce s s'"
-    and consistent: "free_var_annot x s \<subseteq> {\<tau>}"
+    and consistent: "{\<rho>. (x, \<rho>) \<in> free_typed_vars s} \<subseteq> {\<tau>}"
   shows "beta_reduce
     (Abs \<tau> (close_free 0 \<tau> x s)) (Abs \<tau> (close_free 0 \<tau> x s'))"
 proof (rule beta_reduce.Abs[where \<X> = "{|x|}"])
@@ -172,8 +162,8 @@ proof (rule beta_reduce.Abs[where \<X> = "{|x|}"])
     by (rule locally_closed_imp_locally_closed_at[OF inf_vars lc_s0])
   have lc_s': "locally_closed_at 0 s'"
     by (rule locally_closed_imp_locally_closed_at[OF inf_vars lc_s0'])
-  have consistent': "free_var_annot x s' \<subseteq> {\<tau>}"
-    using free_var_annot_beta_reduce_subset[OF inf_vars red] consistent by blast
+  have consistent': "{\<rho>. (x, \<rho>) \<in> free_typed_vars s'} \<subseteq> {\<tau>}"
+    using free_typed_vars_beta_reduce_subset[OF inf_vars red] consistent by blast
   show "beta_reduce (open_bound 0 \<tau> (Free y \<tau>) (close_free 0 \<tau> x s))
       (open_bound 0 \<tau> (Free y \<tau>) (close_free 0 \<tau> x s'))"
     unfolding open_bound_close_free[OF \<open>x \<noteq> y\<close> lc_s consistent]
@@ -185,7 +175,7 @@ lemma beta_reduce_rtrancl_Abs_close_free:
   fixes s s' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and reds: "beta_reduce\<^sup>*\<^sup>* s s'"
-    and consistent: "free_var_annot x s \<subseteq> {\<tau>}"
+    and consistent: "{\<rho>. (x, \<rho>) \<in> free_typed_vars s} \<subseteq> {\<tau>}"
   shows "beta_reduce\<^sup>*\<^sup>*
     (Abs \<tau> (close_free 0 \<tau> x s)) (Abs \<tau> (close_free 0 \<tau> x s'))"
   using reds
@@ -194,8 +184,8 @@ proof (induction rule: rtranclp_induct)
   show ?case by (rule rtranclp.rtrancl_refl)
 next
   case (step s\<^sub>1 s\<^sub>2)
-  have consistent\<^sub>1: "free_var_annot x s\<^sub>1 \<subseteq> {\<tau>}"
-    using free_var_annot_rtranclp_beta_reduce_subset[OF inf_vars step.hyps(1)] consistent
+  have consistent\<^sub>1: "{\<rho>. (x, \<rho>) \<in> free_typed_vars s\<^sub>1} \<subseteq> {\<tau>}"
+    using free_typed_vars_rtranclp_beta_reduce_subset[OF inf_vars step.hyps(1)] consistent
     by blast
   show ?case
     using step.IH beta_reduce_Abs_close_free[OF inf_vars step.hyps(2) consistent\<^sub>1]
@@ -215,9 +205,9 @@ proof -
     using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t, t'|}"] by blast
   have x_t: "x \<notin> free_vars t" and x_t': "x \<notin> free_vars t'"
     by (rule x_fresh; simp)+
-  have consistent: "free_var_annot x (open_bound 0 \<tau> (Free x \<tau>) t) \<subseteq> {\<tau>}"
-    using free_var_annot_open_bound_subset[of x 0 \<tau> "Free x \<tau>" t]
-    by (simp add: free_var_annot_empty_if_not_in_free_vars[OF x_t])
+  have consistent: "{\<rho>. (x, \<rho>) \<in> free_typed_vars (open_bound 0 \<tau> (Free x \<tau>) t)} \<subseteq> {\<tau>}"
+    using free_typed_vars_open_bound_subset[of 0 \<tau> "Free x \<tau>" t] x_t
+    by (auto dest: in_free_vars_if_in_free_typed_vars)
   have "beta_reduce\<^sup>*\<^sup>*
       (Abs \<tau> (close_free 0 \<tau> x (open_bound 0 \<tau> (Free x \<tau>) t)))
       (Abs \<tau> (close_free 0 \<tau> x (open_bound 0 \<tau> (Free x \<tau>) t')))"
@@ -542,12 +532,12 @@ next
       reds\<^sub>2: "beta_reduce\<^sup>*\<^sup>* (open_bound 0 \<tau> (Free x \<tau>) b'') w"
       using Abs.IH[OF x_fresh_\<X> opened\<^sub>2[OF x_fresh_\<Y>]]
       by blast
-    have consistent\<^sub>1: "free_var_annot x (open_bound 0 \<tau> (Free x \<tau>) b') \<subseteq> {\<tau>}"
-      using free_var_annot_open_bound_subset[of x 0 \<tau> "Free x \<tau>" b']
-      by (simp add: free_var_annot_empty_if_not_in_free_vars[OF x_b'])
-    have consistent\<^sub>2: "free_var_annot x (open_bound 0 \<tau> (Free x \<tau>) b'') \<subseteq> {\<tau>}"
-      using free_var_annot_open_bound_subset[of x 0 \<tau> "Free x \<tau>" b'']
-      by (simp add: free_var_annot_empty_if_not_in_free_vars[OF x_b''])
+    have consistent\<^sub>1: "{\<rho>. (x, \<rho>) \<in> free_typed_vars (open_bound 0 \<tau> (Free x \<tau>) b')} \<subseteq> {\<tau>}"
+      using free_typed_vars_open_bound_subset[of 0 \<tau> "Free x \<tau>" b'] x_b'
+      by (auto dest: in_free_vars_if_in_free_typed_vars)
+    have consistent\<^sub>2: "{\<rho>. (x, \<rho>) \<in> free_typed_vars (open_bound 0 \<tau> (Free x \<tau>) b'')} \<subseteq> {\<tau>}"
+      using free_typed_vars_open_bound_subset[of 0 \<tau> "Free x \<tau>" b''] x_b''
+      by (auto dest: in_free_vars_if_in_free_typed_vars)
     have closed\<^sub>1:
       "beta_reduce\<^sup>*\<^sup>* (Abs \<tau> b') (Abs \<tau> (close_free 0 \<tau> x w))"
       using beta_reduce_rtrancl_Abs_close_free[OF inf_vars reds\<^sub>1 consistent\<^sub>1]

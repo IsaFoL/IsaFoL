@@ -343,36 +343,20 @@ text \<open>Since \<^const>\<open>has_type\<close> no longer carries a typing en
   typed by their own annotation instead), soundly substituting \<open>u\<close> for \<open>x\<close> in a well-typed term
   requires every occurrence of \<open>x\<close> in that term to carry the same annotation as \<open>u\<close>'s type ---
   \<^const>\<open>subst_free\<close> matches on the variable's name alone and ignores the stored annotation.
-  \<open>free_var_types\<close> (defined below) collects those annotations.\<close>
+  \<^const>\<open>free_typed_vars\<close> collects those annotations: the ones \<open>x\<close> occurs with in \<open>t\<close> are
+  \<open>{\<tau>. (x, \<tau>) \<in> free_typed_vars t}\<close>, and the substitution lemma below requires that set to be a
+  subset of \<open>{\<tau>\<^sub>2}\<close>, the singleton holding the type of the replacement.
 
-primrec free_var_types :: "'\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> '\<tau> set" where
-  "free_var_types x (Const c \<tau>s ts) = {}" |
-  "free_var_types x (Free y \<tau>) = (if x = y then {\<tau>} else {})" |
-  "free_var_types x (Bound k \<tau>) = {}" |
-  "free_var_types x (App t\<^sub>1 t\<^sub>2) = free_var_types x t\<^sub>1 \<union> free_var_types x t\<^sub>2" |
-  "free_var_types x (Abs \<tau> t) = free_var_types x t"
-
-text \<open>\<^const>\<open>free_var_types\<close> ignores a \<open>Const\<close>'s parameters, matching the opacity of
-  \<^const>\<open>subst_free\<close> and \<^const>\<open>open_bound\<close> towards them (see the note on
-  \<^const>\<open>locally_closed_at\<close>): since substitution never descends into a constant's parameters,
-  their annotations are irrelevant to the soundness of the substitution lemma below.\<close>
-
-lemma free_var_types_empty_if_not_in_free_vars:
-  "x \<notin> free_vars t \<Longrightarrow> free_var_types x t = {}"
-  by (induction t) auto
-
-lemma free_var_types_open_bound_Free_other[simp]:
-  "x \<noteq> y \<Longrightarrow> free_var_types x (open_bound n \<tau> (Free y \<tau>) t) = free_var_types x t"
-  by (induction t arbitrary: n) auto
-
-lemma free_var_types_open_bound_Free_subset:
-  "free_var_types x (open_bound n \<tau> (Free x \<tau>) t) \<subseteq> insert \<tau> (free_var_types x t)"
-  by (induction t arbitrary: n) auto
+  This also constrains the occurrences of \<open>x\<close> inside a \<open>Const\<close>'s parameters, which
+  \<^const>\<open>subst_free\<close> and \<^const>\<open>open_bound\<close> leave untouched (see the note on
+  \<^const>\<open>locally_closed_at\<close>), so it asks for slightly more than soundness needs. That is
+  harmless here: the only use of the lemma is \<open>has_type_open_bound\<close> below, which opens a
+  binder with a variable that is fresh for the whole term.\<close>
 
 lemma has_type_subst_free:
   fixes t\<^sub>1 :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes ht_t: "has_type \<C> t\<^sub>1 \<tau>\<^sub>1" and consistent: "free_var_types x t\<^sub>1 \<subseteq> {\<tau>\<^sub>2}"
+  assumes ht_t: "has_type \<C> t\<^sub>1 \<tau>\<^sub>1" and consistent: "{\<tau>. (x, \<tau>) \<in> free_typed_vars t\<^sub>1} \<subseteq> {\<tau>\<^sub>2}"
     and ht_u: "has_type \<C> t\<^sub>2 \<tau>\<^sub>2"
   shows "has_type \<C> (subst_free x t\<^sub>2 t\<^sub>1) \<tau>\<^sub>1"
   using ht_t consistent
@@ -406,7 +390,8 @@ next
   qed
 next
   case (App s\<^sub>1 s\<^sub>2 \<rho>\<^sub>1 \<rho>\<^sub>2)
-  have prems1: "free_var_types x s\<^sub>1 \<subseteq> {\<tau>\<^sub>2}" and prems2: "free_var_types x s\<^sub>2 \<subseteq> {\<tau>\<^sub>2}"
+  have prems1: "{\<tau>. (x, \<tau>) \<in> free_typed_vars s\<^sub>1} \<subseteq> {\<tau>\<^sub>2}"
+    and prems2: "{\<tau>. (x, \<tau>) \<in> free_typed_vars s\<^sub>2} \<subseteq> {\<tau>\<^sub>2}"
     using App.prems by auto
   have "has_type \<C> (subst_free x t\<^sub>2 s\<^sub>1) (TyFun \<rho>\<^sub>1 \<rho>\<^sub>2)"
     using App.IH(1)[OF prems1] .
@@ -424,8 +409,10 @@ next
     assume y_in: "y |\<notin>| finsert x \<X>"
     then have x_ne_y: "x \<noteq> y" and y_notin_\<X>: "y |\<notin>| \<X>"
       by auto
-    have consistent': "free_var_types x (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t) \<subseteq> {\<tau>\<^sub>2}"
-      using Abs.prems x_ne_y by simp
+    have consistent': "{\<tau>. (x, \<tau>) \<in> free_typed_vars (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t)} \<subseteq> {\<tau>\<^sub>2}"
+      using Abs.prems x_ne_y
+        free_typed_vars_open_bound_subset[of 0 \<rho>\<^sub>1 "Free y \<rho>\<^sub>1" t]
+      by auto
     have "has_type \<C> (subst_free x t\<^sub>2 (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t)) \<rho>\<^sub>2"
       using Abs.IH[OF y_notin_\<X> consistent'] .
     then show "has_type \<C> (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) (subst_free x t\<^sub>2 t)) \<rho>\<^sub>2"
@@ -444,9 +431,9 @@ proof -
   obtain x :: '\<V> where fresh_\<X>: "x |\<notin>| \<X>" and fresh_t: "x \<notin> free_vars t\<^sub>1"
     using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t\<^sub>1|}"]
     by auto
-  have consistent: "free_var_types x (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1) \<subseteq> {\<tau>\<^sub>2}"
-    using free_var_types_open_bound_Free_subset[of x 0 \<tau>\<^sub>2 t\<^sub>1]
-    by (simp add: free_var_types_empty_if_not_in_free_vars[OF fresh_t])
+  have consistent: "{\<tau>. (x, \<tau>) \<in> free_typed_vars (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1)} \<subseteq> {\<tau>\<^sub>2}"
+    using free_typed_vars_open_bound_subset[of 0 \<tau>\<^sub>2 "Free x \<tau>\<^sub>2" t\<^sub>1] fresh_t
+    by (auto dest: in_free_vars_if_in_free_typed_vars)
   have "has_type \<C> (subst_free x t\<^sub>2 (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1)) \<tau>\<^sub>1"
     by (rule has_type_subst_free[OF inf_vars body_typed[OF fresh_\<X>] consistent arg_typed])
   then show ?thesis

@@ -58,6 +58,25 @@ lemma free_vars_fset_rep_eq: "fset (free_vars_fset t) = free_vars t"
   by (induction t) (simp_all add: ffUnion.rep_eq fimage.rep_eq fset_of_list.rep_eq)
 
 
+text \<open>\<^const>\<open>free_vars\<close> forgets the annotation each free occurrence carries;
+  \<open>free_typed_vars\<close> (defined below) keeps it, pairing every free name with its annotation. The
+  annotations a single name occurs with are thus \<open>{\<tau>. (x, \<tau>) \<in> free_typed_vars t}\<close>, which need not
+  be a singleton.\<close>
+
+primrec free_typed_vars :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<V> \<times> '\<tau>) set" where
+  "free_typed_vars (Const c \<tau>s ts) = \<Union> (set (map free_typed_vars ts))" |
+  "free_typed_vars (Free x \<tau>) = {(x, \<tau>)}" |
+  "free_typed_vars (Bound k \<tau>) = {}" |
+  "free_typed_vars (App t\<^sub>1 t\<^sub>2) = free_typed_vars t\<^sub>1 \<union> free_typed_vars t\<^sub>2" |
+  "free_typed_vars (Abs \<tau> t) = free_typed_vars t"
+
+lemma free_vars_eq_fst_image_free_typed_vars: "free_vars t = fst ` free_typed_vars t"
+  by (induction t) (auto simp: image_Un)
+
+lemma in_free_vars_if_in_free_typed_vars: "(x, \<tau>) \<in> free_typed_vars t \<Longrightarrow> x \<in> free_vars t"
+  by (metis fst_conv free_vars_eq_fst_image_free_typed_vars rev_image_eqI)
+
+
 primrec open_bound ::
   "nat \<Rightarrow> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
   "open_bound n \<tau> u (Const c \<tau>s ts) = Const c \<tau>s ts" |
@@ -68,6 +87,15 @@ primrec open_bound ::
 
 lemma free_vars_open_bound_subset:
   "free_vars (open_bound n \<tau> u t) \<subseteq> free_vars t \<union> free_vars u"
+  by (induction t arbitrary: n) auto
+
+lemma free_typed_vars_open_bound_subset:
+  "free_typed_vars (open_bound n \<tau> u t) \<subseteq> free_typed_vars t \<union> free_typed_vars u"
+  by (induction t arbitrary: n) auto
+
+text \<open>Opening replaces dangling indices, so it can only add free typed variables.\<close>
+
+lemma free_typed_vars_subset_open_bound: "free_typed_vars t \<subseteq> free_typed_vars (open_bound n \<tau> u t)"
   by (induction t arbitrary: n) auto
 
 inductive locally_closed :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where

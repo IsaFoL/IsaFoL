@@ -32,13 +32,6 @@ primrec subst_preterm ::
 abbreviation subst_preterm_alt (infixl "\<cdot>\<^sub>t\<^sub>e" 51) where
   "t \<cdot>\<^sub>t\<^sub>e \<sigma> \<equiv> subst_preterm \<sigma> t"
 
-primrec free_typed_vars :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<V> \<times> '\<tau>) set" where
-  "free_typed_vars (Const c \<tau>s ts) = \<Union> (set (map free_typed_vars ts))" |
-  "free_typed_vars (Free x \<tau>) = {(x, \<tau>)}" |
-  "free_typed_vars (Bound k \<tau>) = {}" |
-  "free_typed_vars (App t\<^sub>1 t\<^sub>2) = free_typed_vars t\<^sub>1 \<union> free_typed_vars t\<^sub>2" |
-  "free_typed_vars (Abs \<tau> t) = free_typed_vars t"
-
 text \<open>Unlike \<^const>\<open>subst_free\<close> and \<^const>\<open>open_bound\<close>, \<^const>\<open>subst_preterm\<close> \<^emph>\<open>does\<close> descend into
   a constant's parameters: the paper requires parameters to contain no free De Bruijn indices
   (they are locally closed), but they routinely contain free term variables, which a substitution
@@ -124,9 +117,7 @@ text \<open>\<^const>\<open>subst_free\<close> is \<^emph>\<open>not\<close> a s
   \<^const>\<open>subst_free\<close> is deliberately opaque there (see the note above the definition of
   \<^const>\<open>subst_preterm\<close>) while \<^const>\<open>subst_preterm\<close> descends into parameters. What does hold
   unconditionally is that \<^const>\<open>free_typed_vars\<close> agrees with the datatype-derived
-  \<^const>\<open>free_vars\<close>, since both now descend into parameters uniformly.\<close>
-
-lemma free_vars_eq_fst_image_free_typed_vars: "free_vars t = fst ` free_typed_vars t"
-  by (induction t) (auto simp: image_Un)
+  \<^const>\<open>free_vars\<close> (lemma \<open>free_vars_eq_fst_image_free_typed_vars\<close> in theory \<open>LNLC_Term\<close>),
+  since both descend into parameters uniformly.\<close>
 
 end
