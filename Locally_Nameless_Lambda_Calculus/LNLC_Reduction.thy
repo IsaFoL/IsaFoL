@@ -140,9 +140,9 @@ lemma beta_reduce_subst_free:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes red: "beta_reduce t t'"
   assumes lc_u: "locally_closed u"
-  shows "beta_reduce (subst_free x u t) (subst_free x u t')"
+  shows "beta_reduce (subst_free x \<tau>\<^sub>x u t) (subst_free x \<tau>\<^sub>x u t')"
   using red lc_u
-proof (induction arbitrary: x u rule: beta_reduce.induct)
+proof (induction arbitrary: x \<tau>\<^sub>x u rule: beta_reduce.induct)
   case beta
   then show ?case
     by (auto intro: beta_reduce.beta
@@ -167,11 +167,11 @@ next
     have x_ne_y: "x \<noteq> y" and y_fresh_\<X>: "y |\<notin>| \<X>"
       using y_fresh by auto
     have red_subst:
-      "beta_reduce (subst_free x u (open_bound 0 \<tau> (Free y \<tau>) t))
-        (subst_free x u (open_bound 0 \<tau> (Free y \<tau>) t'))"
+      "beta_reduce (subst_free x \<tau>\<^sub>x u (open_bound 0 \<tau> (Free y \<tau>) t))
+        (subst_free x \<tau>\<^sub>x u (open_bound 0 \<tau> (Free y \<tau>) t'))"
       by (rule Abs.IH[OF y_fresh_\<X> Abs.prems])
-    show "beta_reduce (open_bound 0 \<tau> (Free y \<tau>) (subst_free x u t))
-        (open_bound 0 \<tau> (Free y \<tau>) (subst_free x u t'))"
+    show "beta_reduce (open_bound 0 \<tau> (Free y \<tau>) (subst_free x \<tau>\<^sub>x u t))
+        (open_bound 0 \<tau> (Free y \<tau>) (subst_free x \<tau>\<^sub>x u t'))"
       using red_subst
       by (simp add: subst_free_commutes_with_open_bound_Free[OF inf_vars x_ne_y Abs.prems])
   qed
@@ -195,8 +195,8 @@ lemma beta_reduce_open_bound_from_fresh:
   shows "beta_reduce (open_bound n \<tau> v t) (open_bound n \<tau> v t')"
 proof -
   have "beta_reduce
-      (subst_free x v (open_bound n \<tau> (Free x \<tau>) t))
-      (subst_free x v (open_bound n \<tau> (Free x \<tau>) t'))"
+      (subst_free x \<tau> v (open_bound n \<tau> (Free x \<tau>) t))
+      (subst_free x \<tau> v (open_bound n \<tau> (Free x \<tau>) t'))"
     by (rule beta_reduce_subst_free[OF inf_vars opened_red lc_v])
   then show ?thesis
     by (simp add: subst_free_open_bound_Free_eq_open_bound fresh)

@@ -339,27 +339,18 @@ next
   qed
 qed
 
-text \<open>Since \<^const>\<open>has_type\<close> no longer carries a typing environment for free variables (they are
-  typed by their own annotation instead), soundly substituting \<open>u\<close> for \<open>x\<close> in a well-typed term
-  requires every occurrence of \<open>x\<close> in that term to carry the same annotation as \<open>u\<close>'s type ---
-  \<^const>\<open>subst_free\<close> matches on the variable's name alone and ignores the stored annotation.
-  \<^const>\<open>free_typed_vars\<close> collects those annotations: the ones \<open>x\<close> occurs with in \<open>t\<close> are
-  \<open>{\<tau>. (x, \<tau>) \<in> free_typed_vars t}\<close>, and the substitution lemma below requires that set to be a
-  subset of \<open>{\<tau>\<^sub>2}\<close>, the singleton holding the type of the replacement.
-
-  This also constrains the occurrences of \<open>x\<close> inside a \<open>Const\<close>'s parameters, which
-  \<^const>\<open>subst_free\<close> and \<^const>\<open>open_bound\<close> leave untouched (see the note on
-  \<^const>\<open>locally_closed_at\<close>), so it asks for slightly more than soundness needs. That is
-  harmless here: the only use of the lemma is \<open>has_type_open_bound\<close> below, which opens a
-  binder with a variable that is fresh for the whole term.\<close>
+text \<open>\<^const>\<open>has_type\<close> no longer carries a typing environment for free variables: they are typed
+  by their own annotation instead. Substituting \<open>t\<^sub>2\<close> for \<open>x\<langle>\<tau>\<^sub>2\<rangle>\<close> is therefore sound with no side
+  condition, since \<^const>\<open>subst_free\<close> replaces exactly those occurrences of \<open>x\<close> that are annotated
+  with \<open>\<tau>\<^sub>2\<close> --- the type \<^const>\<open>has_type\<close> assigns to them --- and leaves any occurrence carrying a
+  different annotation, which is a different variable, alone.\<close>
 
 lemma has_type_subst_free:
   fixes t\<^sub>1 :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  assumes ht_t: "has_type \<C> t\<^sub>1 \<tau>\<^sub>1" and consistent: "{\<tau>. (x, \<tau>) \<in> free_typed_vars t\<^sub>1} \<subseteq> {\<tau>\<^sub>2}"
-    and ht_u: "has_type \<C> t\<^sub>2 \<tau>\<^sub>2"
-  shows "has_type \<C> (subst_free x t\<^sub>2 t\<^sub>1) \<tau>\<^sub>1"
-  using ht_t consistent
+  assumes ht_t: "has_type \<C> t\<^sub>1 \<tau>\<^sub>1" and ht_u: "has_type \<C> t\<^sub>2 \<tau>\<^sub>2"
+  shows "has_type \<C> (subst_free x \<tau>\<^sub>2 t\<^sub>2 t\<^sub>1) \<tau>\<^sub>1"
+  using ht_t
 proof (induction t\<^sub>1 \<tau>\<^sub>1 rule: has_type.induct)
   case (Const c \<tau>\<^sub>1s ts \<tau> \<sigma>)
   show ?case
@@ -377,27 +368,10 @@ proof (induction t\<^sub>1 \<tau>\<^sub>1 rule: has_type.induct)
 next
   case (Free y \<tau>)
   show ?case
-  proof (cases "x = y")
-    case True
-    then have "\<tau> = \<tau>\<^sub>2"
-      using Free.prems by auto
-    then show ?thesis
-      using True ht_u by (simp add: has_type.Free)
-  next
-    case False
-    then show ?thesis
-      by (simp add: has_type.Free)
-  qed
+    using ht_u by (auto intro: has_type.Free)
 next
   case (App s\<^sub>1 s\<^sub>2 \<rho>\<^sub>1 \<rho>\<^sub>2)
-  have prems1: "{\<tau>. (x, \<tau>) \<in> free_typed_vars s\<^sub>1} \<subseteq> {\<tau>\<^sub>2}"
-    and prems2: "{\<tau>. (x, \<tau>) \<in> free_typed_vars s\<^sub>2} \<subseteq> {\<tau>\<^sub>2}"
-    using App.prems by auto
-  have "has_type \<C> (subst_free x t\<^sub>2 s\<^sub>1) (TyFun \<rho>\<^sub>1 \<rho>\<^sub>2)"
-    using App.IH(1)[OF prems1] .
-  moreover have "has_type \<C> (subst_free x t\<^sub>2 s\<^sub>2) \<rho>\<^sub>1"
-    using App.IH(2)[OF prems2] .
-  ultimately show ?case
+  from App.IH show ?case
     unfolding subst_free.simps
     by (rule has_type.App)
 next
@@ -409,13 +383,9 @@ next
     assume y_in: "y |\<notin>| finsert x \<X>"
     then have x_ne_y: "x \<noteq> y" and y_notin_\<X>: "y |\<notin>| \<X>"
       by auto
-    have consistent': "{\<tau>. (x, \<tau>) \<in> free_typed_vars (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t)} \<subseteq> {\<tau>\<^sub>2}"
-      using Abs.prems x_ne_y
-        free_typed_vars_open_bound_subset[of 0 \<rho>\<^sub>1 "Free y \<rho>\<^sub>1" t]
-      by auto
-    have "has_type \<C> (subst_free x t\<^sub>2 (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t)) \<rho>\<^sub>2"
-      using Abs.IH[OF y_notin_\<X> consistent'] .
-    then show "has_type \<C> (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) (subst_free x t\<^sub>2 t)) \<rho>\<^sub>2"
+    have "has_type \<C> (subst_free x \<tau>\<^sub>2 t\<^sub>2 (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) t)) \<rho>\<^sub>2"
+      using Abs.IH[OF y_notin_\<X>] .
+    then show "has_type \<C> (open_bound 0 \<rho>\<^sub>1 (Free y \<rho>\<^sub>1) (subst_free x \<tau>\<^sub>2 t\<^sub>2 t)) \<rho>\<^sub>2"
       unfolding subst_free_commutes_with_open_bound_Free[
           OF inf_vars x_ne_y locally_closed_if_has_type[OF ht_u]] .
   qed
@@ -431,11 +401,8 @@ proof -
   obtain x :: '\<V> where fresh_\<X>: "x |\<notin>| \<X>" and fresh_t: "x \<notin> free_vars t\<^sub>1"
     using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t\<^sub>1|}"]
     by auto
-  have consistent: "{\<tau>. (x, \<tau>) \<in> free_typed_vars (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1)} \<subseteq> {\<tau>\<^sub>2}"
-    using free_typed_vars_open_bound_subset[of 0 \<tau>\<^sub>2 "Free x \<tau>\<^sub>2" t\<^sub>1] fresh_t
-    by (auto dest: in_free_vars_if_in_free_typed_vars)
-  have "has_type \<C> (subst_free x t\<^sub>2 (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1)) \<tau>\<^sub>1"
-    by (rule has_type_subst_free[OF inf_vars body_typed[OF fresh_\<X>] consistent arg_typed])
+  have "has_type \<C> (subst_free x \<tau>\<^sub>2 t\<^sub>2 (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1)) \<tau>\<^sub>1"
+    by (rule has_type_subst_free[OF inf_vars body_typed[OF fresh_\<X>] arg_typed])
   then show ?thesis
     by (simp add: subst_free_open_bound_Free_eq_open_bound[OF fresh_t])
 qed

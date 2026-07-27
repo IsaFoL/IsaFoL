@@ -165,13 +165,18 @@ lemma locally_closed_at_mono:
   using assms
   by (induction arbitrary: l rule: locally_closed_at.induct) (auto simp: list.pred_set)
 
+text \<open>Like \<^const>\<open>open_bound\<close>, and dually to \<open>close_free\<close> in theory \<open>LNLC_Local_Confluence\<close>,
+  \<open>subst_free\<close> identifies the variable it replaces by its name \<^emph>\<open>and\<close> its annotation: a
+  free variable is the pair \<open>x\<langle>\<tau>\<rangle>\<close>, so an occurrence annotated differently is a different
+  variable and stays untouched.\<close>
+
 primrec subst_free
-  :: "'\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
-  "subst_free x u (Const c \<tau>s ts) = Const c \<tau>s ts"|
-  "subst_free x u (Free y \<tau>) = (if x = y then u else Free y \<tau>)" |
-  "subst_free x u (Bound k \<tau>) = Bound k \<tau>" |
-  "subst_free x u (App t\<^sub>1 t\<^sub>2) = App (subst_free x u t\<^sub>1) (subst_free x u t\<^sub>2)" |
-  "subst_free x u (Abs \<tau> t) = Abs \<tau> (subst_free x u t)"
+  :: "'\<V> \<Rightarrow> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
+  "subst_free x \<tau> u (Const c \<tau>s ts) = Const c \<tau>s ts"|
+  "subst_free x \<tau> u (Free y \<tau>\<^sub>y) = (if x = y \<and> \<tau> = \<tau>\<^sub>y then u else Free y \<tau>\<^sub>y)" |
+  "subst_free x \<tau> u (Bound k \<tau>\<^sub>k) = Bound k \<tau>\<^sub>k" |
+  "subst_free x \<tau> u (App t\<^sub>1 t\<^sub>2) = App (subst_free x \<tau> u t\<^sub>1) (subst_free x \<tau> u t\<^sub>2)" |
+  "subst_free x \<tau> u (Abs \<tau>\<^sub>2 t) = Abs \<tau>\<^sub>2 (subst_free x \<tau> u t)"
 
 lemma size_open_bound_Free[simp]: "size (open_bound n \<tau> (Free x \<tau>) t) = size t"
   by (induction t arbitrary: n) simp_all
@@ -253,16 +258,20 @@ lemma open_bound_ident_if_locally_closed:
   by (rule open_bound_ident_if_locally_closed_at[
         OF locally_closed_imp_locally_closed_at[OF inf_vars lc]]) simp
 
+lemma subst_free_ident_if_not_in_free_typed_vars[simp]:
+  "(x, \<tau>) \<notin> free_typed_vars t \<Longrightarrow> subst_free x \<tau> u t = t"
+  by (induction t) auto
+
 lemma subst_free_ident_if_not_in_vars[simp]:
-  "x \<notin> free_vars t \<Longrightarrow> subst_free x u t = t"
-  by (induction t) simp_all
+  "x \<notin> free_vars t \<Longrightarrow> subst_free x \<tau> u t = t"
+  by (induction t) auto
 
 lemma subst_open:
   fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and lc_u: "locally_closed u"
-  shows "subst_free x u (open_bound k \<tau> v t) =
-    open_bound k \<tau> (subst_free x u v) (subst_free x u t)"
+  shows "subst_free x \<tau>\<^sub>x u (open_bound k \<tau> v t) =
+    open_bound k \<tau> (subst_free x \<tau>\<^sub>x u v) (subst_free x \<tau>\<^sub>x u t)"
   by (induction t arbitrary: k)
     (simp_all add: open_bound_ident_if_locally_closed[OF inf_vars lc_u])
 
@@ -270,20 +279,20 @@ lemma subst_free_commutes_with_open_bound_Free:
   fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and "x \<noteq> y" and "locally_closed u"
-  shows "subst_free x u (open_bound n \<tau> (Free y \<tau>) t) =
-    open_bound n \<tau> (Free y \<tau>) (subst_free x u t)"
-  using subst_open[OF inf_vars \<open>locally_closed u\<close>, of x n \<tau> "Free y \<tau>" t]
+  shows "subst_free x \<tau>\<^sub>x u (open_bound n \<tau> (Free y \<tau>) t) =
+    open_bound n \<tau> (Free y \<tau>) (subst_free x \<tau>\<^sub>x u t)"
+  using subst_open[OF inf_vars \<open>locally_closed u\<close>, of x \<tau>\<^sub>x n \<tau> "Free y \<tau>" t]
     \<open>x \<noteq> y\<close> by simp
 
 lemma subst_free_open_bound_Free_eq_open_bound:
   assumes "x \<notin> free_vars t"
-  shows "subst_free x u (open_bound n \<tau> (Free x \<tau>) t) = open_bound n \<tau> u t"
+  shows "subst_free x \<tau> u (open_bound n \<tau> (Free x \<tau>) t) = open_bound n \<tau> u t"
   using assms by (induction t arbitrary: n) auto
 
 lemma locally_closed_subst_free:
   fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes lc_t: "locally_closed t" and lc_u: "locally_closed u"
-  shows "locally_closed (subst_free x u t)"
+  shows "locally_closed (subst_free x \<tau>\<^sub>x u t)"
 proof (cases "infinite (UNIV :: '\<V> set)")
   case inf_vars: True
   show ?thesis
@@ -308,7 +317,7 @@ proof (cases "infinite (UNIV :: '\<V> set)")
       fix y
       assume fresh: "y |\<notin>| finsert x \<X>"
       then have "x \<noteq> y" and "y |\<notin>| \<X>" by auto
-      show "locally_closed (open_bound 0 \<tau> (Free y \<tau>) (subst_free x u t))"
+      show "locally_closed (open_bound 0 \<tau> (Free y \<tau>) (subst_free x \<tau>\<^sub>x u t))"
         using Abs.IH[OF \<open>y |\<notin>| \<X>\<close>]
         by (simp add: subst_free_commutes_with_open_bound_Free[
               OF inf_vars \<open>x \<noteq> y\<close> lc_u, symmetric])
@@ -327,9 +336,9 @@ qed
 lemma body_subst_free:
   fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
   assumes body: "body \<tau> t" and lc_u: "locally_closed u"
-  shows "body \<tau> (subst_free x u t)"
+  shows "body \<tau> (subst_free x \<tau>\<^sub>x u t)"
 proof -
-  have "locally_closed (subst_free x u (Abs \<tau> t))"
+  have "locally_closed (subst_free x \<tau>\<^sub>x u (Abs \<tau> t))"
     by (rule locally_closed_subst_free)
       (use body lc_u in \<open>simp_all add: locall_closed_Abs_iff_body\<close>)
   then show ?thesis
@@ -348,7 +357,7 @@ proof -
   obtain x :: '\<V> where fresh_\<X>: "x |\<notin>| \<X>" and fresh_t: "x \<notin> free_vars t"
     using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t|}"]
     by blast
-  have "locally_closed (subst_free x u (open_bound 0 \<tau> (Free x \<tau>) t))"
+  have "locally_closed (subst_free x \<tau> u (open_bound 0 \<tau> (Free x \<tau>) t))"
     by (rule locally_closed_subst_free[OF opened[OF fresh_\<X>] lc_u])
   then show ?thesis
     by (simp add: subst_free_open_bound_Free_eq_open_bound[OF fresh_t])

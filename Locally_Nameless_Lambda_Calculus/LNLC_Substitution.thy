@@ -7,9 +7,8 @@ begin
 section \<open>General Substitution on Preterms\<close>
 
 text \<open>The paper's substitutions (\<open>\<rho>\<close>) map term variables \<open>x\<langle>\<tau>\<rangle>\<close> (a name paired with its type
-  annotation) to \<open>\<lambda>\<close>-terms. \<^const>\<open>subst_free\<close> only replaces a single named variable and ignores
-  its annotation, so it cannot serve as a substitution in the abstract sense (in particular it has
-  no identity: reproducing \<open>Free x \<tau>\<close> under the identity substitution requires knowing \<open>\<tau>\<close>). Here
+  annotation) to \<open>\<lambda>\<close>-terms. \<^const>\<open>subst_free\<close> replaces one such variable at a time, so it cannot
+  serve as a substitution in the abstract sense, which acts on all variables simultaneously. Here
   we define a general substitution keyed on \<open>'\<V> \<times> '\<tau>\<close> pairs, faithful to the paper's \<open>x\<langle>\<tau>\<rangle>\<close>
   notation, and show it forms an @{locale substitution} in the sense of
   \<^theory>\<open>Abstract_Substitution.Substitution\<close> --- mirroring the treatment of type substitutions in
