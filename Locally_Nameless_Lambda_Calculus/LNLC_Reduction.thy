@@ -202,6 +202,43 @@ proof -
     by (simp add: subst_free_open_bound_Free_eq_open_bound fresh)
 qed
 
+lemma free_typed_vars_beta_reduce_subset:
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  assumes inf_vars: "infinite (UNIV :: '\<V> set)"
+  shows "beta_reduce t t' \<Longrightarrow> free_typed_vars t' \<subseteq> free_typed_vars t"
+proof (induction t t' rule: beta_reduce.induct)
+  case (beta \<tau> t u)
+  then show ?case
+    using free_typed_vars_open_bound_subset[of 0 \<tau> u t] by simp
+next
+  case (App_left t t' u)
+  then show ?case by auto
+next
+  case (App_right t u u')
+  then show ?case by auto
+next
+  case (Abs \<X> \<tau> t t')
+  obtain y where y_notin_\<X>: "y |\<notin>| \<X>" and
+    y_fresh: "\<And>s. s |\<in>| {|t, t'|} \<Longrightarrow> y \<notin> free_vars s"
+    using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t, t'|}"] by blast
+  have y_t': "y \<notin> free_vars t'"
+    by (rule y_fresh; simp)
+  have "free_typed_vars t' \<subseteq> free_typed_vars (open_bound 0 \<tau> (Free y \<tau>) t')"
+    by (rule free_typed_vars_subset_open_bound)
+  also have "\<dots> \<subseteq> free_typed_vars (open_bound 0 \<tau> (Free y \<tau>) t)"
+    using Abs.IH[OF y_notin_\<X>] .
+  also have "\<dots> \<subseteq> free_typed_vars t \<union> {(y, \<tau>)}"
+    using free_typed_vars_open_bound_subset[of 0 \<tau> "Free y \<tau>" t] by simp
+  finally show ?case
+    using y_t' by (auto dest: in_free_vars_if_in_free_typed_vars)
+next
+  case (Const ts i t' c \<tau>s)
+  have ts_i: "ts ! i \<in> set ts"
+    using Const.hyps(2) by simp
+  show ?case
+    using Const.IH ts_i
+    by (auto dest!: set_update_subset_insert[THEN subsetD])
+qed
 
 section \<open>\<^const>\<open>beta_reduce\<close> is NOT strongly normalizing\<close>
 
