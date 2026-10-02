@@ -164,6 +164,7 @@
 
 // TODO: Gives deprecation warning, but in my version of boost, the replacement boost/timer/progress_display.hpp is missing (See issue https://github.com/boostorg/timer/issues/12).
 // FIXME when newer boost versions (>=1.72) are more widely available!
+#define BOOST_TIMER_ENABLE_DEPRECATED
 #include <boost/progress.hpp>
 
 #ifdef WITH_PROFILING
