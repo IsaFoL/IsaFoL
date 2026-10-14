@@ -12,6 +12,7 @@ session Locally_Nameless_Lambda_Calculus = HOL +
     LNLC_Reduction
     LNLC_Strong_Normalization
     LNLC_Typing
+    LNLC_Signature
     LNLC_Typing_Safety
     LNLC_Confluence
     LNLC_Semantics
