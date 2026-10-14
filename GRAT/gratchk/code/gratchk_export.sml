@@ -1,17 +1,10 @@
 
 structure Uint : sig
-  val set_bit : Word.word -> IntInf.int -> bool -> Word.word
   val shiftl : Word.word -> IntInf.int -> Word.word
   val shiftr : Word.word -> IntInf.int -> Word.word
   val shiftr_signed : Word.word -> IntInf.int -> Word.word
   val test_bit : Word.word -> IntInf.int -> bool
 end = struct
-
-fun set_bit x n b =
-  let val mask = Word.<< (0wx1, Word.fromLargeInt (IntInf.toLarge n))
-  in if b then Word.orb (x, mask)
-     else Word.andb (x, Word.notb mask)
-  end
 
 fun shiftl x n =
   Word.<< (x, Word.fromLargeInt (IntInf.toLarge n))
@@ -31,18 +24,11 @@ end; (* struct Uint *)
 val _ = if 5 <= Word.wordSize then () else raise (Fail ("wordSize less than 5"));
 
 structure Uint32 : sig
-  val set_bit : Word32.word -> IntInf.int -> bool -> Word32.word
   val shiftl : Word32.word -> IntInf.int -> Word32.word
   val shiftr : Word32.word -> IntInf.int -> Word32.word
   val shiftr_signed : Word32.word -> IntInf.int -> Word32.word
   val test_bit : Word32.word -> IntInf.int -> bool
 end = struct
-
-fun set_bit x n b =
-  let val mask = Word32.<< (0wx1, Word.fromLargeInt (IntInf.toLarge n))
-  in if b then Word32.orb (x, mask)
-     else Word32.andb (x, Word32.notb mask)
-  end
 
 fun shiftl x n =
   Word32.<< (x, Word.fromLargeInt (IntInf.toLarge n))
@@ -253,35 +239,6 @@ end;
 
 
 
-structure Integer_Bit : sig
-  val test_bit : IntInf.int -> IntInf.int -> bool
-  val set_bit : IntInf.int -> IntInf.int -> bool -> IntInf.int
-  val shiftl : IntInf.int -> IntInf.int -> IntInf.int
-  val shiftr : IntInf.int -> IntInf.int -> IntInf.int
-end = struct
-
-val maxWord = IntInf.pow (2, Word.wordSize);
-
-fun test_bit x n =
-  if n < maxWord then IntInf.andb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))) <> 0
-  else raise (Fail ("Bit index too large: " ^ IntInf.toString n));
-
-fun set_bit x n b =
-  if n < maxWord then
-    if b then IntInf.orb (x, IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n)))
-    else IntInf.andb (x, IntInf.notb (IntInf.<< (1, Word.fromLargeInt (IntInf.toLarge n))))
-  else raise (Fail ("Bit index too large: " ^ IntInf.toString n));
-
-fun shiftl x n =
-  if n < maxWord then IntInf.<< (x, Word.fromLargeInt (IntInf.toLarge n))
-  else raise (Fail ("Shift operand too large: " ^ IntInf.toString n));
-
-fun shiftr x n =
-  if n < maxWord then IntInf.~>> (x, Word.fromLargeInt (IntInf.toLarge n))
-  else raise (Fail ("Shift operand too large: " ^ IntInf.toString n));
-
-end; (*struct Integer_Bit*)
-
 structure Grat_Check : sig
   datatype int = Int_of_integer of IntInf.int
   type nat
@@ -383,12 +340,187 @@ fun heap_option A_ =
     typerep_heap = typerep_option (typerep_heap A_)}
   : ('a option) heap;
 
+datatype num = One | Bit0 of num | Bit1 of num;
+
+val one_integera : IntInf.int = (1 : IntInf.int);
+
+type 'a one = {one : 'a};
+val one = #one : 'a one -> 'a;
+
+val one_integer = {one = one_integera} : IntInf.int one;
+
+type 'a plus = {plus : 'a -> 'a -> 'a};
+val plus = #plus : 'a plus -> 'a -> 'a -> 'a;
+
+val plus_integer = {plus = (fn a => fn b => IntInf.+ (a, b))} : IntInf.int plus;
+
+type 'a zero = {zero : 'a};
+val zero = #zero : 'a zero -> 'a;
+
+val zero_integer = {zero = (0 : IntInf.int)} : IntInf.int zero;
+
+type 'a semigroup_add = {plus_semigroup_add : 'a plus};
+val plus_semigroup_add = #plus_semigroup_add : 'a semigroup_add -> 'a plus;
+
+type 'a numeral =
+  {one_numeral : 'a one, semigroup_add_numeral : 'a semigroup_add};
+val one_numeral = #one_numeral : 'a numeral -> 'a one;
+val semigroup_add_numeral = #semigroup_add_numeral :
+  'a numeral -> 'a semigroup_add;
+
+val semigroup_add_integer = {plus_semigroup_add = plus_integer} :
+  IntInf.int semigroup_add;
+
+val numeral_integer =
+  {one_numeral = one_integer, semigroup_add_numeral = semigroup_add_integer} :
+  IntInf.int numeral;
+
+type 'a times = {times : 'a -> 'a -> 'a};
+val times = #times : 'a times -> 'a -> 'a -> 'a;
+
+type 'a power = {one_power : 'a one, times_power : 'a times};
+val one_power = #one_power : 'a power -> 'a one;
+val times_power = #times_power : 'a power -> 'a times;
+
+val times_integer = {times = (fn a => fn b => IntInf.* (a, b))} :
+  IntInf.int times;
+
+val power_integer = {one_power = one_integer, times_power = times_integer} :
+  IntInf.int power;
+
 val ord_integer =
   {less_eq = (fn a => fn b => IntInf.<= (a, b)),
     less = (fn a => fn b => IntInf.< (a, b))}
   : IntInf.int ord;
 
-datatype num = One | Bit0 of num | Bit1 of num;
+type 'a ab_semigroup_add = {semigroup_add_ab_semigroup_add : 'a semigroup_add};
+val semigroup_add_ab_semigroup_add = #semigroup_add_ab_semigroup_add :
+  'a ab_semigroup_add -> 'a semigroup_add;
+
+type 'a semigroup_mult = {times_semigroup_mult : 'a times};
+val times_semigroup_mult = #times_semigroup_mult :
+  'a semigroup_mult -> 'a times;
+
+type 'a semiring =
+  {ab_semigroup_add_semiring : 'a ab_semigroup_add,
+    semigroup_mult_semiring : 'a semigroup_mult};
+val ab_semigroup_add_semiring = #ab_semigroup_add_semiring :
+  'a semiring -> 'a ab_semigroup_add;
+val semigroup_mult_semiring = #semigroup_mult_semiring :
+  'a semiring -> 'a semigroup_mult;
+
+val ab_semigroup_add_integer =
+  {semigroup_add_ab_semigroup_add = semigroup_add_integer} :
+  IntInf.int ab_semigroup_add;
+
+val semigroup_mult_integer = {times_semigroup_mult = times_integer} :
+  IntInf.int semigroup_mult;
+
+val semiring_integer =
+  {ab_semigroup_add_semiring = ab_semigroup_add_integer,
+    semigroup_mult_semiring = semigroup_mult_integer}
+  : IntInf.int semiring;
+
+type 'a mult_zero = {times_mult_zero : 'a times, zero_mult_zero : 'a zero};
+val times_mult_zero = #times_mult_zero : 'a mult_zero -> 'a times;
+val zero_mult_zero = #zero_mult_zero : 'a mult_zero -> 'a zero;
+
+val mult_zero_integer =
+  {times_mult_zero = times_integer, zero_mult_zero = zero_integer} :
+  IntInf.int mult_zero;
+
+type 'a monoid_add =
+  {semigroup_add_monoid_add : 'a semigroup_add, zero_monoid_add : 'a zero};
+val semigroup_add_monoid_add = #semigroup_add_monoid_add :
+  'a monoid_add -> 'a semigroup_add;
+val zero_monoid_add = #zero_monoid_add : 'a monoid_add -> 'a zero;
+
+type 'a comm_monoid_add =
+  {ab_semigroup_add_comm_monoid_add : 'a ab_semigroup_add,
+    monoid_add_comm_monoid_add : 'a monoid_add};
+val ab_semigroup_add_comm_monoid_add = #ab_semigroup_add_comm_monoid_add :
+  'a comm_monoid_add -> 'a ab_semigroup_add;
+val monoid_add_comm_monoid_add = #monoid_add_comm_monoid_add :
+  'a comm_monoid_add -> 'a monoid_add;
+
+type 'a semiring_0 =
+  {comm_monoid_add_semiring_0 : 'a comm_monoid_add,
+    mult_zero_semiring_0 : 'a mult_zero, semiring_semiring_0 : 'a semiring};
+val comm_monoid_add_semiring_0 = #comm_monoid_add_semiring_0 :
+  'a semiring_0 -> 'a comm_monoid_add;
+val mult_zero_semiring_0 = #mult_zero_semiring_0 :
+  'a semiring_0 -> 'a mult_zero;
+val semiring_semiring_0 = #semiring_semiring_0 : 'a semiring_0 -> 'a semiring;
+
+val monoid_add_integer =
+  {semigroup_add_monoid_add = semigroup_add_integer,
+    zero_monoid_add = zero_integer}
+  : IntInf.int monoid_add;
+
+val comm_monoid_add_integer =
+  {ab_semigroup_add_comm_monoid_add = ab_semigroup_add_integer,
+    monoid_add_comm_monoid_add = monoid_add_integer}
+  : IntInf.int comm_monoid_add;
+
+val semiring_0_integer =
+  {comm_monoid_add_semiring_0 = comm_monoid_add_integer,
+    mult_zero_semiring_0 = mult_zero_integer,
+    semiring_semiring_0 = semiring_integer}
+  : IntInf.int semiring_0;
+
+type 'a monoid_mult =
+  {semigroup_mult_monoid_mult : 'a semigroup_mult,
+    power_monoid_mult : 'a power};
+val semigroup_mult_monoid_mult = #semigroup_mult_monoid_mult :
+  'a monoid_mult -> 'a semigroup_mult;
+val power_monoid_mult = #power_monoid_mult : 'a monoid_mult -> 'a power;
+
+type 'a semiring_numeral =
+  {monoid_mult_semiring_numeral : 'a monoid_mult,
+    numeral_semiring_numeral : 'a numeral,
+    semiring_semiring_numeral : 'a semiring};
+val monoid_mult_semiring_numeral = #monoid_mult_semiring_numeral :
+  'a semiring_numeral -> 'a monoid_mult;
+val numeral_semiring_numeral = #numeral_semiring_numeral :
+  'a semiring_numeral -> 'a numeral;
+val semiring_semiring_numeral = #semiring_semiring_numeral :
+  'a semiring_numeral -> 'a semiring;
+
+type 'a zero_neq_one = {one_zero_neq_one : 'a one, zero_zero_neq_one : 'a zero};
+val one_zero_neq_one = #one_zero_neq_one : 'a zero_neq_one -> 'a one;
+val zero_zero_neq_one = #zero_zero_neq_one : 'a zero_neq_one -> 'a zero;
+
+type 'a semiring_1 =
+  {semiring_numeral_semiring_1 : 'a semiring_numeral,
+    semiring_0_semiring_1 : 'a semiring_0,
+    zero_neq_one_semiring_1 : 'a zero_neq_one};
+val semiring_numeral_semiring_1 = #semiring_numeral_semiring_1 :
+  'a semiring_1 -> 'a semiring_numeral;
+val semiring_0_semiring_1 = #semiring_0_semiring_1 :
+  'a semiring_1 -> 'a semiring_0;
+val zero_neq_one_semiring_1 = #zero_neq_one_semiring_1 :
+  'a semiring_1 -> 'a zero_neq_one;
+
+val monoid_mult_integer =
+  {semigroup_mult_monoid_mult = semigroup_mult_integer,
+    power_monoid_mult = power_integer}
+  : IntInf.int monoid_mult;
+
+val semiring_numeral_integer =
+  {monoid_mult_semiring_numeral = monoid_mult_integer,
+    numeral_semiring_numeral = numeral_integer,
+    semiring_semiring_numeral = semiring_integer}
+  : IntInf.int semiring_numeral;
+
+val zero_neq_one_integer =
+  {one_zero_neq_one = one_integer, zero_zero_neq_one = zero_integer} :
+  IntInf.int zero_neq_one;
+
+val semiring_1_integer =
+  {semiring_numeral_semiring_1 = semiring_numeral_integer,
+    semiring_0_semiring_1 = semiring_0_integer,
+    zero_neq_one_semiring_1 = zero_neq_one_integer}
+  : IntInf.int semiring_1;
 
 datatype ('a, 'b) sum = Inl of 'a | Inr of 'b;
 
@@ -398,15 +530,15 @@ fun integer_of_int (Int_of_integer k) = k;
 
 fun max A_ a b = (if less_eq A_ a b then b else a);
 
-fun nat k = Nat (max ord_integer (0 : IntInf.int) (integer_of_int k));
+fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
+
+fun nat x = (nat_of_integer o integer_of_int) x;
 
 fun plus_nat m n = Nat (IntInf.+ (integer_of_nat m, integer_of_nat n));
 
 val one_nat : nat = Nat (1 : IntInf.int);
 
 fun suc n = plus_nat n one_nat;
-
-fun nat_of_integer k = Nat (max ord_integer (0 : IntInf.int) k);
 
 fun len A_ a =
   (fn () => let
@@ -718,16 +850,16 @@ fun verify_sat3 x =
 
 fun at_item_end frml_end it = less_eq_nat it frml_end;
 
-fun imp_nfoldli (x :: ls) c f s =
-  (fn () =>
-    let
-      val b = c s ();
-    in
-      (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
-        else (fn () => s))
-        ()
-    end)
-  | imp_nfoldli [] c f s = (fn () => s);
+fun imp_nfoldli [] c f s = (fn () => s)
+  | imp_nfoldli (x :: ls) c f s =
+    (fn () =>
+      let
+        val b = c s ();
+      in
+        (if b then (fn f_ => fn () => f_ ((f x s) ()) ()) (imp_nfoldli ls c f)
+          else (fn () => s))
+          ()
+      end);
 
 fun unset_var_impl x =
   (fn ai => fn bi => array_set_dyn heap_nat zero_nat bi ai zero_nat) x;
