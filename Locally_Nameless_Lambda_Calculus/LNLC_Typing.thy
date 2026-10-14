@@ -294,7 +294,7 @@ lemma Rep_const_ty_ConstTy[simp]:
 
 inductive has_type ::
   "('\<Sigma> \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) const_ty) \<Rightarrow>
-    (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> bool"
+    (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> bool"
   for \<C> where
   Const: "has_type \<C> (Const c \<tau>\<^sub>1s ts) \<tau>"
     if "length (const_ty_vars (\<C> c)) = length \<tau>\<^sub>1s" and
@@ -346,7 +346,7 @@ text \<open>\<^const>\<open>has_type\<close> no longer carries a typing environm
   different annotation, which is a different variable, alone.\<close>
 
 lemma has_type_subst_free:
-  fixes t\<^sub>1 :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm"
+  fixes t\<^sub>1 :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes ht_t: "has_type \<C> t\<^sub>1 \<tau>\<^sub>1" and ht_u: "has_type \<C> t\<^sub>2 \<tau>\<^sub>2"
   shows "has_type \<C> (subst_free x \<tau>\<^sub>2 t\<^sub>2 t\<^sub>1) \<tau>\<^sub>1"
@@ -392,7 +392,7 @@ next
 qed
 
 lemma has_type_open_bound:
-  fixes t\<^sub>1 :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm"
+  fixes t\<^sub>1 :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes body_typed: "\<And>x. x |\<notin>| \<X> \<Longrightarrow> has_type \<C> (open_bound 0 \<tau>\<^sub>2 (Free x \<tau>\<^sub>2) t\<^sub>1) \<tau>\<^sub>1"
     and arg_typed: "has_type \<C> t\<^sub>2 \<tau>\<^sub>2"

@@ -134,7 +134,7 @@ locale interp_fun = type_interp \<U> \<J>\<^sub>t\<^sub>y
     \<J> Neq_tconst [] [c, d] = (if c = d then 0 else 1)"
 
 type_synonym ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) lambda_designation_fun =
-  "('\<V>\<^sub>t\<^sub>y \<Rightarrow> V) \<Rightarrow> ('\<V> \<Rightarrow> V) \<Rightarrow> (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> V"
+  "('\<V>\<^sub>t\<^sub>y \<Rightarrow> V) \<Rightarrow> ('\<V> \<Rightarrow> V) \<Rightarrow> (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> V"
 
 locale lambda_designation = type_interp \<U> \<J>\<^sub>t\<^sub>y
   for \<U> and \<J>\<^sub>t\<^sub>y :: "('\<Sigma>\<^sub>t\<^sub>y :: type_signature) type_interp_fun" +
@@ -159,18 +159,18 @@ locale interp =
     \<J> :: "'\<Sigma> term_interp_fun" and
     \<L> :: "('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) lambda_designation_fun"
 
-primrec denotation_preterm ::
+primrec denotation_lpreterm ::
   "('\<V>\<^sub>t\<^sub>y \<Rightarrow> V) \<Rightarrow> ('\<V> \<Rightarrow> V) \<Rightarrow>
     ('\<Sigma>\<^sub>t\<^sub>y :: arity) type_interp_fun \<Rightarrow> '\<Sigma> term_interp_fun \<Rightarrow>
     ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) lambda_designation_fun \<Rightarrow>
-    (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> V" where
-  "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Free x \<tau>) = \<xi>\<^sub>t\<^sub>e x" |
-  "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Const f \<tau>s ts) =
-    \<J> f (map (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y) \<tau>s) (map (denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L>) ts)" |
-  "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (App t\<^sub>1 t\<^sub>2) =
-    app (denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t\<^sub>1) (denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t\<^sub>1)" |
-  "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Abs \<tau> t) = \<L> \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e (Abs \<tau> t)" |
-  "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Bound x \<tau>) = undefined"
+    (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> V" where
+  "denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Free x \<tau>) = \<xi>\<^sub>t\<^sub>e x" |
+  "denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Const f \<tau>s ts) =
+    \<J> f (map (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y) \<tau>s) (map (denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L>) ts)" |
+  "denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (App t\<^sub>1 t\<^sub>2) =
+    app (denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t\<^sub>1) (denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t\<^sub>1)" |
+  "denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Abs \<tau> t) = \<L> \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e (Abs \<tau> t)" |
+  "denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> (Bound x \<tau>) = undefined"
 
 
 subsection \<open>Denotation of ground terms\<close>
@@ -193,23 +193,23 @@ next
     by (simp cong: ty_comb.map_cong)
 qed
 
-lemma (in interp) denotation_preterm_of_ground:
+lemma (in interp) denotation_lpreterm_of_ground:
   assumes "free_vars t = {}" and "(\<Union>\<tau> \<in> type_symbols t. free_vars_ty \<tau>) = {}"
-  shows "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t = denotation_preterm \<xi>\<^sub>t\<^sub>y' \<xi>\<^sub>t\<^sub>e' \<J>\<^sub>t\<^sub>y \<J> \<L> t"
+  shows "denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t = denotation_lpreterm \<xi>\<^sub>t\<^sub>y' \<xi>\<^sub>t\<^sub>e' \<J>\<^sub>t\<^sub>y \<J> \<L> t"
   using assms
 proof (induction t)
   case (Const f \<tau>s ts)
 
-  then have IH': "denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t = denotation_preterm \<xi>\<^sub>t\<^sub>y' \<xi>\<^sub>t\<^sub>e' \<J>\<^sub>t\<^sub>y \<J> \<L> t"
+  then have IH': "denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L> t = denotation_lpreterm \<xi>\<^sub>t\<^sub>y' \<xi>\<^sub>t\<^sub>e' \<J>\<^sub>t\<^sub>y \<J> \<L> t"
     if "t \<in> list.set ts" for t
     using that by simp
 
-  then have "\<J> f (map (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y) \<tau>s) (map (denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L>) ts) =
-    \<J> f (map (denotation_ty \<xi>\<^sub>t\<^sub>y' \<J>\<^sub>t\<^sub>y) \<tau>s) (map (denotation_preterm \<xi>\<^sub>t\<^sub>y' \<xi>\<^sub>t\<^sub>e' \<J>\<^sub>t\<^sub>y \<J> \<L>) ts)"
+  then have "\<J> f (map (denotation_ty \<xi>\<^sub>t\<^sub>y \<J>\<^sub>t\<^sub>y) \<tau>s) (map (denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e \<J>\<^sub>t\<^sub>y \<J> \<L>) ts) =
+    \<J> f (map (denotation_ty \<xi>\<^sub>t\<^sub>y' \<J>\<^sub>t\<^sub>y) \<tau>s) (map (denotation_lpreterm \<xi>\<^sub>t\<^sub>y' \<xi>\<^sub>t\<^sub>e' \<J>\<^sub>t\<^sub>y \<J> \<L>) ts)"
     using denotation_ty_of_ground
     by (metis (mono_tags, lifting) Const.prems(2)
         UNION_empty_conv(1) list.map_cong0[of \<tau>s] list.map_cong0[of ts]
-        preterm.set_intros(1))
+        lpreterm.set_intros(1))
 
   then show ?case
     by simp
@@ -240,10 +240,10 @@ record ('\<Sigma>\<^sub>t\<^sub>y :: arity, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\
   \<C> :: "'\<Sigma> \<Rightarrow> ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) const_ty"
   \<J>\<^sub>t\<^sub>y :: "'\<Sigma>\<^sub>t\<^sub>y \<Rightarrow> V list \<Rightarrow> V"
   \<J> :: "'\<Sigma> \<Rightarrow> V list \<Rightarrow> V list \<Rightarrow> V"
-  \<L> :: "('\<V>\<^sub>t\<^sub>y \<Rightarrow> V) \<Rightarrow> ('\<V> \<Rightarrow> V) \<Rightarrow> (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> V"
+  \<L> :: "('\<V>\<^sub>t\<^sub>y \<Rightarrow> V) \<Rightarrow> ('\<V> \<Rightarrow> V) \<Rightarrow> (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> V"
 
 type_synonym ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) atom =
-  "(('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm uprod"
+  "(('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm uprod"
 
 datatype 'a literal =
   is_pos: Pos (atom: 'a) |
@@ -265,9 +265,9 @@ fun true_lit ::
     ('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y, '\<Sigma>, '\<V>) atom literal \<Rightarrow> bool"
   (infix \<open>\<Turnstile>\<^sub>l\<close> 50) where
   "(\<I>, \<xi>\<^sub>t\<^sub>y, \<xi>\<^sub>t\<^sub>e) \<Turnstile>\<^sub>l (Pos A) \<longleftrightarrow> (case_uprod (Abs_commute (=))
-    (map_uprod (denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e (interp.\<J>\<^sub>t\<^sub>y \<I>) (interp.\<J> \<I>) (interp.\<L> \<I>)) A))" |
+    (map_uprod (denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e (interp.\<J>\<^sub>t\<^sub>y \<I>) (interp.\<J> \<I>) (interp.\<L> \<I>)) A))" |
   "(\<I>, \<xi>\<^sub>t\<^sub>y, \<xi>\<^sub>t\<^sub>e) \<Turnstile>\<^sub>l (Neg A) \<longleftrightarrow> (case_uprod (Abs_commute (\<noteq>))
-    (map_uprod (denotation_preterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e (interp.\<J>\<^sub>t\<^sub>y \<I>) (interp.\<J> \<I>) (interp.\<L> \<I>)) A))"
+    (map_uprod (denotation_lpreterm \<xi>\<^sub>t\<^sub>y \<xi>\<^sub>t\<^sub>e (interp.\<J>\<^sub>t\<^sub>y \<I>) (interp.\<J> \<I>) (interp.\<L> \<I>)) A))"
 
 lemma true_lit_iff_not_true_uminus_lit[simp]: "\<not> (\<I>\<xi> \<Turnstile>\<^sub>l L) \<longleftrightarrow> \<I>\<xi> \<Turnstile>\<^sub>l (-L)"
   by (cases \<I>\<xi>, cases L) simp_all

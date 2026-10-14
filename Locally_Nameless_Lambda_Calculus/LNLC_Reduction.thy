@@ -9,7 +9,7 @@ text \<open>One-step \<open>\<beta>\<close>-reduction on \<open>\<lambda>\<close
   \<open>\<beta>\<close>-rule proper; the remaining rules are congruence (compatibility) rules that allow the
   reduction to take place anywhere inside a term, including inside a constant's parameters.\<close>
 
-inductive beta_reduce :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
+inductive beta_reduce :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> bool" where
   beta: "beta_reduce (App (Abs \<tau> t) u) (open_bound 0 \<tau> u t)"
     if "body \<tau> t" and "locally_closed u" |
 
@@ -25,16 +25,16 @@ inductive beta_reduce :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<
   Const: "beta_reduce (Const c \<tau>s ts) (Const c \<tau>s (ts[i := t']))"
     if "\<forall>t \<in> set ts. locally_closed t" and "i < length ts" and "beta_reduce (ts ! i) t'"
 
-text \<open>Full reduction is the reflexive-transitive closure \<open>beta_reduce\<^sup>*\<^sup>*\<close>. A preterm is in
-  normal form when no further \<open>\<beta>\<close>-step is possible; reducing a preterm fully means following this
-  closure until a \<open>beta_normal\<close> preterm is reached (if one exists---see the note on strong
+text \<open>Full reduction is the reflexive-transitive closure \<open>beta_reduce\<^sup>*\<^sup>*\<close>. A \<open>\<lambda>\<close>-preterm is in
+  normal form when no further \<open>\<beta>\<close>-step is possible; reducing a \<open>\<lambda>\<close>-preterm fully means following this
+  closure until a \<open>beta_normal\<close> \<open>\<lambda>\<close>-preterm is reached (if one exists---see the note on strong
   normalization below).\<close>
 
-definition beta_normal :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
+definition beta_normal :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> bool" where
   "beta_normal t \<longleftrightarrow> (\<nexists>u. beta_reduce t u)"
 
 lemma locally_closed_if_beta_reduce:
-  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "beta_reduce t t'"
   shows "locally_closed t" "locally_closed t'"
@@ -128,7 +128,7 @@ lemma beta_reduce_ConstD:
   using assms by (auto elim: beta_reduce.cases)
 
 lemma beta_reduce_open_bound:
-  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and red: "beta_reduce t t'"
   shows "beta_reduce (open_bound n \<tau> u t) (open_bound n \<tau> u t')"
@@ -136,7 +136,7 @@ lemma beta_reduce_open_bound:
   by (simp add: open_bound_ident_if_locally_closed[OF inf_vars])
 
 lemma beta_reduce_subst_free:
-  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes red: "beta_reduce t t'"
   assumes lc_u: "locally_closed u"
@@ -186,7 +186,7 @@ text \<open>A reduction between openings by a fresh free variable can be transpo
   by any locally closed term.\<close>
 
 lemma beta_reduce_open_bound_from_fresh:
-  fixes t t' v :: "(_, _, '\<V>) preterm"
+  fixes t t' v :: "(_, _, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes fresh: "x \<notin> free_vars t" "x \<notin> free_vars t'"
   assumes opened_red:
@@ -203,7 +203,7 @@ proof -
 qed
 
 lemma free_typed_vars_beta_reduce_subset:
-  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   shows "beta_reduce t t' \<Longrightarrow> free_typed_vars t' \<subseteq> free_typed_vars t"
 proof (induction t t' rule: beta_reduce.induct)
@@ -252,11 +252,11 @@ text \<open>\<^bold>\<open>Important.\<close> On untyped \<open>\<lambda>\<close
   normalizing, so the property requested cannot be proved as stated. The standard witness is the
   self-replicating term \<open>\<omega> = \<lambda>x. x x\<close>: the application \<open>\<omega> \<omega>\<close> \<open>\<beta>\<close>-reduces to itself, yielding an
   infinite reduction sequence. Strong normalization only holds once reduction is restricted to
-  \<^emph>\<open>well-typed\<close> preterms (via the typing judgment \<open>has_type\<close> from theory \<open>LNLC_Typing\<close>);
+  \<^emph>\<open>well-typed\<close> \<open>\<lambda>\<close>-preterms (via the typing judgment \<open>has_type\<close> from theory \<open>LNLC_Typing\<close>);
   that is a substantial, separate development (Tait/Girard reducibility) and is left as future
   work.\<close>
 
-definition omega :: "'\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
+definition omega :: "'\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) lpreterm" where
   "omega \<tau> = Abs \<tau> (App (Bound 0 \<tau>) (Bound 0 \<tau>))"
 
 lemma beta_reduce_omega_omega:
@@ -275,12 +275,12 @@ proof -
 qed
 
 lemma not_strongly_normalizing_beta_reduce:
-  "\<not> strongly_normalizing (beta_reduce :: ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> _)"
+  "\<not> strongly_normalizing (beta_reduce :: ('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> _)"
   unfolding strongly_normalizing_def not_not
 proof (intro exI[of _ "\<lambda>_. App (omega undefined) (omega undefined)"] allI)
   fix i
   show "beta_reduce ((\<lambda>_. App (omega undefined) (omega undefined)) i)
-      ((\<lambda>_. App (omega undefined) (omega undefined)) (Suc i) :: ('\<tau>, '\<Sigma>, '\<V>) preterm)"
+      ((\<lambda>_. App (omega undefined) (omega undefined)) (Suc i) :: ('\<tau>, '\<Sigma>, '\<V>) lpreterm)"
     by (simp add: beta_reduce_omega_omega)
 qed
 

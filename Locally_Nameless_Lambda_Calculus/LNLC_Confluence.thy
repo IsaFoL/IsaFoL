@@ -8,12 +8,12 @@ begin
 
 theorem beta_reduce_confluent_on_typed_terms:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  defines "beta_reduce_rel \<equiv> {(t, t'). beta_reduce t (t' :: (_, _, '\<V>) preterm)}"
+  defines "beta_reduce_rel \<equiv> {(t, t'). beta_reduce t (t' :: (_, _, '\<V>) lpreterm)}"
   shows "CR_on beta_reduce_rel {t. \<exists>\<C> \<tau>. has_type \<C> t \<tau>}"
 proof (rule Abstract_Rewriting.WCR_SN_on_imp_CR_on)
   show "WCR beta_reduce_rel"
   proof (rule WCR_onI)
-    fix a b c :: "(_, _, '\<V>) preterm"
+    fix a b c :: "(_, _, '\<V>) lpreterm"
     assume
       ab: "(a, b) \<in> beta_reduce_rel" and
       ac: "(a, c) \<in> beta_reduce_rel"

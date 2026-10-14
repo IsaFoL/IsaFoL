@@ -14,7 +14,7 @@ text \<open>\<open>SN t\<close> holds when every \<open>\<beta>\<close>-reductio
   \<open>SN\<close> is merely an abbreviation (no new constant), so all of \<^const>\<open>Wellfounded.accp\<close>'s library
   (well-founded induction, etc.) is available directly.\<close>
 
-abbreviation SN :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
+abbreviation SN :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> bool" where
   "SN \<equiv> Wellfounded.accp beta_reduce\<inverse>\<inverse>"
 
 lemma SN_I:
@@ -66,11 +66,11 @@ section \<open>Degenerate behaviour over a finite variable type\<close>
 text \<open>Over a finite variable type, some finite set contains every variable (see \<open>ex_fset_UNIV\<close>),
   which makes the cofinite premise of the \<open>Abs\<close> rule of \<^const>\<open>beta_reduce\<close> vacuously true: any
   two abstractions (with the same type annotation) are related by \<^const>\<open>beta_reduce\<close>.
-  Consequently, every locally closed preterm that admits a reduction also reduces to itself---and
+  Consequently, every locally closed \<open>\<lambda>\<close>-preterm that admits a reduction also reduces to itself---and
   is therefore not strongly normalizing---and likewise after typed opening.\<close>
 
 lemma beta_reduce_Abs_Abs_if_finite_vars:
-  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes fin_vars: "finite (UNIV :: '\<V> set)"
   shows "beta_reduce (Abs \<tau> t) (Abs \<tau> t')"
 proof -
@@ -81,7 +81,7 @@ proof -
 qed
 
 lemma beta_reduce_self_if_finite_vars:
-  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes fin_vars: "finite (UNIV :: '\<V> set)"
   assumes "beta_reduce t t'" and "locally_closed t"
   shows "beta_reduce t t"
@@ -111,7 +111,7 @@ next
 qed
 
 lemma beta_reduce_open_bound_self_if_finite_vars:
-  fixes t t' u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t t' u :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes fin_vars: "finite (UNIV :: '\<V> set)"
   assumes "beta_reduce t t'"
   shows "beta_reduce (open_bound n \<sigma> u t) (open_bound n \<sigma> u t)"
@@ -151,7 +151,7 @@ qed
 
 
 lemma SN_App_leftD:
-  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes "SN (App t u)" and "locally_closed u"
   shows "SN t"
   using assms
@@ -174,7 +174,7 @@ proof (induction "App t u" arbitrary: t u rule: accp_induct_rule)
 qed
 
 lemma SN_App_rightD:
-  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes "SN (App t u)" and "locally_closed t"
   shows "SN u"
   using assms
@@ -197,7 +197,7 @@ proof (induction "App t u" arbitrary: t u rule: accp_induct_rule)
 qed
 
 lemma SN_AppD:
-  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t u :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes "locally_closed t" and "locally_closed u" and "SN (App t u)"
   shows "SN t \<and> SN u"
 proof
@@ -208,7 +208,7 @@ proof
 qed
 
 lemma SN_AbsD:
-  fixes t :: "(_, _, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) lpreterm"
   assumes "SN (Abs \<tau> t)"
   shows "SN t"
 proof (cases "infinite (UNIV :: '\<V> set)")
@@ -249,7 +249,7 @@ next
 qed
 
 lemma SN_ConstD:
-  fixes ts :: "('\<tau>, '\<Sigma>, '\<V>) preterm list"
+  fixes ts :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm list"
   assumes "locally_closed (Const c \<tau>s ts)"
   assumes "SN (Const c \<tau>s ts)"
   assumes "t \<in> set ts"
@@ -259,7 +259,7 @@ proof (cases "infinite (UNIV :: '\<V> set)")
   have constD:
     "SN (Const c \<tau>s ts) \<Longrightarrow> locally_closed (Const c \<tau>s ts) \<Longrightarrow> t \<in> set ts \<Longrightarrow> SN t"
     for c :: '\<Sigma> and \<tau>s :: "'\<tau> list"
-      and ts :: "('\<tau>, '\<Sigma>, '\<V>) preterm list" and t
+      and ts :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm list" and t
   proof (induction "Const c \<tau>s ts" arbitrary: c \<tau>s ts t rule: accp_induct_rule)
     case 1
     note IH = "1.hyps"(2)
@@ -320,7 +320,7 @@ next
 qed
 
 lemma SN_open_bound_FreeD:
-  fixes t :: "(_, _, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) lpreterm"
   assumes "SN (open_bound n \<tau> (Free x \<tau>) t)"
   shows "SN t"
 proof (cases "infinite (UNIV :: '\<V> set)")
@@ -392,7 +392,7 @@ section \<open>Reducibility candidates\<close>
 text \<open>A term is \<^emph>\<open>neutral\<close> when it is not an abstraction; applying it to an argument creates no
   redex at the root.\<close>
 
-definition neutral :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
+definition neutral :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> bool" where
   "neutral t \<longleftrightarrow> \<not> is_Abs t"
 
 text \<open>Reducibility \<open>Red_ty \<tau> t\<close> is defined by recursion on the type \<open>\<tau>\<close>. At a function type a term
@@ -400,7 +400,7 @@ text \<open>Reducibility \<open>Red_ty \<tau> t\<close> is defined by recursion 
   reducible results; at any other type reducibility is just strong normalization.\<close>
 
 function Red_ty ::
-  "('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
+  "('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty \<Rightarrow> (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> bool" where
   "Red_ty (TyFun \<tau>\<^sub>1 \<tau>\<^sub>2) t \<longleftrightarrow> (SN t \<and> (\<forall>u. locally_closed u \<longrightarrow> Red_ty \<tau>\<^sub>1 u \<longrightarrow> Red_ty \<tau>\<^sub>2 (App t u)))" |
   "\<not> is_TyFun \<tau> \<Longrightarrow> Red_ty \<tau> t \<longleftrightarrow> SN t"
 proof -
@@ -473,14 +473,14 @@ lemma beta_reduce_App_neutralD:
   shows "(\<exists>t'. v = App t' u \<and> beta_reduce t t') \<or> (\<exists>u'. v = App t u' \<and> beta_reduce u u')"
   using assms by (auto simp: neutral_def elim: beta_reduce.cases)
 
-text \<open>Over a finite variable type, a locally closed, strongly normalizing preterm is \<open>\<beta>\<close>-normal
-  (otherwise it would reduce to itself), and \<open>\<beta>\<close>-normal preterms are reducible at every type: an
-  application of a \<open>\<beta>\<close>-normal preterm to a locally closed, reducible argument is itself \<open>\<beta>\<close>-normal
+text \<open>Over a finite variable type, a locally closed, strongly normalizing \<open>\<lambda>\<close>-preterm is \<open>\<beta>\<close>-normal
+  (otherwise it would reduce to itself), and \<open>\<beta>\<close>-normal \<open>\<lambda>\<close>-preterms are reducible at every type: an
+  application of a \<open>\<beta>\<close>-normal \<open>\<lambda>\<close>-preterm to a locally closed, reducible argument is itself \<open>\<beta>\<close>-normal
   because the head cannot be an abstraction (abstractions are never \<open>\<beta>\<close>-normal over a finite
   variable type) and the argument is \<open>\<beta>\<close>-normal as well.\<close>
 
 lemma beta_normal_if_SN_if_finite_vars:
-  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes fin_vars: "finite (UNIV :: '\<V> set)"
   assumes "locally_closed t" and "SN t"
   shows "beta_normal t"
@@ -490,7 +490,7 @@ lemma beta_normal_if_SN_if_finite_vars:
   by metis
 
 lemma Red_ty_if_beta_normal_if_finite_vars:
-  fixes t :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm"
+  fixes t :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm"
   assumes fin_vars: "finite (UNIV :: '\<V> set)"
   assumes "beta_normal t"
   shows "Red_ty \<tau> t"
@@ -507,7 +507,7 @@ proof (induction \<tau> t rule: Red_ty.induct)
     moreover have "\<not> is_Abs t"
       using "1.prems" beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars]
       unfolding beta_normal_def
-      by (metis preterm.collapse(5))
+      by (metis lpreterm.collapse(5))
     ultimately show "beta_normal (App t u)"
       using "1.prems"
       unfolding beta_normal_def
@@ -523,7 +523,7 @@ next
 qed
 
 lemma CR3:
-  fixes t :: "(_, _, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) lpreterm"
   assumes "neutral t" and "locally_closed t" and "\<And>t'. beta_reduce t t' \<Longrightarrow> Red_ty \<tau> t'"
   shows "Red_ty \<tau> t"
 proof (cases "infinite (UNIV :: '\<V> set)")
@@ -651,7 +651,7 @@ section \<open>Reducibility of abstractions and constants\<close>
 text \<open>Strong normalization of a free-variable opening is inherited by an abstraction.\<close>
 
 lemma SN_Abs:
-  fixes t :: "(_, _, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "SN (open_bound 0 \<tau> (Free x \<tau>) t)"
   shows "SN (Abs \<tau> t)"
@@ -700,7 +700,7 @@ text \<open>Core of the abstraction lemma: \<open>(\<lambda>. t) u\<close> is re
   induction on \<open>SN t\<close> (for reductions in the body) and \<open>SN u\<close> (for reductions in the argument).\<close>
 
 lemma Red_Abs_aux:
-  fixes t u :: "(_, _, '\<V>) preterm"
+  fixes t u :: "(_, _, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "SN (open_bound 0 \<tau>\<^sub>1 (Free undefined \<tau>\<^sub>1) t)" and "SN u"
     and "body \<tau>\<^sub>1 t" and "locally_closed u" and "Red_ty \<tau>\<^sub>1 u"
@@ -811,7 +811,7 @@ proof (induction "open_bound 0 \<tau>\<^sub>1 (Free undefined \<tau>\<^sub>1) t"
 qed
 
 lemma Red_Abs:
-  fixes t :: "(_, _, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "locally_closed (Abs \<tau>\<^sub>1 t)"
   assumes hyp: "\<And>u. locally_closed u \<Longrightarrow> Red_ty \<tau>\<^sub>1 u \<Longrightarrow> Red_ty \<tau>\<^sub>2 (open_bound 0 \<tau>\<^sub>1 u t)"
@@ -923,7 +923,7 @@ text \<open>Core of the constant lemma: a strongly normalizing, locally closed c
   a constant that is strongly normalizing and locally closed, hence reducible by the induction hypothesis.\<close>
 
 lemma Red_Const_aux:
-  fixes ts :: "(_, _, '\<V>) preterm list"
+  fixes ts :: "(_, _, '\<V>) lpreterm list"
   assumes "SN (Const c \<tau>s ts)" and "locally_closed (Const c \<tau>s ts)"
   shows "Red_ty \<tau> (Const c \<tau>s ts)"
 proof (cases "infinite (UNIV :: '\<V> set)")
@@ -964,7 +964,7 @@ next
 qed
 
 lemma Red_Const:
-  fixes ts :: "(_, _, '\<V>) preterm list"
+  fixes ts :: "(_, _, '\<V>) lpreterm list"
   assumes "locally_closed (Const c \<tau>s ts)"
   assumes "\<forall>t \<in> set ts. SN t"
   shows "Red_ty \<tau> (Const c \<tau>s ts)"
@@ -985,7 +985,7 @@ text \<open>Simultaneous substitution of the free (named) variables. Contrary to
   environment), the substitution map is indexed by \<^emph>\<open>name and type\<close> pairs.\<close>
 
 fun msubst ::
-  "('\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm) \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
+  "('\<V> \<times> '\<tau> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) lpreterm) \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) lpreterm" where
   "msubst \<theta> (Const c \<tau>s ts) = Const c \<tau>s (map (msubst \<theta>) ts)" |
   "msubst \<theta> (Free x \<tau>) = \<theta> (x, \<tau>)" |
   "msubst \<theta> (Bound n \<tau>) = Bound n \<tau>" |
@@ -1003,7 +1003,7 @@ text \<open>Opening a fresh variable and then substituting it equals substitutin
   (the key commutation lemma for the abstraction case of the fundamental theorem).\<close>
 
 lemma msubst_open_bound_Free:
-  fixes t :: "(_, _, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "x \<notin> free_vars t"
   assumes "\<And>y \<sigma>. locally_closed (\<theta> (y, \<sigma>))"
@@ -1017,7 +1017,7 @@ lemma msubst_open_bound_Free:
 text \<open>Parallel substitution of free variables preserves local closure.\<close>
 
 lemma locally_closed_msubst:
-  fixes t :: "(_, _, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) lpreterm"
   assumes lc_\<theta>: "\<And>y \<sigma>. locally_closed (\<theta> (y, \<sigma>))"
   assumes lc_t: "locally_closed t"
   shows "locally_closed (msubst \<theta> t)"
@@ -1118,7 +1118,7 @@ text \<open>Every well-typed term is reducible under any reducible, locally clos
   free variables.\<close>
 
 lemma fundamental:
-  fixes t :: "(('sty :: type_signature, 'vty) ty, 'c, '\<V>) preterm"
+  fixes t :: "(('sty :: type_signature, 'vty) ty, 'c, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "has_type \<C> t \<tau>"
   assumes "\<And>x \<sigma>. locally_closed (\<theta> (x, \<sigma>))"
@@ -1176,7 +1176,7 @@ next
       using locally_closed_msubst[where \<theta> = \<theta> and t = "Abs \<tau>\<^sub>1 t", OF Abs.prems(1) lc_abs]
       by simp
   next
-    fix u :: "(('sty, 'vty) ty, 'c, '\<V>) preterm"
+    fix u :: "(('sty, 'vty) ty, 'c, '\<V>) lpreterm"
     assume lc_u: "locally_closed u" and red_u: "Red_ty \<tau>\<^sub>1 u"
     obtain x where fresh_x: "x |\<notin>| \<X>" and x_notin_t: "x \<notin> free_vars t"
       using fresh_for_fset_and_terms[OF inf_vars, where \<X> = \<X> and \<T> = "{|t|}"] by auto
@@ -1196,7 +1196,7 @@ next
 qed
 
 lemma SN_if_has_type:
-  fixes t :: "(_, _, '\<V>) preterm"
+  fixes t :: "(_, _, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes ht: "has_type \<C> t \<tau>"
   shows "SN t"
@@ -1215,7 +1215,7 @@ qed
 
 proposition strong_normalization_of_typed_terms:
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
-  shows "wfp_on {t :: (_, _, '\<V>) preterm. \<exists>\<C> \<tau>. has_type \<C> t \<tau>} beta_reduce\<inverse>\<inverse>"
+  shows "wfp_on {t :: (_, _, '\<V>) lpreterm. \<exists>\<C> \<tau>. has_type \<C> t \<tau>} beta_reduce\<inverse>\<inverse>"
   by (rule wfp_on_beta_reduce_if_SN) (auto intro: SN_if_has_type[OF inf_vars])
 
 text \<open>The assumption of infinitely many variables is not an artifact of the proof: over a finite
@@ -1228,7 +1228,7 @@ text \<open>The assumption of infinitely many variables is not an artifact of th
 
 lemma ex_has_type_and_not_SN_if_finite_vars:
   assumes fin_vars: "finite (UNIV :: '\<V> set)"
-  shows "\<exists>t :: (('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm.
+  shows "\<exists>t :: (('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm.
     (\<exists>\<C> \<tau>. has_type \<C> t \<tau>) \<and> \<not> SN t"
 proof -
   have "has_type \<C> (Abs \<bool> (Bound 0 \<bool>)) (TyFun \<bool> \<bool>)"
@@ -1238,7 +1238,7 @@ proof -
     show "has_type \<C> (open_bound 0 \<bool> (Free x \<bool>) (Bound 0 \<bool>)) \<bool>"
       by (simp add: has_type.Free)
   qed
-  moreover have "\<not> SN (Abs \<bool> (Bound 0 \<bool>) :: (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) preterm)"
+  moreover have "\<not> SN (Abs \<bool> (Bound 0 \<bool>) :: (('\<Sigma>\<^sub>t\<^sub>y, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V>) lpreterm)"
     by (rule not_SN_if_beta_reduce_self[OF beta_reduce_Abs_Abs_if_finite_vars[OF fin_vars]])
   ultimately show ?thesis
     by blast

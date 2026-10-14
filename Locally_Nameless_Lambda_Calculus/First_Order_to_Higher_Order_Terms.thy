@@ -22,16 +22,16 @@ text \<open>First-order terms carry no type information, so the free variables p
   annotated according to an externally supplied type environment \<open>\<F>\<close> for first-order variable
   names.\<close>
 
-primrec foterm_to_hoterm :: "('f \<Rightarrow> '\<tau>) \<Rightarrow> ('c, 'f) Term.term \<Rightarrow> ('\<tau>, 'c, 'f) LNLC_Term.preterm"  where
+primrec foterm_to_hoterm :: "('f \<Rightarrow> '\<tau>) \<Rightarrow> ('c, 'f) Term.term \<Rightarrow> ('\<tau>, 'c, 'f) LNLC_Term.lpreterm"  where
   "foterm_to_hoterm \<F> (Term.Var x) = Free x (\<F> x)" |
   "foterm_to_hoterm \<F> (Term.Fun f ts) = foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) ts)"
 
 lemma
-  fixes z :: "('\<tau>, 'c, 'f) LNLC_Term.preterm"
+  fixes z :: "('\<tau>, 'c, 'f) LNLC_Term.lpreterm"
   assumes "\<And>x y. App x y \<noteq> z"
   shows "inj (foldl App z)"
 proof (rule injI)
-  fix xs ys :: "('\<tau>, 'c, 'f) LNLC_Term.preterm list"
+  fix xs ys :: "('\<tau>, 'c, 'f) LNLC_Term.lpreterm list"
   assume "foldl App z xs = foldl App z ys"
   thus "xs = ys"
     using assms
@@ -63,7 +63,7 @@ next
       by simp
     then show ?thesis ..
   next
-    fix t\<^sub>1 t\<^sub>2 :: "('\<tau>, 'c, 'f) LNLC_Term.preterm"
+    fix t\<^sub>1 t\<^sub>2 :: "('\<tau>, 'c, 'f) LNLC_Term.lpreterm"
     have "foterm_to_hoterm \<F> (Term.Fun f (arg # args)) =
       foldl App (Const f [] []) (foterm_to_hoterm \<F> arg # map (foterm_to_hoterm \<F>) args)"
       unfolding foterm_to_hoterm.simps
@@ -87,7 +87,7 @@ lemma inj_on_foterm_to_hoterm:
   shows "inj_on (foterm_to_hoterm \<F>) A"
 proof (rule inj_onI)
   fix s and t :: "('c, 'f) Term.term"
-  assume "foterm_to_hoterm \<F> s = (foterm_to_hoterm \<F> t :: ('\<tau>, 'c, 'f) preterm)"
+  assume "foterm_to_hoterm \<F> s = (foterm_to_hoterm \<F> t :: ('\<tau>, 'c, 'f) lpreterm)"
   then show "s = t"
   proof (induction s arbitrary: t rule: Term.term.induct)
     case Var\<^sub>s: (Var x\<^sub>s)
@@ -101,7 +101,7 @@ proof (rule inj_onI)
       then have False
         using Var\<^sub>s foterm_to_hoterm_Fun_eq_Const_or_App
         by (metis foterm_to_hoterm.simps(1)
-            preterm.distinct(1,11))
+            lpreterm.distinct(1,11))
       then show ?thesis ..
     qed
   next
@@ -113,24 +113,24 @@ proof (rule inj_onI)
         using Fun\<^sub>s
         by (metis foterm_to_hoterm.simps(1)
             foterm_to_hoterm_Fun_eq_Const_or_App
-            preterm.distinct(1,11))
+            lpreterm.distinct(1,11))
       then show ?thesis ..
     next
       case Fun\<^sub>t: (Fun f\<^sub>t args\<^sub>t)
-      have "foterm_to_hoterm \<F> (Term.Fun f\<^sub>s args\<^sub>s) = (foterm_to_hoterm \<F> (Term.Fun f\<^sub>t args\<^sub>t) :: ('\<tau>, 'c, 'f) preterm)"
+      have "foterm_to_hoterm \<F> (Term.Fun f\<^sub>s args\<^sub>s) = (foterm_to_hoterm \<F> (Term.Fun f\<^sub>t args\<^sub>t) :: ('\<tau>, 'c, 'f) lpreterm)"
         unfolding Fun\<^sub>s.prems Fun\<^sub>t ..
 
       hence "foldl App (Const f\<^sub>s [] []) (map (foterm_to_hoterm \<F>) args\<^sub>s) =
-        (foldl App (Const f\<^sub>t [] []) (map (foterm_to_hoterm \<F>) args\<^sub>t) :: ('\<tau>, 'c, 'f) preterm)"
+        (foldl App (Const f\<^sub>t [] []) (map (foterm_to_hoterm \<F>) args\<^sub>t) :: ('\<tau>, 'c, 'f) lpreterm)"
         by simp
 
-      hence "f\<^sub>s = f\<^sub>t" and "map (foterm_to_hoterm \<F>) args\<^sub>s = (map (foterm_to_hoterm \<F>) args\<^sub>t :: ('\<tau>, 'c, 'f) preterm list)"
+      hence "f\<^sub>s = f\<^sub>t" and "map (foterm_to_hoterm \<F>) args\<^sub>s = (map (foterm_to_hoterm \<F>) args\<^sub>t :: ('\<tau>, 'c, 'f) lpreterm list)"
         by simp_all
 
       hence "args\<^sub>s = args\<^sub>t"
       proof (elim list.inj_map_strong[rotated])
         show "\<And>z za. z \<in> set args\<^sub>s \<Longrightarrow> za \<in> set args\<^sub>t \<Longrightarrow>
-          foterm_to_hoterm \<F> z = (foterm_to_hoterm \<F> za :: ('\<tau>, 'c, 'f) preterm) \<Longrightarrow> z = za"
+          foterm_to_hoterm \<F> z = (foterm_to_hoterm \<F> za :: ('\<tau>, 'c, 'f) lpreterm) \<Longrightarrow> z = za"
           using Fun\<^sub>s.IH by metis
       qed
 
@@ -141,7 +141,7 @@ proof (rule inj_onI)
   qed
 qed
 
-inductive eff_first_order :: "('f \<Rightarrow> '\<tau>) \<Rightarrow> ('\<tau>, 'c, 'f) preterm \<Rightarrow> bool"
+inductive eff_first_order :: "('f \<Rightarrow> '\<tau>) \<Rightarrow> ('\<tau>, 'c, 'f) lpreterm \<Rightarrow> bool"
   for \<F> where
   Const: "eff_first_order \<F> (Const f [] [])" |
   Free: "eff_first_order \<F> (Free x (\<F> x))" |
@@ -149,7 +149,7 @@ inductive eff_first_order :: "('f \<Rightarrow> '\<tau>) \<Rightarrow> ('\<tau>,
     if "eff_first_order \<F> t\<^sub>1" and "is_Const (head t\<^sub>1)" and "eff_first_order \<F> t\<^sub>2"
 
 lemma eff_first_orderE_foldl_App:
-  fixes t :: "('\<tau>, 'c, 'f) preterm"
+  fixes t :: "('\<tau>, 'c, 'f) lpreterm"
   assumes "eff_first_order \<F> t"
   shows "is_Const t \<or> is_Free t \<or>
     (\<exists>xs. (\<forall>x \<in> set xs. eff_first_order \<F> x) \<and> t = foldl App (head t) xs)"
@@ -176,10 +176,10 @@ next
     assume "is_Free t\<^sub>1"
     hence False
       using App.hyps
-      by (metis head.simps(2) is_Free_def preterm.distinct_disc(1))
+      by (metis head.simps(2) is_Free_def lpreterm.distinct_disc(1))
     thus ?thesis ..
   next
-    fix xs :: "('\<tau>, 'c, 'f) preterm list"
+    fix xs :: "('\<tau>, 'c, 'f) lpreterm list"
     assume "\<forall>x\<in>set xs. eff_first_order \<F> x" and "t\<^sub>1 = foldl App (head t\<^sub>1) xs"
     show ?thesis
     proof (intro exI conjI ballI)
@@ -217,7 +217,7 @@ proof -
     case (Fun g ys)
     obtain y ys' where "ys = ys' @ [y]"
       using Fun.prems[simplified]
-      by (metis foldl_Nil list.simps(8) preterm.distinct(5) rev_exhaust)
+      by (metis foldl_Nil list.simps(8) lpreterm.distinct(5) rev_exhaust)
 
     show ?case
       using Fun.prems[unfolded \<open>ys = ys' @ [y]\<close>, simplified]
@@ -230,15 +230,15 @@ lemma head_foldl_App[simp]: "head (foldl App x xs) = head x"
   by (induction xs arbitrary: x rule: rev_induct) simp_all
 
 lemma
-  "bij_betw (foterm_to_hoterm \<F>) UNIV {t :: ('\<tau>, 'c, 'f) preterm. eff_first_order \<F> t}"
+  "bij_betw (foterm_to_hoterm \<F>) UNIV {t :: ('\<tau>, 'c, 'f) lpreterm. eff_first_order \<F> t}"
   unfolding bij_betw_def
 proof (intro conjI)
   show "inj_on (foterm_to_hoterm \<F>) UNIV"
     using inj_on_foterm_to_hoterm .
 next
-  show "range (foterm_to_hoterm \<F>) = {t :: ('\<tau>, 'c, 'f) preterm. eff_first_order \<F> t}"
+  show "range (foterm_to_hoterm \<F>) = {t :: ('\<tau>, 'c, 'f) lpreterm. eff_first_order \<F> t}"
   proof (intro subset_antisym subsetI , unfold mem_Collect_eq)
-    fix t :: "('\<tau>, 'c, 'f) preterm"
+    fix t :: "('\<tau>, 'c, 'f) lpreterm"
     assume "t \<in> range (foterm_to_hoterm \<F>)"
     then obtain t\<^sub>G where "t = foterm_to_hoterm \<F> t\<^sub>G"
       by blast
@@ -250,23 +250,23 @@ next
         by (simp add: eff_first_order.Free)
     next
       case (Fun f xs)
-      hence "eff_first_order \<F> (foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) xs :: ('\<tau>, 'c, 'f) preterm list))"
+      hence "eff_first_order \<F> (foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) xs :: ('\<tau>, 'c, 'f) lpreterm list))"
       proof (induction xs rule: List.rev_induct)
         case Nil
         then show ?case
         by (simp add: eff_first_order.Const)
       next
         case (snoc x xs)
-        have "eff_first_order \<F> (App (foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) xs :: ('\<tau>, 'c, 'f) preterm list))
+        have "eff_first_order \<F> (App (foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) xs :: ('\<tau>, 'c, 'f) lpreterm list))
           (foterm_to_hoterm \<F> x))"
         proof (rule eff_first_order.App)
-          show "eff_first_order \<F> (foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) xs :: ('\<tau>, 'c, 'f) preterm list))"
+          show "eff_first_order \<F> (foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) xs :: ('\<tau>, 'c, 'f) lpreterm list))"
             using snoc by simp
         next
-          show "is_Const (head (foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) xs :: ('\<tau>, 'c, 'f) preterm list)))"
+          show "is_Const (head (foldl App (Const f [] []) (map (foterm_to_hoterm \<F>) xs :: ('\<tau>, 'c, 'f) lpreterm list)))"
             by simp
         next
-          show "eff_first_order \<F> (foterm_to_hoterm \<F> x :: ('\<tau>, 'c, 'f) preterm)"
+          show "eff_first_order \<F> (foterm_to_hoterm \<F> x :: ('\<tau>, 'c, 'f) lpreterm)"
             by (simp add: snoc.prems)
         qed
         thus ?case
@@ -276,7 +276,7 @@ next
         by simp
     qed
   next
-    fix t :: "('\<tau>, 'c, 'f) preterm"
+    fix t :: "('\<tau>, 'c, 'f) lpreterm"
     assume "eff_first_order \<F> t"
     thus "t \<in> range (foterm_to_hoterm \<F>)"
     proof (induction t rule: eff_first_order.induct)
@@ -298,13 +298,13 @@ next
       obtain f :: 'c where "head t\<^sub>1 = Const f [] []"
         by (metis (no_types, opaque_lifting) App.IH(1)
             App.hyps(2) foterm_to_hoterm.simps(1,2)
-            head.simps(1,2) head_foldl_App preterm.disc(2)
+            head.simps(1,2) head_foldl_App lpreterm.disc(2)
             rangeE vars_term_ms.cases)
-      obtain xs :: "('\<tau>, 'c, 'f) preterm list" where
+      obtain xs :: "('\<tau>, 'c, 'f) lpreterm list" where
         "(\<forall>x\<in>set xs. eff_first_order \<F> x)" and "App t\<^sub>1 t\<^sub>2 = foldl App (Const f [] []) xs"
         using eff_first_orderE_foldl_App[of \<F> "App t\<^sub>1 t\<^sub>2"] \<open>head t\<^sub>1 = Const f [] []\<close>
         by (auto simp: App.hyps(1,2,3) eff_first_order.App)
-      then obtain ys :: "('\<tau>, 'c, 'f) preterm list" where
+      then obtain ys :: "('\<tau>, 'c, 'f) lpreterm list" where
         "xs = ys @ [t\<^sub>2]" and "t\<^sub>1 = foldl App (Const f [] []) ys"
         using App_eq_foldl_App_ConsD by metis
       hence "foldl App (Const f [] []) ys \<in> range (foterm_to_hoterm \<F>)"

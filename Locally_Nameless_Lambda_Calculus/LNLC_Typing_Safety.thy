@@ -7,7 +7,7 @@ begin
 context begin
 
 qualified theorem preservation:
-  fixes t t' :: "(_, _, '\<V>) preterm"
+  fixes t t' :: "(_, _, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes typed: "has_type \<C> t \<tau>"
     and reduction: "beta_reduce t t'"

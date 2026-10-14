@@ -67,7 +67,7 @@ proof (induction t\<^sub>1 arbitrary: f xs)
     by auto
 qed simp_all
 
-inductive is_subterm_of :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
+inductive is_subterm_of :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> bool" where
   refl: "is_subterm_of t t" |
   Const: "is_subterm_of s (Const c \<tau>s ts)"
     if "\<exists>t \<in> set ts. is_subterm_of s t" |
@@ -76,7 +76,7 @@ inductive is_subterm_of :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('
   App: "is_subterm_of s (App t\<^sub>1 t\<^sub>2)"
     if "is_subterm_of s t\<^sub>1 \<or> is_subterm_of s t\<^sub>2"
 
-definition is_proper_subterm_of :: "('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> bool" where
+definition is_proper_subterm_of :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> bool" where
   "is_proper_subterm_of s t \<longleftrightarrow> is_subterm_of s t \<and> s \<noteq> t"
 
 lemma is_subterm_of_trans:
@@ -122,7 +122,7 @@ next
 qed
 
 lemma is_subterm_of_antisym:
-  fixes t\<^sub>1 t\<^sub>2 :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t\<^sub>1 t\<^sub>2 :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   shows "is_subterm_of t\<^sub>1 t\<^sub>2 \<Longrightarrow> is_subterm_of t\<^sub>2 t\<^sub>1 \<Longrightarrow> t\<^sub>1 = t\<^sub>2"
   using size_lt_or_eq_if_is_subterm_of[of t\<^sub>1 t\<^sub>2] size_lt_or_eq_if_is_subterm_of[of t\<^sub>2 t\<^sub>1]
   by auto
@@ -152,7 +152,7 @@ text \<open>Prefer the standard names @{thm is_subterm_of.order_antisym is_subte
 
 lemma wfp_is_proper_subterm_of: "wfp is_proper_subterm_of"
 proof (rule wfp_if_convertible_to_nat)
-  fix x y :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fix x y :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assume "is_proper_subterm_of x y"
   thus "size x < size y"
     using size_lt_or_eq_if_is_subterm_of

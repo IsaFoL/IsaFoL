@@ -5,7 +5,7 @@ begin
 section \<open>Local confluence of \<open>\<beta>\<close>-reduction\<close>
 
 text \<open>Proof sketch of local confluence (weak confluence) of \<^const>\<open>beta_reduce\<close>: any two one-step
-  reducts of a preterm can be joined by finitely many reduction steps. Together with strong
+  reducts of a \<open>\<lambda>\<close>-preterm can be joined by finitely many reduction steps. Together with strong
   normalization of the well-typed fragment and Newman's lemma, this would yield confluence of that
   fragment.
 
@@ -22,7 +22,7 @@ text \<open>Proof sketch of local confluence (weak confluence) of \<^const>\<ope
 subsection \<open>Congruence rules for \<open>beta_reduce\<^sup>*\<^sup>*\<close>\<close>
 
 lemma beta_reduce_rtrancl_App_left:
-  fixes t t' u :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t t' u :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes "beta_reduce\<^sup>*\<^sup>* t t'" and "locally_closed u"
   shows "beta_reduce\<^sup>*\<^sup>* (App t u) (App t' u)"
   using assms(1)
@@ -38,7 +38,7 @@ next
 qed
 
 lemma beta_reduce_rtrancl_App_right:
-  fixes t u u' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t u u' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes "beta_reduce\<^sup>*\<^sup>* u u'" and "locally_closed t"
   shows "beta_reduce\<^sup>*\<^sup>* (App t u) (App t u')"
   using assms(1)
@@ -57,7 +57,7 @@ text \<open>To transport a reduction chain of an opened body back under its bind
   chosen fresh free variable at the corresponding de Bruijn index.\<close>
 
 primrec close_free ::
-  "nat \<Rightarrow> '\<tau> \<Rightarrow> '\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) preterm" where
+  "nat \<Rightarrow> '\<tau> \<Rightarrow> '\<V> \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) lpreterm \<Rightarrow> ('\<tau>, '\<Sigma>, '\<V>) lpreterm" where
   "close_free n \<tau> x (Const c \<tau>s ts) = Const c \<tau>s ts"
 | "close_free n \<tau> x (Free y \<tau>\<^sub>y) = (if x = y \<and> \<tau> = \<tau>\<^sub>y then Bound n \<tau> else Free y \<tau>\<^sub>y)"
 | "close_free n \<tau> x (Bound k \<sigma>) = Bound k \<sigma>"
@@ -87,7 +87,7 @@ lemma open_bound_close_free:
   by (induction t arbitrary: n) (auto elim: locally_closed_at.cases simp: list.pred_set)
 
 lemma beta_reduce_Abs_close_free:
-  fixes s s' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes s s' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and red: "beta_reduce s s'"
   shows "beta_reduce
@@ -110,7 +110,7 @@ proof (rule beta_reduce.Abs[where \<X> = "{|x|}"])
 qed
 
 lemma beta_reduce_rtrancl_Abs_close_free:
-  fixes s s' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes s s' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and reds: "beta_reduce\<^sup>*\<^sup>* s s'"
   shows "beta_reduce\<^sup>*\<^sup>*
@@ -128,7 +128,7 @@ qed
 
 
 lemma beta_reduce_rtrancl_Abs:
-  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t t' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes opened: "\<And>x. x |\<notin>| \<X> \<Longrightarrow> beta_reduce\<^sup>*\<^sup>*
     (open_bound 0 \<tau> (Free x \<tau>) t) (open_bound 0 \<tau> (Free x \<tau>) t')"
@@ -152,7 +152,7 @@ text \<open>Lifting a reduction chain of a parameter into the constant requires 
   closure of the updated parameter list along the chain (via \<open>locally_closed_if_beta_reduce\<close>).\<close>
 
 lemma beta_reduce_rtrancl_Const:
-  fixes ts :: "('\<tau>, '\<Sigma>, '\<V>) preterm list"
+  fixes ts :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm list"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
   assumes "\<forall>t \<in> set ts. locally_closed t" and "i < length ts" and "beta_reduce\<^sup>*\<^sup>* (ts ! i) t'"
   shows "beta_reduce\<^sup>*\<^sup>* (Const c \<tau>s ts) (Const c \<tau>s (ts[i := t']))"
@@ -195,7 +195,7 @@ text \<open>The occurrences of \<open>x\<close> in \<open>t\<close> are contract
 text \<open>Substitution preserves reduction chains in locally closed terms.\<close>
 
 lemma beta_reduce_rtrancl_subst_free_arg:
-  fixes t u u' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t u u' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and lc_t: "locally_closed t"
     and red: "beta_reduce u u'"
@@ -254,7 +254,7 @@ proof -
 qed
 
 lemma beta_reduce_rtrancl_open_bound_arg:
-  fixes b a a' :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes b a a' :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and body: "body \<tau> b"
     and red: "beta_reduce a a'"
@@ -279,7 +279,7 @@ qed
 subsection \<open>Local confluence\<close>
 
 proposition local_confluence_beta_reduce:
-  fixes t u\<^sub>1 u\<^sub>2 :: "('\<tau>, '\<Sigma>, '\<V>) preterm"
+  fixes t u\<^sub>1 u\<^sub>2 :: "('\<tau>, '\<Sigma>, '\<V>) lpreterm"
   assumes inf_vars: "infinite (UNIV :: '\<V> set)"
     and red\<^sub>1: "beta_reduce t u\<^sub>1" and red\<^sub>2: "beta_reduce t u\<^sub>2"
   shows "\<exists>v. beta_reduce\<^sup>*\<^sup>* u\<^sub>1 v \<and> beta_reduce\<^sup>*\<^sup>* u\<^sub>2 v"
