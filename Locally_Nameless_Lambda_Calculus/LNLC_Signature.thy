@@ -9,14 +9,14 @@ section \<open>Basic Properties of Typing\<close>
 text \<open>Inversion rules for \<^const>\<open>has_type\<close>. Dangling De Bruijn indices are never well typed.\<close>
 
 lemma not_has_type_Bound[simp]: "\<not> has_type \<C> (Bound n \<tau>) \<upsilon>"
-  sorry
+  by (auto elim: has_type.cases)
 
 lemma has_type_Free_iff[simp]: "has_type \<C> (Free x \<tau>) \<upsilon> \<longleftrightarrow> \<upsilon> = \<tau>"
-  sorry
+  by (auto elim: has_type.cases intro: has_type.Free)
 
 lemma has_type_App_iff:
   "has_type \<C> (App t\<^sub>1 t\<^sub>2) \<upsilon> \<longleftrightarrow> (\<exists>\<tau>. has_type \<C> t\<^sub>1 (TyFun \<tau> \<upsilon>) \<and> has_type \<C> t\<^sub>2 \<tau>)"
-  sorry
+  by (auto elim: has_type.cases intro: has_type.App)
 
 text \<open>The type annotations make typing context-free: every \<open>\<lambda>\<close>-preterm has at most one type
   (paper, Section~2.1.2: ``The type arguments carry enough information to enable typing of any
@@ -28,7 +28,34 @@ lemma has_type_unique:
   fixes t :: "(('\<Sigma>\<^sub>t\<^sub>y :: type_signature, '\<V>\<^sub>t\<^sub>y) ty, '\<Sigma>, '\<V> :: infinite) lpreterm"
   assumes "has_type \<C> t \<tau>" and "has_type \<C> t \<upsilon>"
   shows "\<tau> = \<upsilon>"
-  sorry
+  using assms
+proof (induction t \<tau> arbitrary: \<upsilon> rule: has_type.induct)
+  case (Const c \<tau>\<^sub>1s ts \<tau> \<sigma>)
+  from Const.prems show ?case
+    by (cases rule: has_type.cases) (simp_all add: Const.hyps)
+next
+  case (Free x \<tau>)
+  then show ?case
+    by simp
+next
+  case (App t\<^sub>1 \<tau>\<^sub>1 \<tau>\<^sub>2 t\<^sub>2)
+  from App.prems obtain \<tau>\<^sub>1' where "has_type \<C> t\<^sub>1 (TyFun \<tau>\<^sub>1' \<upsilon>)"
+    by (auto simp: has_type_App_iff)
+  then show ?case
+    using App.IH(1) by fastforce
+next
+  case (Abs t \<tau>\<^sub>1 \<tau>\<^sub>2 \<X>)
+  from Abs.prems obtain \<Y> \<upsilon>\<^sub>2 where
+    \<upsilon>_eq: "\<upsilon> = TyFun \<tau>\<^sub>1 \<upsilon>\<^sub>2" and
+    opened: "\<And>x. x |\<notin>| \<Y> \<Longrightarrow> has_type \<C> (open_bound 0 \<tau>\<^sub>1 (Free x \<tau>\<^sub>1) t) \<upsilon>\<^sub>2"
+    by (cases rule: has_type.cases) auto
+  obtain x :: '\<V> where "x |\<notin>| \<X> |\<union>| \<Y>"
+    using ex_new_if_finite[OF infinite_UNIV finite_fset] by blast
+  then have "\<tau>\<^sub>2 = \<upsilon>\<^sub>2"
+    using Abs.IH opened by blast
+  then show ?case
+    using \<upsilon>_eq by simp
+qed
 
 
 section \<open>Signatures\<close>
